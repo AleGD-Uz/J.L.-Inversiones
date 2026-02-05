@@ -255,8 +255,8 @@ const GlassCard = ({ children, className = "", onClick }) => (
 );
 
 const GlassButton = ({ children, onClick, variant = "primary", className = "", disabled = false, title = "", type = "button", form }) => {
-  // Aumentado el padding para mejor tacto en móviles
-  const baseStyle = "px-4 py-3 md:py-2 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg select-none touch-manipulation";
+  // AJUSTE MOVIL: Padding reducido para simular zoom out
+  const baseStyle = "px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg select-none touch-manipulation text-xs md:text-sm";
   const variants = {
     primary: "bg-gradient-to-r from-orange-500 to-pink-600 text-white hover:shadow-orange-500/30 border border-white/20",
     secondary: "bg-white/50 text-slate-700 hover:bg-white/80 border border-white/40 backdrop-blur-md",
@@ -278,7 +278,8 @@ const Badge = ({ children, type = "neutral" }) => {
     danger: "bg-red-100/60 text-red-800 border border-red-200/50",
     info: "bg-blue-100/60 text-blue-800 border border-blue-200/50"
   };
-  return <span className={`px-2 py-0.5 rounded-lg text-[10px] md:text-xs font-bold backdrop-blur-sm whitespace-nowrap ${styles[type]}`}>{children}</span>;
+  // AJUSTE MOVIL: Texto más pequeño
+  return <span className={`px-1.5 py-0.5 md:px-2 md:py-0.5 rounded-lg text-[9px] md:text-xs font-bold backdrop-blur-sm whitespace-nowrap ${styles[type]}`}>{children}</span>;
 };
 
 const PriceDisplay = ({ amount = 0, className = "", exchangeRate, size="normal", align="left" }) => {
@@ -287,11 +288,12 @@ const PriceDisplay = ({ amount = 0, className = "", exchangeRate, size="normal",
     const formattedBs = new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'VES' }).format(safeAmount * safeRate);
     const formattedUsd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(safeAmount);
     const alignClass = align === 'right' ? 'text-right' : (align === 'center' ? 'text-center' : 'text-left');
-    const textSize = size === 'large' ? 'text-xl md:text-2xl' : (size === 'small' ? 'text-sm' : 'text-base');
+    // AJUSTE MOVIL: Tamaños ajustados
+    const textSize = size === 'large' ? 'text-lg md:text-2xl' : (size === 'small' ? 'text-xs' : 'text-sm md:text-base');
     return (
         <div className={`${className} ${alignClass}`}>
             <div className={`font-bold text-slate-800 leading-none ${textSize}`}>{formattedUsd}</div>
-            <div className="text-[10px] md:text-xs text-slate-500 font-mono mt-0.5">{formattedBs}</div>
+            <div className="text-[9px] md:text-xs text-slate-500 font-mono mt-0.5">{formattedBs}</div>
         </div>
     );
 };
@@ -313,23 +315,23 @@ const PeriodNavigator = ({ currentDate, setCurrentDate, viewMode, setViewMode })
     };
 
     const formatDate = () => {
-        if (viewMode === 'daily') return currentDate.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }); // Formato más corto para móvil
+        if (viewMode === 'daily') return currentDate.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }); 
         else if (viewMode === 'monthly') return currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
         return 'Rango';
     };
 
     return (
-        <div className="flex flex-col md:flex-row gap-4 bg-white/50 p-4 rounded-2xl border border-white/40 shadow-sm mb-6 items-center justify-between">
+        <div className="flex flex-col md:flex-row gap-4 bg-white/50 p-3 md:p-4 rounded-2xl border border-white/40 shadow-sm mb-6 items-center justify-between">
             <div className="flex bg-slate-200/50 rounded-xl p-1 w-full md:w-auto">
                 {[{id: 'daily', label: 'Día'}, {id: 'monthly', label: 'Mes'}, {id: 'range', label: 'Rango'}].map(m => (
-                    <button key={m.id} onClick={() => setViewMode(m.id)} className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === m.id ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{m.label}</button>
+                    <button key={m.id} onClick={() => setViewMode(m.id)} className={`flex-1 md:flex-none px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${viewMode === m.id ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{m.label}</button>
                 ))}
             </div>
             {viewMode !== 'range' && (
-                <div className="flex items-center gap-4 bg-white/60 px-4 py-2 rounded-xl border border-white/50 w-full md:w-auto justify-between md:justify-center">
-                    <button onClick={handlePrev} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"><ChevronLeft size={20}/></button>
-                    <div className="text-center min-w-[120px]"><span className="block font-black text-slate-800 capitalize text-lg leading-none">{formatDate()}</span></div>
-                    <button onClick={handleNext} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"><ChevronRight size={20}/></button>
+                <div className="flex items-center gap-4 bg-white/60 px-3 py-1.5 md:px-4 md:py-2 rounded-xl border border-white/50 w-full md:w-auto justify-between md:justify-center">
+                    <button onClick={handlePrev} className="p-1.5 md:p-2 hover:bg-slate-100 rounded-lg text-slate-500"><ChevronLeft size={18}/></button>
+                    <div className="text-center min-w-[100px] md:min-w-[120px]"><span className="block font-black text-slate-800 capitalize text-base md:text-lg leading-none">{formatDate()}</span></div>
+                    <button onClick={handleNext} className="p-1.5 md:p-2 hover:bg-slate-100 rounded-lg text-slate-500"><ChevronRight size={18}/></button>
                 </div>
             )}
         </div>
@@ -338,14 +340,14 @@ const PeriodNavigator = ({ currentDate, setCurrentDate, viewMode, setViewMode })
 
 const DateRangeToolbar = ({ startDate, setStartDate, endDate, setEndDate, onDownloadPdf, title = "Filtrar por Fecha" }) => (
     <div className="flex flex-col md:flex-row gap-3 bg-white/50 p-3 rounded-2xl border border-white/40 shadow-sm mb-4 items-center">
-        <div className="flex items-center gap-2 text-sm text-slate-600 whitespace-nowrap"><Calendar size={16} className="text-orange-500"/> <span className="hidden md:inline font-medium">{title}:</span></div>
+        <div className="flex items-center gap-2 text-xs md:text-sm text-slate-600 whitespace-nowrap"><Calendar size={14} className="text-orange-500"/> <span className="hidden md:inline font-medium">{title}:</span></div>
         <div className="flex gap-2 w-full md:w-auto">
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-white/80 border border-slate-200 rounded-lg px-2 py-2 text-xs w-full focus:outline-none focus:border-orange-400" />
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-white/80 border border-slate-200 rounded-lg px-2 py-1.5 md:py-2 text-xs w-full focus:outline-none focus:border-orange-400" />
             <span className="text-slate-400 py-2">-</span>
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-white/80 border border-slate-200 rounded-lg px-2 py-2 text-xs w-full focus:outline-none focus:border-orange-400" />
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-white/80 border border-slate-200 rounded-lg px-2 py-1.5 md:py-2 text-xs w-full focus:outline-none focus:border-orange-400" />
         </div>
         <div className="flex gap-2 w-full md:w-auto">
-            {onDownloadPdf && (<GlassButton variant="secondary" onClick={onDownloadPdf} className="flex-1 md:w-auto text-xs py-2 h-full"><Download size={14}/> <span className="inline">PDF</span></GlassButton>)}
+            {onDownloadPdf && (<GlassButton variant="secondary" onClick={onDownloadPdf} className="flex-1 md:w-auto text-xs py-1.5 md:py-2 h-full"><Download size={14}/> <span className="inline">PDF</span></GlassButton>)}
             <button onClick={() => { setStartDate(''); setEndDate(''); }} className="text-xs text-slate-400 hover:text-red-500 underline whitespace-nowrap px-2">Limpiar</button>
         </div>
     </div>
@@ -353,8 +355,8 @@ const DateRangeToolbar = ({ startDate, setStartDate, endDate, setEndDate, onDown
 
 const AdvancedToolbar = ({ searchQuery, setSearchQuery, sortConfig, setSortConfig, sortOptions = [], placeholder = "Buscar..." }) => (
     <div className="flex flex-col md:flex-row gap-3 bg-white/50 p-3 rounded-2xl border border-white/40 shadow-sm mb-4">
-        <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} /><input type="text" placeholder={placeholder} className="pl-10 pr-4 py-3 md:py-2 rounded-xl border border-slate-200 w-full focus:outline-none focus:ring-2 focus:ring-orange-500/50 bg-white/80 text-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
-        {sortOptions.length > 0 && (<div className="flex items-center gap-2 bg-white/80 px-3 py-1 rounded-xl border border-slate-200 overflow-x-auto"><span className="text-slate-400 hidden md:block"><Filter size={16}/></span><select className="bg-transparent py-2 text-sm text-slate-700 focus:outline-none cursor-pointer w-full md:w-auto" value={sortConfig.key} onChange={(e) => setSortConfig({...sortConfig, key: e.target.value})}>{sortOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select><button onClick={() => setSortConfig({...sortConfig, direction: sortConfig.direction === 'asc' ? 'desc' : 'asc'})} className="p-2 hover:bg-slate-100 rounded text-slate-500" title={sortConfig.direction === 'asc' ? "Ascendente" : "Descendente"}>{sortConfig.direction === 'asc' ? <SortAsc size={18}/> : <SortDesc size={18}/>}</button></div>)}
+        <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input type="text" placeholder={placeholder} className="pl-9 pr-4 py-2 md:py-2 rounded-xl border border-slate-200 w-full focus:outline-none focus:ring-2 focus:ring-orange-500/50 bg-white/80 text-xs md:text-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+        {sortOptions.length > 0 && (<div className="flex items-center gap-2 bg-white/80 px-3 py-1 rounded-xl border border-slate-200 overflow-x-auto"><span className="text-slate-400 hidden md:block"><Filter size={16}/></span><select className="bg-transparent py-2 text-xs md:text-sm text-slate-700 focus:outline-none cursor-pointer w-full md:w-auto" value={sortConfig.key} onChange={(e) => setSortConfig({...sortConfig, key: e.target.value})}>{sortOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select><button onClick={() => setSortConfig({...sortConfig, direction: sortConfig.direction === 'asc' ? 'desc' : 'asc'})} className="p-2 hover:bg-slate-100 rounded text-slate-500" title={sortConfig.direction === 'asc' ? "Ascendente" : "Descendente"}>{sortConfig.direction === 'asc' ? <SortAsc size={16}/> : <SortDesc size={16}/>}</button></div>)}
     </div>
 );
 
@@ -365,16 +367,16 @@ const ProductCard = ({ product, ingredients, addToCart, exchangeRate, getProduct
   return (
     <GlassCard onClick={() => setIsExpanded(!isExpanded)} className={`group relative overflow-hidden transition-all duration-300 hover:shadow-orange-500/20 cursor-pointer select-none touch-manipulation ${isOutOfStock ? 'opacity-60 grayscale' : ''} ${isExpanded ? 'ring-2 ring-orange-400 scale-[1.02] z-10' : 'active:scale-95'}`}>
       <div className="absolute top-0 right-0 p-2 z-10"><Badge type={isOutOfStock ? "danger" : "success"}>{isOutOfStock ? "Agotado" : `${maxStock} disp`}</Badge></div>
-      <div className="p-4 flex flex-col items-center text-center h-full">
-        <div className="text-5xl mb-3 drop-shadow-md">{String(product.image)}</div>
-        <h3 className="font-bold text-slate-800 leading-tight mb-2 line-clamp-1">{product.name}</h3>
+      <div className="p-3 md:p-4 flex flex-col items-center text-center h-full">
+        <div className="text-4xl md:text-5xl mb-3 drop-shadow-md">{String(product.image)}</div>
+        <h3 className="font-bold text-slate-800 leading-tight mb-2 line-clamp-1 text-sm md:text-base">{product.name}</h3>
         <div className={`w-full text-left bg-orange-50/60 rounded-xl mb-3 overflow-hidden border border-orange-100/50 ${isExpanded ? 'p-3' : 'p-2 h-0 opacity-0 hidden'}`}>{isExpanded && (<div><p className="text-[10px] font-bold text-orange-400 uppercase tracking-wider mb-2">Ingredientes:</p><ul className="text-xs text-slate-600 space-y-1">{product.recipe?.map((r, idx) => { 
             const ing = ingredients.find(i => normalizeId(i.id) === normalizeId(r.ingredientId)); 
             return ing ? <li key={idx} className="flex justify-between border-b border-orange-200/30 pb-1"><span>{ing.name}</span><span className="font-mono font-bold text-orange-600">x{r.qty}</span></li> : <li key={idx} className="text-red-400">Ingrediente no encontrado ({r.ingredientId})</li>; 
         })}</ul></div>)}</div>
         <div className="mb-2 text-slate-300">{isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</div>
         <div className="mb-4"><PriceDisplay amount={product.price} exchangeRate={exchangeRate} size="large" align="center" /></div>
-        <GlassButton onClick={(e) => { e.stopPropagation(); addToCart(product); }} disabled={isOutOfStock} className="w-full mt-auto text-sm py-2">{isExpanded ? 'Añadir' : 'Agregar'}</GlassButton>
+        <GlassButton onClick={(e) => { e.stopPropagation(); addToCart(product); }} disabled={isOutOfStock} className="w-full mt-auto text-xs md:text-sm py-1.5 md:py-2">{isExpanded ? 'Añadir' : 'Agregar'}</GlassButton>
       </div>
     </GlassCard>
   );
@@ -462,20 +464,20 @@ const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, curr
             <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="bg-indigo-500 text-white p-4 rounded-xl shadow-lg shadow-indigo-200">
                     <p className="text-indigo-200 text-xs font-bold uppercase">Total</p>
-                    <p className="text-2xl font-black">{totalUsers}</p>
+                    <p className="text-xl md:text-2xl font-black">{totalUsers}</p>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                     <p className="text-slate-400 text-xs font-bold uppercase">Admin</p>
-                    <p className="text-2xl font-black text-slate-800">{adminCount}</p>
+                    <p className="text-xl md:text-2xl font-black text-slate-800">{adminCount}</p>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                     <p className="text-slate-400 text-xs font-bold uppercase">Staff</p>
-                    <p className="text-2xl font-black text-slate-800">{employeeCount}</p>
+                    <p className="text-xl md:text-2xl font-black text-slate-800">{employeeCount}</p>
                 </div>
             </div>
 
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <h3 className="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2">
                     <Users className="text-indigo-500"/> Personal
                 </h3>
                 <GlassButton onClick={() => setIsCreating(!isCreating)} variant={isCreating ? "secondary" : "primary"}>
@@ -830,6 +832,7 @@ export default function App() {
   const filterAndSort = (data, fieldsToCheck = [], useDateFilter = false, usePeriodFilter = false) => { let processed = [...data]; if (useDateFilter) processed = processed.filter(item => isWithinRange(item.date)); if (usePeriodFilter) processed = processed.filter(item => isWithinPeriod(item.date)); if (searchQuery) { const q = searchQuery.toLowerCase(); processed = processed.filter(item => fieldsToCheck.some(field => item[field] && String(item[field]).toLowerCase().includes(q))); } processed.sort((a, b) => { let valA = a[sortConfig.key], valB = b[sortConfig.key]; if (sortConfig.key === 'date' || sortConfig.key === 'id') { valA = new Date(a.date || 0).getTime(); valB = new Date(b.date || 0).getTime(); } if (typeof valA === 'string') { valA = valA.toLowerCase(); valB = valB.toLowerCase(); } return sortConfig.direction === 'asc' ? (valA < valB ? -1 : 1) : (valA > valB ? -1 : 1); }); return processed; };
   const callGeminiAI = async (prompt, title) => { setAiModal({ show: true, title, content: '', loading: true }); try { const apiKey = "AIzaSyDQfb1krfzT_4LKyqPmYH-7zXedNd-hzHc"; const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }); const data = await response.json(); setAiModal(prev => ({ ...prev, loading: false, content: data.candidates?.[0]?.content?.parts?.[0]?.text || "Sin respuesta." })); } catch (error) { setAiModal(prev => ({ ...prev, loading: false, content: `Error: ${error.message}.` })); } };
 
+  // --- RESTAURACIÓN DE BACKUP MEJORADA (BORRA DATOS ANTIGUOS) ---
   const handleImportData = (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -839,25 +842,48 @@ export default function App() {
               const parsedData = JSON.parse(event.target.result);
               setConfirmation({
                   show: true,
-                  message: `¿Restaurar copia? Se sobrescribirán/añadirán ${Object.keys(parsedData).length} categorías de datos.`,
+                  message: `⚠ ATENCIÓN: Esta acción BORRARÁ TODOS los datos actuales y restaurará los del archivo. ¿Continuar?`,
                   onConfirm: async () => {
                       setConfirmation({ show: false });
                       setIsRestoring(true); 
-                      setRestoreStatus("Iniciando restauración...");
+                      setRestoreStatus("Limpiando base de datos...");
                       
                       try {
                           const collectionsMap = { ingredients: 'ingredients', products: 'products', salesHistory: 'sales', stockHistory: 'stock_history', otherExpenses: 'other_expenses', pendingOrders: 'pending_orders' };
+                          
+                          // 1. Borrar datos existentes
+                          for (const colName of Object.values(collectionsMap)) {
+                              const q = query(collection(db, 'artifacts', currentAppId, 'public', 'data', colName));
+                              const snapshot = await getDocs(q);
+                              if (!snapshot.empty) {
+                                  const batch = writeBatch(db);
+                                  snapshot.docs.forEach(doc => batch.delete(doc.ref));
+                                  await batch.commit();
+                              }
+                          }
+
+                          // 2. Insertar nuevos datos
                           let totalItems = 0;
                           for (const [jsonKey, collectionName] of Object.entries(collectionsMap)) {
                               if (parsedData[jsonKey] && Array.isArray(parsedData[jsonKey])) {
                                   setRestoreStatus(`Restaurando ${jsonKey}...`);
                                   const items = parsedData[jsonKey];
-                                  for (const item of items) {
-                                      if (item.id) { await saveToDB(collectionName, item, item.id); totalItems++; }
+                                  const batchSize = 400; // Firestore batch limit is 500
+                                  for (let i = 0; i < items.length; i += batchSize) {
+                                      const chunk = items.slice(i, i + batchSize);
+                                      const batch = writeBatch(db);
+                                      chunk.forEach(item => {
+                                           if (item.id) {
+                                               const ref = doc(db, 'artifacts', currentAppId, 'public', 'data', collectionName, item.id.toString());
+                                               batch.set(ref, item);
+                                               totalItems++;
+                                           }
+                                      });
+                                      await batch.commit();
                                   }
                               }
                           }
-                          showNotification(`Restauración completada: ${totalItems} registros importados.`, "success");
+                          showNotification(`Restauración completada: Base de datos limpia y ${totalItems} registros importados.`, "success");
                       } catch (err) { console.error(err); showNotification("Error crítico al restaurar: " + err.message, "error"); } finally { setIsRestoring(false); setRestoreStatus(""); }
                   }
               });
@@ -889,7 +915,8 @@ export default function App() {
   if (!user) { return <LoginScreen onLogin={handleLogin} />; }
 
   return (
-    <div className="flex h-[100dvh] bg-slate-100 font-sans text-slate-800 overflow-hidden">
+    // AJUSTE MOVIL: Clase 'text-xs md:text-base' reduce el tamaño de fuente base en móviles
+    <div className="flex h-[100dvh] bg-slate-100 font-sans text-slate-800 overflow-hidden text-xs md:text-sm lg:text-base">
       <aside className={`fixed z-40 inset-y-0 left-0 w-64 bg-slate-900 text-white transform transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl flex flex-col`}>
         <div className="p-6 flex items-center gap-3 border-b border-slate-700/50"><div className="bg-gradient-to-tr from-orange-500 to-pink-500 p-2 rounded-lg"><ChefHat size={24} className="text-white" /></div><div><h1 className="text-xl font-bold tracking-tight">Yuya's</h1></div><button className="md:hidden ml-auto p-2" onClick={() => setIsMobileMenuOpen(false)}><X /></button></div>
         
@@ -956,7 +983,7 @@ export default function App() {
         {/* 1. SECCIÓN DE USUARIOS (ACTUALIZADA) */}<UserManagement appUsers={appUsers} onCreateUser={handleCreateUserSystem} onEditUser={handleEditUserSystem} onDeleteUser={handleDeleteUserSystem} currentUserId={user.uid} />
         
         {/* 2. GESTIÓN DE RESPALDOS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><GlassCard className="p-6 space-y-4 border-l-4 border-blue-500"><div className="flex items-center gap-3 mb-2"><div className="p-2 bg-blue-100 rounded-lg text-blue-600"><Download size={24}/></div><h3 className="font-bold text-lg">Exportar Copia Local</h3></div><p className="text-sm text-slate-600">Descarga un archivo JSON con todos los datos actuales del negocio.</p><GlassButton onClick={handleExportData} variant="info" className="w-full">Descargar Respaldo</GlassButton></GlassCard><GlassCard className="p-6 space-y-4 border-l-4 border-rose-500"><div className="flex items-center gap-3 mb-2"><div className="p-2 bg-rose-100 rounded-lg text-rose-600"><Upload size={24}/></div><h3 className="font-bold text-lg">Restaurar Copia</h3></div><p className="text-sm text-slate-600">⚠ CUIDADO: Esto <b>sobrescribirá/agregará</b> datos a la base de datos en la nube.</p><div className="relative"><input type="file" ref={fileInputRef} onClick={(e) => e.target.value = null} onChange={handleImportData} accept=".json" className="hidden" /><GlassButton onClick={() => fileInputRef.current.click()} variant="danger" disabled={isRestoring} className="w-full justify-center">{isRestoring ? <><Loader2 className="animate-spin" size={16}/> {restoreStatus}</> : "Seleccionar Archivo y Restaurar"}</GlassButton></div></GlassCard></div></div>)}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><GlassCard className="p-6 space-y-4 border-l-4 border-blue-500"><div className="flex items-center gap-3 mb-2"><div className="p-2 bg-blue-100 rounded-lg text-blue-600"><Download size={24}/></div><h3 className="font-bold text-lg">Exportar Copia Local</h3></div><p className="text-sm text-slate-600">Descarga un archivo JSON con todos los datos actuales del negocio.</p><GlassButton onClick={handleExportData} variant="info" className="w-full">Descargar Respaldo</GlassButton></GlassCard><GlassCard className="p-6 space-y-4 border-l-4 border-rose-500"><div className="flex items-center gap-3 mb-2"><div className="p-2 bg-rose-100 rounded-lg text-rose-600"><Upload size={24}/></div><h3 className="font-bold text-lg">Restaurar Copia</h3></div><p className="text-sm text-slate-600">⚠ CUIDADO: Esto <b>BORRARÁ todos los datos actuales</b> antes de restaurar.</p><div className="relative"><input type="file" ref={fileInputRef} onClick={(e) => e.target.value = null} onChange={handleImportData} accept=".json" className="hidden" /><GlassButton onClick={() => fileInputRef.current.click()} variant="danger" disabled={isRestoring} className="w-full justify-center">{isRestoring ? <><Loader2 className="animate-spin" size={16}/> {restoreStatus}</> : "Seleccionar Archivo y Restaurar"}</GlassButton></div></GlassCard></div></div>)}
       </main>
 
       {/* --- MODALES --- */}
