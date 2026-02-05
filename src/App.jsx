@@ -825,7 +825,7 @@ export default function App() {
       setShowIngredientForm(false); 
   };
 
-  const handleUpdateExchangeRate = (val) => { setExchangeRate(val); if(db) setDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', 'config', 'general'), { exchangeRate: val }); };
+  const handleUpdateExchangeRate = (val) => { if(db) setDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', 'config', 'general'), { exchangeRate: val }); };
   const calculateRecipeCost = (recipe) => { if (!recipe) return 0; return recipe.reduce((total, r) => { const ing = ingredients.find(i => normalizeId(i.id) === normalizeId(r.ingredientId)); return total + (ing ? (ing.cost || 0) * r.qty : 0); }, 0); };
   const isWithinRange = (dateString) => { if (!dateString) return false; if (!startDate && !endDate) return true; const d = new Date(dateString).setHours(0,0,0,0); const start = startDate ? new Date(startDate).setHours(0,0,0,0) : -Infinity; const end = endDate ? new Date(endDate).setHours(23,59,59,999) : Infinity; return d >= start && d <= end; };
   const isWithinPeriod = (dateString) => { if (viewMode === 'range') return isWithinRange(dateString); const d = new Date(dateString); const target = new Date(currentDateView); if (viewMode === 'daily') return d.getDate() === target.getDate() && d.getMonth() === target.getMonth() && d.getFullYear() === target.getFullYear(); else if (viewMode === 'monthly') return d.getMonth() === target.getMonth() && d.getFullYear() === target.getFullYear(); return true; };
