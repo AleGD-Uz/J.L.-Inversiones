@@ -320,7 +320,7 @@ const Badge = ({ children, type = "neutral" }) => {
     return <span className={`px-1.5 py-0.5 md:px-2 md:py-0.5 rounded-lg text-[9px] md:text-xs font-bold backdrop-blur-sm whitespace-nowrap ${styles[type]}`}>{children}</span>;
 };
 
-const PriceDisplay = ({ amount = 0, className = "", exchangeRate, size = "normal", align = "left" }) => {
+const PriceDisplay = ({ amount = 0, className = "", exchangeRate, size = "normal", align = "left", hideSecondary = false }) => {
     const safeAmount = isNaN(amount) ? 0 : amount;
     const safeRate = isNaN(exchangeRate) ? 0 : exchangeRate;
     const formattedBs = new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'VES' }).format(safeAmount * safeRate);
@@ -330,7 +330,7 @@ const PriceDisplay = ({ amount = 0, className = "", exchangeRate, size = "normal
     return (
         <div className={`${className} ${alignClass}`}>
             <div className={`font-bold text-slate-800 leading-none ${textSize}`}>{formattedUsd}</div>
-            <div className="text-[9px] md:text-xs text-slate-500 font-mono mt-0.5">{formattedBs}</div>
+            {!hideSecondary && <div className="text-[9px] md:text-xs text-slate-500 font-mono mt-0.5">{formattedBs}</div>}
         </div>
     );
 };
@@ -775,6 +775,9 @@ export default function App() {
     const [bitacoraFilter, setBitacoraFilter] = useState("Todos");
     const [ivaPercent, setIvaPercent] = useState(0);
     const [tempCost, setTempCost] = useState(0);
+    const [formCurrency, setFormCurrency] = useState('USD');
+    const [isIvaApplied, setIsIvaApplied] = useState(false);
+    const [baseCostBeforeIva, setBaseCostBeforeIva] = useState(0);
     
     // Resetear filtros y orden al cambiar de pestaña para evitar desajustes
     useEffect(() => {
@@ -1099,7 +1102,7 @@ export default function App() {
             id: editingIngredient?.id || generateSecureId(),
             name: fd.get('name'),
             unit: fd.get('unit'),
-            cost: parseFloat(fd.get('cost')) || 0,
+            cost: tempCost || 0,
             stock: parseFloat(fd.get('stock')),
             ivaPercent: ivaPercent,
             minStock: 10
@@ -1342,7 +1345,7 @@ export default function App() {
                                 <div className="flex w-full md:w-auto gap-2">
                                     <GlassButton onClick={() => callGeminiAI(`Tengo ${ingredients.filter(i => i.stock < i.minStock).length} insumos bajos.`, "Compras AI")} variant="secondary" className="flex-1 md:flex-none"><Sparkles size={16} /> AI</GlassButton>
                                     <GlassButton onClick={() => generatePDF('Inventario', ['Nombre', 'Stock', 'Unidad'], filterAndSort(ingredients).map(i => [i.name, i.stock, i.unit]), 'inventario.pdf')} variant="secondary" className="flex-1 md:flex-none"><Download size={16} /> PDF</GlassButton>
-                                    <GlassButton onClick={() => { setEditingIngredient(null); setIvaPercent(0); setTempCost(0); setShowIngredientForm(true); }} className="flex-1 md:flex-none"><Plus size={16} /> Nuevo</GlassButton>
+                                    <GlassButton onClick={() => { setEditingIngredient(null); setIvaPercent(0); setTempCost(0); setFormCurrency('USD'); setIsIvaApplied(false); setBaseCostBeforeIva(0); setShowIngredientForm(true); }} className="flex-1 md:flex-none"><Plus size={16} /> Nuevo</GlassButton>
                                 </div>
                                 <AdvancedToolbar 
                                     searchQuery={searchQuery} 
@@ -1365,10 +1368,10 @@ export default function App() {
                                         <tbody className="divide-y divide-slate-100">{filterAndSort(ingredients, ['name']).map(ing => {
                                             const isAssociated = products.some(p => p.recipe?.some(r => normalizeId(r.ingredientId) === normalizeId(ing.id)));
                                             return (
-                                                <tr key={ing.id}><td className="p-4 font-bold">{ing.name}</td><td className="p-4"><div className="flex flex-col"><PriceDisplay amount={ing.cost || 0} exchangeRate={exchangeRate} size="small" />{ing.ivaPercent > 0 && <span className="text-[9px] text-emerald-600 font-black">+{ing.ivaPercent}% IVA</span>}</div></td><td className="p-4 text-center"><span className={`font-bold ${ing.stock <= ing.minStock ? 'text-red-500' : ''}`}>{ing.stock} {ing.unit}</span></td><td className="p-4 text-center">
+                                                <tr key={ing.id}><td className="p-4 font-bold">{ing.name}</td><td className="p-4"><div className="flex flex-col"><PriceDisplay amount={ing.cost || 0} exchangeRate={exchangeRate} size="small" hideSecondary={true} />{ing.ivaPercent > 0 && <span className="text-[9px] text-emerald-600 font-black">+{ing.ivaPercent}% IVA</span>}</div></td><td className="p-4 text-center"><span className={`font-bold ${ing.stock <= ing.minStock ? 'text-red-500' : ''}`}>{ing.stock} {ing.unit}</span></td><td className="p-4 text-center">
                                                     <div className="flex items-center justify-center gap-2">
                                                         <button onClick={() => { if (isAssociated) { alert("El item ya está agregado."); } else { setConfirmation({ show: true, message: "¿Quieres agregar este producto al catálogo?", onConfirm: () => { setConfirmation({ show: false }); setActiveTab('products'); const suggestedPrice = (ing.cost || 0) * 1.30; setEditingProduct({ name: ing.name, price: Number(suggestedPrice.toFixed(2)), category: '', recipe: [{ ingredientId: ing.id, qty: 1 }] }); setProductIconPreview(null); setProfitMargin(30); setShowProductForm(true); } }); } }} className={`p-3 md:p-2 rounded ${isAssociated ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:bg-slate-100 hover:text-emerald-600'}`} title="Añadir al catálogo"><Utensils size={16} /></button>
-                                                        <button onClick={() => { setEditingIngredient(ing); setIvaPercent(ing.ivaPercent || 0); setTempCost(ing.cost || 0); setShowIngredientForm(true); }} className="p-3 md:p-2 hover:bg-slate-100 rounded text-slate-500 hover:text-yellow-600" title="Editar"><Edit size={16} /></button>
+                                                        <button onClick={() => { setEditingIngredient(ing); setIvaPercent(ing.ivaPercent || 0); setTempCost(ing.cost || 0); setFormCurrency('USD'); setIsIvaApplied(false); setBaseCostBeforeIva(0); setShowIngredientForm(true); }} className="p-3 md:p-2 hover:bg-slate-100 rounded text-slate-500 hover:text-yellow-600" title="Editar"><Edit size={16} /></button>
                                                         <button onClick={() => setConfirmation({
                                                             show: true,
                                                             message: `¿Eliminar "${ing.name}" del inventario?`,
@@ -1402,7 +1405,7 @@ export default function App() {
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-1">
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Costo Unitario {ing.ivaPercent > 0 && <span className="text-emerald-600">+{ing.ivaPercent}%</span>}</p>
-                                                    <PriceDisplay amount={ing.cost || 0} exchangeRate={exchangeRate} size="small" />
+                                                    <PriceDisplay amount={ing.cost || 0} exchangeRate={exchangeRate} size="small" hideSecondary={true} />
                                                 </div>
                                                 <div className="space-y-1 text-right">
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Valor Total</p>
@@ -1420,7 +1423,7 @@ export default function App() {
                                                     <Utensils size={14} /> CATÁLOGO
                                                 </GlassButton>
                                                 <GlassButton 
-                                                    onClick={() => { setEditingIngredient(ing); setIvaPercent(ing.ivaPercent || 0); setTempCost(ing.cost || 0); setShowIngredientForm(true); }}
+                                                    onClick={() => { setEditingIngredient(ing); setIvaPercent(ing.ivaPercent || 0); setTempCost(ing.cost || 0); setFormCurrency('USD'); setIsIvaApplied(false); setBaseCostBeforeIva(0); setShowIngredientForm(true); }}
                                                     variant="secondary" 
                                                     className="flex-1 text-[10px] py-3 text-indigo-600 font-black border-indigo-100"
                                                 >
@@ -1474,18 +1477,49 @@ export default function App() {
             {selectedSale && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-lg p-0 overflow-hidden flex flex-col max-h-[90vh] slide-up"><div className="p-4 bg-slate-50 border-b flex justify-between items-center"><div><h3 className="font-bold text-lg">Detalle Venta</h3></div><button onClick={() => setSelectedSale(null)}><X size={20} /></button></div><div className="p-6 overflow-y-auto"><div className="mb-4"><span className="text-sm text-slate-500">Cliente:</span> <span className="font-bold">{selectedSale.description || "N/A"}</span></div><div className="space-y-2 mb-6">{selectedSale.items.map((item, idx) => (<div key={idx} className="flex justify-between text-sm py-2 border-b"><span>{item.qty}x {item.name}</span><span className="font-bold"><PriceDisplay amount={item.price * item.qty} exchangeRate={exchangeRate} align="right" size="small" /></span></div>))}</div><div className="bg-slate-50 p-4 rounded-xl border border-slate-200"><label className="text-xs font-bold text-slate-500 uppercase">Observaciones</label><textarea className="w-full p-2 mt-2 text-sm border rounded-lg bg-white resize-none" rows="3" value={observationText} onChange={(e) => setObservationText(e.target.value)} placeholder="Añadir nota..."></textarea></div></div><div className="p-4 border-t flex justify-between gap-3 bg-white"><GlassButton variant="info" onClick={() => handleDownloadReceipt(selectedSale)}><Receipt size={16} /> Recibo</GlassButton><GlassButton onClick={() => { handleUpdateObservation(); setSelectedSale(null); }}>Guardar Nota</GlassButton></div></GlassCard></div>)}
             {showIngredientForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto"><h3 className="font-bold mb-4 text-slate-800">{editingIngredient ? 'Editar' : 'Nuevo'} Insumo</h3><form onSubmit={handleSaveIngredient} className="space-y-4"><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre del Insumo</label><input name="name" required placeholder="Ej. Tomate" defaultValue={editingIngredient?.name} className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div><div className="flex gap-4"><div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Stock Inicial</label><input name="stock" type="number" step="any" required placeholder="0.00" defaultValue={editingIngredient?.stock} className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div><div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Unidad</label><input name="unit" required placeholder="Kg, Unid, etc." defaultValue={editingIngredient?.unit} className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div></div>
                             <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Costo Unitario ($)</label>
-                                <div className="flex gap-2">
-                                    <input name="cost" type="number" step="0.01" required placeholder="0.00" value={tempCost} onChange={(e) => setTempCost(parseFloat(e.target.value) || 0)} className="flex-1 p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" />
-                                    <div className="flex flex-col w-20 md:w-24">
-                                        <label className="text-[9px] font-bold text-slate-400 uppercase ml-1">IVA %</label>
-                                        <input type="number" step="any" placeholder="0" value={ivaPercent} onChange={(e) => setIvaPercent(parseFloat(e.target.value) || 0)} className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" />
+                                <div className="flex flex-wrap justify-between items-center gap-2 ml-1 mb-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Costo Unitario ({formCurrency === 'USD' ? '$' : 'Bs'})</label>
+                                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0">
+                                        <button type="button" onClick={() => setFormCurrency('USD')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${formCurrency === 'USD' ? 'bg-white text-yellow-700 shadow-sm' : 'text-slate-400'}`}>$ USD</button>
+                                        <button type="button" onClick={() => setFormCurrency('VES')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${formCurrency === 'VES' ? 'bg-white text-yellow-700 shadow-sm' : 'text-slate-400'}`}>Bs VES</button>
                                     </div>
                                 </div>
+                                <div className="flex gap-2">
+                                    <input 
+                                        name="cost" 
+                                        type="number" 
+                                        step="0.01" 
+                                        required 
+                                        placeholder="0.00" 
+                                        value={formCurrency === 'USD' ? tempCost : (exchangeRate > 0 ? Number((tempCost * exchangeRate).toFixed(2)) : 0)} 
+                                        onChange={(e) => {
+                                            const val = parseFloat(e.target.value) || 0;
+                                            if (formCurrency === 'USD') setTempCost(val);
+                                            else setTempCost(exchangeRate > 0 ? Number((val / exchangeRate).toFixed(6)) : 0);
+                                            setIsIvaApplied(false);
+                                        }} 
+                                        className="flex-1 min-w-0 p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none font-mono text-sm" 
+                                    />
+                                    <div className="flex flex-col w-16 md:w-24 shrink-0 focus-within:z-10">
+                                        <label className="text-[9px] font-bold text-slate-400 uppercase ml-1">IVA %</label>
+                                        <input type="number" step="any" placeholder="0" value={ivaPercent} onChange={(e) => { setIvaPercent(parseFloat(e.target.value) || 0); setIsIvaApplied(false); }} className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none text-sm" />
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-center mt-1 px-1">
+                                    <span className="text-[9px] text-slate-400 font-bold uppercase italic">
+                                        {formCurrency === 'USD' ? `≈ Bs ${ (tempCost * (exchangeRate || 0)).toFixed(2) }` : `≈ $ ${ tempCost.toFixed(2) }`}
+                                    </span>
+                                </div>
                                 {ivaPercent > 0 && (
-                                    <div className="flex justify-between items-center mt-2 p-2 bg-yellow-50 rounded-lg border border-yellow-100 animate-in fade-in slide-in-from-top-1">
-                                        <span className="text-[10px] md:text-xs text-yellow-700 font-bold">Total con IVA: ${ (tempCost * (1 + ivaPercent/100)).toFixed(2) }</span>
-                                        <button type="button" onClick={() => setTempCost(Number((tempCost * (1 + ivaPercent/100)).toFixed(2)))} className="text-[9px] md:text-[10px] bg-yellow-600 text-white px-2 py-1 rounded font-bold hover:bg-yellow-700 transition-colors shadow-sm">APLICAR</button>
+                                    <div className="flex flex-wrap justify-between items-center gap-2 mt-2 p-2 bg-yellow-50 rounded-lg border border-yellow-100 animate-in fade-in slide-in-from-top-1">
+                                        <span className="text-[10px] md:text-xs text-yellow-700 font-bold break-all">
+                                            {isIvaApplied ? `IVA APLICADO: ${ivaPercent}%` : `TOTAL CON IVA: $${(tempCost * (1 + ivaPercent/100)).toFixed(2)}`}
+                                        </span>
+                                        {isIvaApplied ? (
+                                            <button type="button" onClick={() => { setTempCost(baseCostBeforeIva); setIsIvaApplied(false); }} className="text-[9px] md:text-[10px] bg-slate-600 text-white px-2 py-1.5 rounded font-bold hover:bg-slate-700 transition-colors shadow-sm uppercase tracking-tighter whitespace-nowrap">Deshacer</button>
+                                        ) : (
+                                            <button type="button" onClick={() => { setBaseCostBeforeIva(tempCost); setTempCost(Number((tempCost * (1 + ivaPercent/100)).toFixed(2))); setIsIvaApplied(true); }} className="text-[9px] md:text-[10px] bg-yellow-600 text-white px-2 py-1.5 rounded font-bold hover:bg-yellow-700 transition-colors shadow-sm uppercase tracking-tighter whitespace-nowrap">Aplicar</button>
+                                        )}
                                     </div>
                                 )}
                             </div>
