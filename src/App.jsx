@@ -15,6 +15,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     AreaChart, Area
 } from 'recharts';
+import FloatingCalculator from './components/FloatingCalculator';
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp, getApp, getApps } from "firebase/app";
@@ -778,6 +779,13 @@ export default function App() {
     const [formCurrency, setFormCurrency] = useState('USD');
     const [isIvaApplied, setIsIvaApplied] = useState(false);
     const [baseCostBeforeIva, setBaseCostBeforeIva] = useState(0);
+    const [showCalculator, setShowCalculator] = useState(false);
+
+    useEffect(() => {
+        if (!showIngredientForm && !showProductForm) {
+            setShowCalculator(false);
+        }
+    }, [showIngredientForm, showProductForm]);
     
     // Resetear filtros y orden al cambiar de pestaña para evitar desajustes
     useEffect(() => {
@@ -1528,6 +1536,35 @@ export default function App() {
             {showExpenseForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto"><h3 className="font-bold mb-4 text-rose-600">Registrar Gasto Extra</h3><form onSubmit={handleSaveExpense} className="space-y-4"><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Descripción del Gasto</label><input required name="description" placeholder="ej. Luz, Alquiler" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div><div className="flex gap-4"><div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Monto ($)</label><input required name="amount" type="number" step="0.01" placeholder="0.00" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div><div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Categoría</label><input required name="category" placeholder="Seleccionar..." list="cats" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none bg-white" /><datalist id="cats"><option value="Servicios" /><option value="Nómina" /><option value="Mantenimiento" /></datalist></div></div><div className="flex gap-3 mt-6 pt-4 border-t"><GlassButton onClick={() => setShowExpenseForm(false)} variant="secondary" className="flex-1">Cancelar</GlassButton><GlassButton type="submit" variant="expense" className="flex-1">Registrar Gasto</GlassButton></div></form></GlassCard></div>)}
             {confirmation.show && (<div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm"><GlassCard className="p-6 max-w-sm w-full text-center slide-up"><AlertTriangle size={48} className="mx-auto text-amber-500 mb-4" /><h3 className="font-bold text-lg mb-2">{confirmation.message}</h3><div className="flex gap-3 justify-center"><GlassButton variant="secondary" onClick={() => setConfirmation({ show: false })}>Cancelar</GlassButton><GlassButton variant="danger" onClick={confirmation.onConfirm}>Confirmar</GlassButton></div></GlassCard></div>)}
             {aiModal.show && (<div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md"><GlassCard className="w-full max-w-2xl p-0 overflow-hidden flex flex-col max-h-[80vh] slide-up"><div className="p-4 bg-gradient-to-br from-yellow-400 to-yellow-600 text-slate-900 flex justify-between items-center shadow-lg"><h3 className="font-bold flex items-center gap-2 uppercase tracking-wider text-xs md:text-sm"><Sparkles size={18} /> {aiModal.title}</h3><button onClick={() => setAiModal(p => ({ ...p, show: false }))} className="p-1 hover:bg-slate-900/10 rounded-full"><X className="text-slate-900" /></button></div><div className="p-6 overflow-y-auto bg-slate-50 flex-1">{aiModal.loading ? <div className="flex flex-col items-center justify-center py-10 space-y-4"><Loader2 size={40} className="animate-spin text-yellow-500" /><p className="text-slate-500 animate-pulse">Consultando a J.L. Assistant...</p></div> : <div className="prose prose-slate max-w-none text-sm whitespace-pre-wrap">{String(aiModal.content)}</div>}</div>{!aiModal.loading && <div className="p-4 border-t border-slate-200 bg-white text-right shadow-[0_-4px_12px_rgba(0,0,0,0.05)]"><GlassButton onClick={() => setAiModal(p => ({ ...p, show: false }))} variant="primary" className="w-full md:w-auto">Entendido</GlassButton></div>}</GlassCard></div>)}
+            
+            {showCalculator && (showIngredientForm || showProductForm) && (
+                <FloatingCalculator 
+                    onClose={() => setShowCalculator(false)}
+                    onApply={(result) => {
+                        if (showIngredientForm) {
+                            if (formCurrency === 'USD') setTempCost(result);
+                            else setTempCost(exchangeRate > 0 ? Number((result / exchangeRate).toFixed(6)) : 0);
+                            setIsIvaApplied(false);
+                            showNotification("Resultado aplicado al costo", "success");
+                        } else if (showProductForm) {
+                            const priceInput = document.getElementById('priceInput');
+                            if (priceInput) priceInput.value = result.toFixed(2);
+                            showNotification("Resultado aplicado al precio de venta", "success");
+                        }
+                    }}
+                />
+            )}
+
+            {!showCalculator && (showIngredientForm || showProductForm) && (
+                <button 
+                    onClick={() => setShowCalculator(true)} 
+                    className="fixed bottom-24 right-6 z-[60] w-14 h-14 bg-slate-900/90 backdrop-blur-md rounded-full shadow-2xl border border-white/20 flex flex-col items-center justify-center hover:scale-105 active:scale-95 transition-transform animate-in slide-in-from-bottom" 
+                    title="Abrir Calculadora"
+                >
+                    <Calculator size={24} className="text-yellow-500" />
+                </button>
+            )}
+
             {notification && (<div className={`fixed bottom-6 right-6 px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-300 z-[70] ${notification.type === 'error' ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>{notification.type === 'error' ? <AlertCircle size={20} /> : <Info size={20} />}<span className="font-bold">{notification.msg}</span></div>)}
         </div>
     );
