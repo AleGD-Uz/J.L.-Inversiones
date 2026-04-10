@@ -155,6 +155,24 @@ const generatePDF = async (title, columns, data, filename = 'reporte.pdf', foote
     doc.save(filename);
 };
 
+const generateExcel = (title, columns, data, filename = 'reporte.csv') => {
+    const BOM = '\uFEFF';
+    const header = columns.join(',');
+    const rows = data.map(row => row.map(cell => {
+        const str = String(cell).replace(/"/g, '""');
+        return `"${str}"`;
+    }).join(','));
+    const csv = BOM + header + '\n' + rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
 // --- HOOK DE INACTIVIDAD ---
 const useIdleTimer = (timeout = 1800000, onIdle) => {
     const [isIdle, setIsIdle] = useState(false);
@@ -464,7 +482,16 @@ const LoginScreen = ({ onLogin }) => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
             <GlassCard className="w-full max-w-md p-8 z-10 relative !bg-white/10 !backdrop-blur-2xl !border-white/10">
-                <div className="text-center mb-8"><div className="w-20 h-20 bg-gradient-to-tr from-yellow-400 to-yellow-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg mb-4"><CartIcon size={40} className="text-slate-900" /></div><h1 className="text-3xl font-black text-white tracking-tight">J.L. Inversiones</h1></div>
+                <div className="text-center mb-8">
+                    <div className="w-24 h-24 mx-auto mb-4 overflow-hidden rounded-3xl shadow-2xl border-2 border-white/20">
+                        <img 
+                            src="/JLlogo.png" 
+                            alt="Logo J.L. Inversiones" 
+                            className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500" 
+                        />
+                    </div>
+                    <h1 className="text-3xl font-black text-white tracking-tight">J.L. Inversiones</h1>
+                </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {error && (<div className="p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-xs flex items-center gap-2"><AlertCircle size={16} /> {error}</div>)}
                     <div className="space-y-1"><label className="text-xs font-bold text-slate-400 uppercase ml-1">Correo</label><input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-3 pl-10 text-white focus:outline-none focus:border-yellow-500" placeholder="admin@jl-inversiones.com" /></div>
@@ -790,6 +817,7 @@ export default function App() {
     // Resetear filtros y orden al cambiar de pestaña para evitar desajustes
     useEffect(() => {
         setSearchQuery("");
+        setSelectedCategory("Todos");
         if (['inventory', 'products'].includes(activeTab)) {
             setSortConfig({ key: 'name', direction: 'asc' });
         } else if (['history', 'bitacora', 'inventory_history', 'pending'].includes(activeTab)) {
@@ -1330,7 +1358,7 @@ export default function App() {
                 {activeTab === 'pending' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><header className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 md:p-6 rounded-2xl border border-white/40 shadow-sm"><div><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Clock3 className="text-yellow-600" /> Pendientes</h2></div><div className="w-full md:w-auto"><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} /></div></header><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-20">{filterAndSort(pendingOrders, ['description', 'id']).map(order => (<GlassCard key={order.id} className="border-l-4 border-yellow-500 p-0 flex flex-col"><div className="p-4 bg-yellow-50 flex justify-between"><div><h3 className="font-bold text-lg">{order.description}</h3><p className="text-xs text-slate-500">{formatDateApp(order.date, 'time')}</p></div><Badge type="warning">Cocina</Badge></div><div className="p-4 flex-1 space-y-1">{order.items.map((i, idx) => <div key={idx} className="flex justify-between text-sm"><span className="text-slate-600"><b>{i.qty}</b> {i.name}</span></div>)}</div><div className="p-4 bg-white border-t flex flex-col gap-3"><div className="flex justify-between items-end"><span className="text-xs text-slate-400">Total</span><PriceDisplay amount={order.total} exchangeRate={exchangeRate} align="right" /></div><div className="grid grid-cols-3 gap-2"><button onClick={() => { setCart(order.items); setSaleDescription(order.description); setEditingOrderId(order.id); setActiveTab('pos'); }} className="py-3 md:py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation hover:bg-slate-200 transition-colors"><Edit size={14} /> Editar</button><button onClick={() => handleCancelPendingOrder(order)} className="py-3 md:py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation hover:bg-red-100 transition-colors"><Trash2 size={14} /> Cancelar</button><button onClick={() => handleCobrar(order)} className="py-3 md:py-2 bg-gradient-to-br from-yellow-400 to-yellow-600 text-slate-900 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation shadow-lg shadow-yellow-500/20 active:shadow-none transition-all"><Zap size={14} /> Cobrar</button></div></div></GlassCard>))}</div></div>)}
 
                 {/* --- MENÚ / PRODUCTOS --- */}
-                {activeTab === 'products' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 rounded-2xl border border-white/40 shadow-sm"><div><h2 className="text-2xl font-black text-slate-800">Catálogo</h2><p className="text-slate-500">Gestión de productos</p></div><div className="flex w-full md:w-auto gap-2"><GlassButton onClick={handleDownloadMenu} variant="secondary" className="flex-1 md:flex-none"><Download size={16} /> PDF</GlassButton><GlassButton onClick={() => { setEditingProduct({ recipe: [] }); setProductIconPreview(null); setShowProductForm(true); }} className="flex-1 md:flex-none"><Plus size={18} /> Nuevo</GlassButton></div></div><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'name', label: 'Nombre' }, { value: 'price', label: 'Precio' }, { value: 'category', label: 'Categoría' }]} /><div className="space-y-4 pb-20">{filterAndSort(products, ['name', 'category']).map(prod => (<GlassCard key={prod.id} className="p-4 flex flex-col md:flex-row items-center gap-4 md:gap-6"><div className="flex items-center gap-4 w-full md:w-auto"><div className="w-16 h-16 flex items-center justify-center shrink-0">
+                {activeTab === 'products' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 rounded-2xl border border-white/40 shadow-sm"><div><h2 className="text-2xl font-black text-slate-800">Catálogo</h2><p className="text-slate-500">Gestión de productos</p></div><div className="flex w-full md:w-auto gap-2"><GlassButton onClick={handleDownloadMenu} variant="secondary" className="flex-1 md:flex-none"><Download size={16} /> PDF</GlassButton><GlassButton onClick={() => { setEditingProduct({ recipe: [] }); setProductIconPreview(null); setShowProductForm(true); }} className="flex-1 md:flex-none"><Plus size={18} /> Nuevo</GlassButton></div></div><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'name', label: 'Nombre' }, { value: 'price', label: 'Precio' }, { value: 'category', label: 'Categoría' }]} /><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar touch-pan-x">{['Todos', ...new Set(products.map(p => p.category))].map(cat => (<button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${selectedCategory === cat ? 'bg-yellow-500 text-slate-900' : 'bg-white text-slate-600 shadow-sm'}`}>{cat}</button>))}</div><div className="space-y-4 pb-20">{filterAndSort(products, ['name', 'category']).filter(p => selectedCategory === 'Todos' || p.category === selectedCategory).map(prod => (<GlassCard key={prod.id} className="p-4 flex flex-col md:flex-row items-center gap-4 md:gap-6"><div className="flex items-center gap-4 w-full md:w-auto"><div className="w-16 h-16 flex items-center justify-center shrink-0">
                     {!prod.image || prod.image === "" ? <Utensils size={32} className="text-slate-300" /> : (String(prod.image).startsWith('data:image') || String(prod.image).startsWith('http') ? <img src={prod.image} alt="" className="w-14 h-14 object-contain rounded-lg shadow-sm" /> : <span className="text-4xl">{prod.image}</span>)}
                 </div><div className="md:hidden flex-1"><h4 className="font-bold text-sm uppercase tracking-tight leading-tight">{prod.name}</h4><PriceDisplay amount={prod.price} exchangeRate={exchangeRate} size="small" /></div></div><div className="flex-1 text-center md:text-left hidden md:block"><h4 className="font-bold text-lg">{prod.name}</h4><div className="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">{prod.recipe?.map((r, i) => <span key={i} className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">{ingredients.find(ing => normalizeId(ing.id) === normalizeId(r.ingredientId))?.name || `ID:${r.ingredientId}`} x{r.qty}</span>)}</div></div><div className="text-right w-full md:w-auto"><div className="hidden md:block"><PriceDisplay amount={prod.price} exchangeRate={exchangeRate} size="large" align="right" /></div><div className="flex gap-2 justify-between md:justify-end mt-1 w-full"><button onClick={() => callGeminiAI(`Optimiza receta: ${prod.name}`, "Optimización")} className="p-3 md:p-2 text-teal-500 hover:bg-teal-50 rounded-xl flex-1 md:flex-none flex justify-center border border-slate-100 md:border-transparent transition-colors" title="AI"><Lightbulb size={18} /></button><button onClick={() => { setEditingProduct(prod); setProductIconPreview(null); setShowProductForm(true); }} className="p-3 md:p-2 text-indigo-500 hover:bg-indigo-50 rounded-xl flex-1 md:flex-none flex justify-center border border-slate-100 md:border-transparent transition-colors"><Edit size={18} /></button><button onClick={() => handleDeleteProduct(prod)} className="p-3 md:p-2 text-red-500 hover:bg-red-50 rounded-xl flex-1 md:flex-none flex justify-center border border-slate-100 md:border-transparent transition-colors"><Trash2 size={18} /></button></div></div></GlassCard>))}</div></div>)}
 
@@ -1466,10 +1494,216 @@ export default function App() {
                 {activeTab === 'inventory_history' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex justify-between items-center"><h2 className="text-2xl font-black">Entrada/Salida</h2></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} onDownloadPdf={() => generatePDF('Kardex', ['Fecha', 'Insumo', 'Tipo', 'Cant'], filterAndSort(stockHistory, [], true).map(l => [formatDateApp(l.date, 'date'), l.ingredientName, l.type, l.qtyChange]), 'kardex.pdf')} title="Filtrar Movimientos" /><GlassCard className="overflow-hidden"><div className="overflow-x-auto touch-pan-x"><table className="w-full text-left text-sm min-w-[800px]"><thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4">Fecha</th><th className="p-4">Item</th><th className="p-4 text-center">Mov</th><th className="p-4 text-right">Cant</th><th className="p-4 text-right">Saldo</th></tr></thead><tbody className="divide-y divide-slate-100">{filterAndSort(stockHistory, ['ingredientName', 'reason'], true).slice(0, 100).map(log => (<React.Fragment key={log.id}><tr onClick={() => { setExpandedKardexId(expandedKardexId === log.id ? null : log.id); setTempKardexObs(log.observation || ""); }} className={`cursor-pointer transition-colors ${expandedKardexId === log.id ? 'bg-yellow-50' : 'hover:bg-slate-50'} active:bg-slate-100`}><td className="p-4 text-slate-500">{formatDateApp(log.date, 'full')}</td><td className="p-4 font-bold">{log.ingredientName}</td><td className="p-4 text-center"><Badge type={log.type === 'ADD' ? 'success' : 'danger'}>{log.type === 'ADD' ? 'Entrada' : 'Salida'}</Badge></td><td className="p-4 text-right font-mono font-bold">{log.qtyChange}</td><td className="p-4 text-right text-slate-500">{log.newStock}</td></tr>{expandedKardexId === log.id && (<tr className="bg-yellow-50/50"><td colSpan="5" className="p-4"><div className="flex flex-col md:flex-row gap-4"><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Razón</p><p className="text-sm bg-white p-2 rounded border border-yellow-100">{log.reason}</p></div><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Valor Movimiento</p><PriceDisplay amount={log.totalValue || 0} exchangeRate={exchangeRate} size="small" /></div><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Nota</p><div className="flex gap-2"><input className="flex-1 p-2 text-sm border rounded" value={tempKardexObs} onChange={e => setTempKardexObs(e.target.value)} /><button onClick={() => handleSaveKardexObservation(log.id)} className="bg-yellow-600 text-white p-2 rounded"><Save size={14} /></button></div></div></div></td></tr>)}</React.Fragment>))}</tbody></table></div></GlassCard></div>)}
 
                 {/* --- BALANCE --- */}
-                {activeTab === 'balance' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4"><h2 className="text-2xl font-black text-slate-800">Balance Financiero</h2><GlassButton onClick={handleDownloadBalance} variant="secondary"><Download size={16} /> PDF Balance</GlassButton></div><PeriodNavigator currentDate={currentDateView} setCurrentDate={setCurrentDateView} viewMode={viewMode} setViewMode={setViewMode} />{viewMode === 'range' && <DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} title="Rango Personalizado" />}<h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Rentabilidad de Ventas</h3><div className="grid grid-cols-1 md:grid-cols-3 gap-6"><GlassCard className="p-6 border-l-4 border-emerald-500"><p className="text-sm text-slate-500 font-bold mb-1">Ventas Totales</p><PriceDisplay amount={financialData.income} exchangeRate={exchangeRate} size="large" /><p className="text-xs text-slate-400 mt-2">Ingreso Bruto</p></GlassCard><GlassCard className="p-6 border-l-4 border-amber-500"><p className="text-sm text-slate-500 font-bold mb-1">Costo de Insumos (Ventas)</p><PriceDisplay amount={financialData.cogs} exchangeRate={exchangeRate} size="large" /><p className="text-xs text-slate-400 mt-2">Costo Proveedor de lo vendido</p></GlassCard><GlassCard className="p-6 border-l-4 border-yellow-500 bg-yellow-50/50"><p className="text-sm text-yellow-800 font-bold mb-1">Ganancia Bruta</p><PriceDisplay amount={financialData.grossProfit} exchangeRate={exchangeRate} size="large" /><p className="text-xs text-slate-400 mt-2">Ventas - Costo Insumos</p></GlassCard></div><h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mt-4">Flujo de Caja (Dinero Real)</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-6"><GlassCard className="p-6 border-l-4 border-red-500"><div className="flex justify-between items-start"><div><p className="text-sm text-slate-500 font-bold mb-1">Gastos Totales (Salidas)</p><PriceDisplay amount={financialData.expenses} exchangeRate={exchangeRate} size="large" /><p className="text-xs text-slate-400 mt-2">Compras Inventario + Gastos Op.</p></div><GlassButton variant="expense" onClick={() => setShowExpenseForm(true)} className="text-xs py-1"><CreditCard size={14} /> Registrar Gasto</GlassButton></div></GlassCard><GlassCard className={`p-6 border-l-4 ${financialData.netCashFlow >= 0 ? 'border-teal-500' : 'border-rose-500'}`}><p className="text-sm text-slate-500 font-bold mb-1">Flujo Neto</p><PriceDisplay amount={financialData.netCashFlow} exchangeRate={exchangeRate} size="large" /><p className="text-xs text-slate-400 mt-2">Entradas - Salidas Reales</p></GlassCard></div><div style={{height: '280px'}} className="w-full bg-white/50 rounded-2xl p-4 border border-white/40 mt-4"><h4 className="text-xs font-bold text-slate-400 mb-2">Comparativa Rentabilidad vs Flujo</h4><ResponsiveContainer width="100%" height={240}><BarChart data={[{ name: 'Ventas', val: financialData.income, fill: '#10b981' }, { name: 'Costo Venta', val: financialData.cogs, fill: '#f59e0b' }, { name: 'Ganancia', val: financialData.grossProfit, fill: '#fbbf24' }, { name: 'Gastos Reales', val: financialData.expenses, fill: '#ef4444' }]}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" /><YAxis /><Tooltip /><Bar dataKey="val" radius={[8, 8, 0, 0]} barSize={50} /></BarChart></ResponsiveContainer></div></div>)}
+                {activeTab === 'balance' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4"><h2 className="text-2xl font-black text-slate-800">Balance Financiero</h2><GlassButton onClick={handleDownloadBalance} variant="secondary"><Download size={16} /> PDF Balance</GlassButton></div><PeriodNavigator currentDate={currentDateView} setCurrentDate={setCurrentDateView} viewMode={viewMode} setViewMode={setViewMode} />{viewMode === 'range' && <DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} title="Rango Personalizado" />}<h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Rentabilidad de Ventas</h3><div className="grid grid-cols-1 md:grid-cols-3 gap-6"><GlassCard className="p-6 border-l-4 border-emerald-500"><p className="text-sm text-slate-500 font-bold mb-1">Ventas Totales</p><PriceDisplay amount={financialData.income} exchangeRate={exchangeRate} size="large" /><p className="text-xs text-slate-400 mt-2">Ingreso Bruto</p></GlassCard><GlassCard className="p-6 border-l-4 border-amber-500"><p className="text-sm text-slate-500 font-bold mb-1">Costo de Insumos (Ventas)</p><PriceDisplay amount={financialData.cogs} exchangeRate={exchangeRate} size="large" /><p className="text-xs text-slate-400 mt-2">Costo Proveedor de lo vendido</p></GlassCard><GlassCard className="p-6 border-l-4 border-yellow-500 bg-yellow-50/50"><p className="text-sm text-yellow-800 font-bold mb-1">Ganancia Bruta</p><PriceDisplay amount={financialData.grossProfit} exchangeRate={exchangeRate} size="large" /><p className="text-xs text-slate-400 mt-2">Ventas - Costo Insumos</p></GlassCard></div><h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mt-4">Flujo de Caja (Dinero Real)</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-6"><GlassCard className="p-6 border-l-4 border-red-500"><div className="flex justify-between items-start"><div><p className="text-sm text-slate-500 font-bold mb-1">Gastos Totales (Salidas)</p><PriceDisplay amount={financialData.expenses} exchangeRate={exchangeRate} size="large" /><p className="text-xs text-slate-400 mt-2">Compras Inventario + Gastos Op.</p></div><GlassButton variant="expense" onClick={() => setShowExpenseForm(true)} className="text-xs py-1"><CreditCard size={14} /> Registrar Gasto</GlassButton></div></GlassCard><GlassCard className={`p-6 border-l-4 ${financialData.netCashFlow >= 0 ? 'border-teal-500' : 'border-rose-500'}`}><p className="text-sm text-slate-500 font-bold mb-1">Flujo Neto</p><PriceDisplay amount={financialData.netCashFlow} exchangeRate={exchangeRate} size="large" /><p className="text-xs text-slate-400 mt-2">Entradas - Salidas Reales</p></GlassCard></div><div style={{height: '280px'}} className="w-full bg-white/50 rounded-2xl p-4 border border-white/40 mt-4"><h4 className="text-xs font-bold text-slate-400 mb-2">Comparativa Rentabilidad vs Flujo</h4><ResponsiveContainer width="100%" height={240}><BarChart data={[{ name: 'Ventas', val: financialData.income, fill: '#10b981' }, { name: 'Costo Venta', val: financialData.cogs, fill: '#f59e0b' }, { name: 'Ganancia', val: financialData.grossProfit, fill: '#fbbf24' }, { name: 'Gastos Reales', val: financialData.expenses, fill: '#ef4444' }]}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" /><YAxis /><Tooltip /><Bar dataKey="val" radius={[8, 8, 0, 0]} barSize={50} /></BarChart></ResponsiveContainer></div>
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-2 mt-8">
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Desglose por Producto</h3>
+                        <div className="flex gap-2">
+                            <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
+                                const periodSales = filterAndSort(salesHistory, [], false, true);
+                                const productMap = {};
+                                periodSales.forEach(sale => { sale.items.forEach(item => { if (!productMap[item.id]) { const prod = products.find(p => p.id === item.id); const rc = prod ? calculateRecipeCost(prod.recipe) : 0; productMap[item.id] = { name: item.name, qty: 0, revenue: 0, unitCost: rc, price: item.price }; } productMap[item.id].qty += item.qty; productMap[item.id].revenue += item.price * item.qty; }); });
+                                const rows = Object.values(productMap).sort((a, b) => b.revenue - a.revenue);
+                                const data = rows.map(r => [r.name, r.qty, `$${r.unitCost.toFixed(2)}`, `$${r.price.toFixed(2)}`, `$${r.revenue.toFixed(2)}`, `$${(r.unitCost * r.qty).toFixed(2)}`, `$${(r.revenue - r.unitCost * r.qty).toFixed(2)}`]);
+                                generatePDF('Desglose por Producto - Balance', ['Producto', 'Vendidos', 'Costo Unit.', 'Precio Venta', 'Ingreso', 'Costo Total', 'Ganancia'], data, 'desglose_balance.pdf');
+                            }}><Download size={14} /> PDF</GlassButton>
+                            <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
+                                const periodSales = filterAndSort(salesHistory, [], false, true);
+                                const productMap = {};
+                                periodSales.forEach(sale => { sale.items.forEach(item => { if (!productMap[item.id]) { const prod = products.find(p => p.id === item.id); const rc = prod ? calculateRecipeCost(prod.recipe) : 0; productMap[item.id] = { name: item.name, qty: 0, revenue: 0, unitCost: rc, price: item.price }; } productMap[item.id].qty += item.qty; productMap[item.id].revenue += item.price * item.qty; }); });
+                                const rows = Object.values(productMap).sort((a, b) => b.revenue - a.revenue);
+                                const data = rows.map(r => { const tc = r.unitCost * r.qty; return [r.name, r.qty, r.unitCost.toFixed(2), r.price.toFixed(2), r.revenue.toFixed(2), tc.toFixed(2), (r.revenue - tc).toFixed(2), `Bs ${(r.revenue * exchangeRate).toFixed(2)}`, `Bs ${(tc * exchangeRate).toFixed(2)}`, `Bs ${((r.revenue - tc) * exchangeRate).toFixed(2)}`]; });
+                                generateExcel('Desglose por Producto', ['Producto', 'Vendidos', 'Costo Unit. ($)', 'Precio ($)', 'Ingreso ($)', 'Costo Total ($)', 'Ganancia ($)', 'Ingreso (Bs)', 'Costo Total (Bs)', 'Ganancia (Bs)'], data, 'desglose_balance.csv');
+                            }}><FileText size={14} /> Excel</GlassButton>
+                        </div>
+                    </div>
+                    <GlassCard className="overflow-hidden">
+                        <div className="overflow-x-auto touch-pan-x">
+                            <table className="w-full text-left text-sm min-w-[700px]">
+                                <thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4">Producto</th><th className="p-4 text-center">Vendidos</th><th className="p-4 text-right">Costo Unit.</th><th className="p-4 text-right">Precio Venta</th><th className="p-4 text-right">Ingreso</th><th className="p-4 text-right">Costo Total</th><th className="p-4 text-right">Ganancia</th></tr></thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {(() => {
+                                        const periodSales = filterAndSort(salesHistory, [], false, true);
+                                        const productMap = {};
+                                        periodSales.forEach(sale => {
+                                            sale.items.forEach(item => {
+                                                if (!productMap[item.id]) {
+                                                    const prod = products.find(p => p.id === item.id);
+                                                    const recipeCost = prod ? calculateRecipeCost(prod.recipe) : 0;
+                                                    productMap[item.id] = { name: item.name, qty: 0, revenue: 0, unitCost: recipeCost, price: item.price };
+                                                }
+                                                productMap[item.id].qty += item.qty;
+                                                productMap[item.id].revenue += item.price * item.qty;
+                                            });
+                                        });
+                                        const rows = Object.values(productMap).sort((a, b) => b.revenue - a.revenue);
+                                        if (rows.length === 0) return <tr><td colSpan="7" className="p-8 text-center text-slate-400">No hay ventas en este período.</td></tr>;
+                                        return rows.map((r, i) => {
+                                            const totalCost = r.unitCost * r.qty;
+                                            const profit = r.revenue - totalCost;
+                                            return (
+                                                <tr key={i} className="hover:bg-slate-50">
+                                                    <td className="p-4 font-bold">{r.name}</td>
+                                                    <td className="p-4 text-center font-mono font-bold">{r.qty}</td>
+                                                    <td className="p-4 text-right"><PriceDisplay amount={r.unitCost} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                    <td className="p-4 text-right"><PriceDisplay amount={r.price} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                    <td className="p-4 text-right"><PriceDisplay amount={r.revenue} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                    <td className="p-4 text-right"><PriceDisplay amount={totalCost} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                    <td className="p-4 text-right"><div className={`font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}><PriceDisplay amount={profit} exchangeRate={exchangeRate} size="small" align="right" /></div></td>
+                                                </tr>
+                                            );
+                                        });
+                                    })()}
+                                </tbody>
+                            </table>
+                        </div>
+                    </GlassCard>
+                </div>)}
 
                 {/* --- REPORTES --- */}
-                {activeTab === 'reports' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex justify-between items-center"><h2 className="text-2xl font-black">Reportes</h2></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} onDownloadPdf={() => handleDownloadReport(filterAndSort(salesHistory, [], true))} title="Filtrar Gráficos" /><div className="grid grid-cols-1 md:grid-cols-2 gap-6"><GlassCard className="p-6"><h3 className="font-bold mb-4 flex gap-2"><TrendingUp className="text-yellow-600" /> Ventas (Filtrado)</h3><div style={{height: '240px'}}><ResponsiveContainer width="100%" height={240}><AreaChart data={filterAndSort(salesHistory, [], true).slice(0, 7).map((s, i) => ({ name: formatDateApp(s.date, 'short-date'), total: s.total }))}><Area type="monotone" dataKey="total" stroke="#fbbf24" fill="#fef3c7" /></AreaChart></ResponsiveContainer></div></GlassCard><GlassCard className="p-6 flex flex-col justify-center items-center text-center"><Bot size={48} className="text-yellow-500 mb-4" /><h3 className="font-bold text-lg">Asistente Inteligente</h3><p className="text-slate-500 text-sm mb-4">Genera estrategias de venta o análisis de menú.</p><GlassButton variant="gemini" onClick={() => callGeminiAI("Dame estrategias de venta", "Marketing AI")}>Consultar AI</GlassButton></GlassCard></div></div>)}
+                {activeTab === 'reports' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0 pb-20">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><TrendingUp className="text-yellow-600" /> Reportes</h2>
+                        <GlassButton variant="gemini" onClick={() => callGeminiAI(`Analiza estas ventas y dame recomendaciones: ${JSON.stringify(salesHistory.slice(0, 15))}`, "Análisis de Ventas")}>Analizar AI</GlassButton>
+                    </div>
+                    <PeriodNavigator currentDate={currentDateView} setCurrentDate={setCurrentDateView} viewMode={viewMode} setViewMode={setViewMode} />
+                    {viewMode === 'range' && <DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} onDownloadPdf={() => handleDownloadReport(filterAndSort(salesHistory, [], true))} title="Filtrar Reportes" />}
+                    {(() => {
+                        const periodSales = viewMode === 'range' ? filterAndSort(salesHistory, [], true) : filterAndSort(salesHistory, [], false, true);
+                        const totalRevenue = periodSales.reduce((sum, s) => sum + s.total, 0);
+                        const totalItemsSold = periodSales.reduce((sum, s) => sum + s.items.reduce((a, i) => a + i.qty, 0), 0);
+                        return (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <GlassCard className="p-4 border-l-4 border-slate-400"><p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase">Transacciones</p><p className="text-xl md:text-2xl font-black text-slate-800 mt-1">{periodSales.length}</p></GlassCard>
+                                <GlassCard className="p-4 border-l-4 border-blue-400"><p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase">Unidades Vendidas</p><p className="text-xl md:text-2xl font-black text-slate-800 mt-1">{totalItemsSold}</p></GlassCard>
+                                <GlassCard className="p-4 border-l-4 border-emerald-400"><p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase">Ingreso Total</p><PriceDisplay amount={totalRevenue} exchangeRate={exchangeRate} size="normal" /></GlassCard>
+                                <GlassCard className="p-4 border-l-4 border-yellow-400"><p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase">Ticket Promedio</p><PriceDisplay amount={periodSales.length > 0 ? totalRevenue / periodSales.length : 0} exchangeRate={exchangeRate} size="normal" /></GlassCard>
+                            </div>
+                        );
+                    })()}
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-2">
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><PieChart size={16} className="text-yellow-600" /> Rendimiento por Producto</h3>
+                        <div className="flex gap-2">
+                            <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
+                                const periodSales = viewMode === 'range' ? filterAndSort(salesHistory, [], true) : filterAndSort(salesHistory, [], false, true);
+                                const productMap = {};
+                                periodSales.forEach(sale => { sale.items.forEach(item => { if (!productMap[item.id]) { const prod = products.find(p => p.id === item.id); const rc = prod ? calculateRecipeCost(prod.recipe) : 0; productMap[item.id] = { name: item.name, qty: 0, revenue: 0, unitCost: rc, category: prod?.category || '-' }; } productMap[item.id].qty += item.qty; productMap[item.id].revenue += item.price * item.qty; }); });
+                                const rows = Object.values(productMap).sort((a, b) => b.revenue - a.revenue);
+                                const data = rows.map(r => { const tc = r.unitCost * r.qty; const pr = r.revenue - tc; const mg = r.revenue > 0 ? ((pr / r.revenue) * 100).toFixed(1) + '%' : '0%'; return [r.name, r.category, r.qty, `$${r.revenue.toFixed(2)}`, `$${tc.toFixed(2)}`, `$${pr.toFixed(2)}`, mg, pr > 0 ? 'Sí' : 'No']; });
+                                generatePDF('Rendimiento por Producto', ['Producto', 'Categoría', 'Uds.', 'Ingreso', 'Costo', 'Ganancia', 'Margen', 'Rentable'], data, 'rendimiento_productos.pdf');
+                            }}><Download size={14} /> PDF</GlassButton>
+                            <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
+                                const periodSales = viewMode === 'range' ? filterAndSort(salesHistory, [], true) : filterAndSort(salesHistory, [], false, true);
+                                const productMap = {};
+                                periodSales.forEach(sale => { sale.items.forEach(item => { if (!productMap[item.id]) { const prod = products.find(p => p.id === item.id); const rc = prod ? calculateRecipeCost(prod.recipe) : 0; productMap[item.id] = { name: item.name, qty: 0, revenue: 0, unitCost: rc, category: prod?.category || '-' }; } productMap[item.id].qty += item.qty; productMap[item.id].revenue += item.price * item.qty; }); });
+                                const rows = Object.values(productMap).sort((a, b) => b.revenue - a.revenue);
+                                const data = rows.map(r => { const tc = r.unitCost * r.qty; const pr = r.revenue - tc; const mg = r.revenue > 0 ? ((pr / r.revenue) * 100).toFixed(1) : '0'; return [r.name, r.category, r.qty, r.revenue.toFixed(2), tc.toFixed(2), pr.toFixed(2), mg, pr > 0 ? 'Sí' : 'No', `Bs ${(r.revenue * exchangeRate).toFixed(2)}`, `Bs ${(tc * exchangeRate).toFixed(2)}`, `Bs ${(pr * exchangeRate).toFixed(2)}`]; });
+                                generateExcel('Rendimiento por Producto', ['Producto', 'Categoría', 'Uds.', 'Ingreso ($)', 'Costo ($)', 'Ganancia ($)', 'Margen %', 'Rentable', 'Ingreso (Bs)', 'Costo (Bs)', 'Ganancia (Bs)'], data, 'rendimiento_productos.csv');
+                            }}><FileText size={14} /> Excel</GlassButton>
+                        </div>
+                    </div>
+                    <GlassCard className="overflow-hidden">
+                        <div className="overflow-x-auto touch-pan-x">
+                            <table className="w-full text-left text-sm min-w-[850px]">
+                                <thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4">Producto</th><th className="p-4 text-center">Uds.</th><th className="p-4 text-right">Ingreso</th><th className="p-4 text-right">Costo Prod.</th><th className="p-4 text-right">Ganancia</th><th className="p-4 text-center">Margen</th><th className="p-4 text-center">Rentable</th></tr></thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {(() => {
+                                        const periodSales = viewMode === 'range' ? filterAndSort(salesHistory, [], true) : filterAndSort(salesHistory, [], false, true);
+                                        const productMap = {};
+                                        periodSales.forEach(sale => {
+                                            sale.items.forEach(item => {
+                                                if (!productMap[item.id]) {
+                                                    const prod = products.find(p => p.id === item.id);
+                                                    const recipeCost = prod ? calculateRecipeCost(prod.recipe) : 0;
+                                                    productMap[item.id] = { name: item.name, qty: 0, revenue: 0, unitCost: recipeCost, category: prod?.category || '-' };
+                                                }
+                                                productMap[item.id].qty += item.qty;
+                                                productMap[item.id].revenue += item.price * item.qty;
+                                            });
+                                        });
+                                        const rows = Object.values(productMap).sort((a, b) => b.revenue - a.revenue);
+                                        if (rows.length === 0) return <tr><td colSpan="7" className="p-8 text-center text-slate-400">No hay datos de ventas en este período.</td></tr>;
+                                        let totalRev = 0, totalCostAll = 0, totalProfAll = 0, totalQtyAll = 0;
+                                        const rendered = rows.map((r, i) => {
+                                            const tc = r.unitCost * r.qty;
+                                            const pr = r.revenue - tc;
+                                            const mg = r.revenue > 0 ? ((pr / r.revenue) * 100) : 0;
+                                            totalRev += r.revenue; totalCostAll += tc; totalProfAll += pr; totalQtyAll += r.qty;
+                                            return (
+                                                <tr key={i} className="hover:bg-slate-50">
+                                                    <td className="p-4"><div><span className="font-bold">{r.name}</span><span className="block text-[10px] text-slate-400">{r.category}</span></div></td>
+                                                    <td className="p-4 text-center font-mono font-bold text-lg">{r.qty}</td>
+                                                    <td className="p-4 text-right"><PriceDisplay amount={r.revenue} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                    <td className="p-4 text-right"><PriceDisplay amount={tc} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                    <td className="p-4 text-right"><div className={pr >= 0 ? 'text-emerald-600' : 'text-red-500'}><PriceDisplay amount={pr} exchangeRate={exchangeRate} size="small" align="right" /></div></td>
+                                                    <td className="p-4 text-center"><div className="flex flex-col items-center gap-1"><span className={`text-xs font-black ${mg >= 30 ? 'text-emerald-600' : mg >= 15 ? 'text-amber-600' : 'text-red-500'}`}>{mg.toFixed(1)}%</span><div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden"><div className={`h-full rounded-full ${mg >= 30 ? 'bg-emerald-500' : mg >= 15 ? 'bg-amber-500' : 'bg-red-500'}`} style={{width: `${Math.min(mg, 100)}%`}}></div></div></div></td>
+                                                    <td className="p-4 text-center"><Badge type={pr > 0 ? 'success' : 'danger'}>{pr > 0 ? 'Sí' : 'No'}</Badge></td>
+                                                </tr>
+                                            );
+                                        });
+                                        rendered.push(
+                                            <tr key="totals" className="bg-slate-100 font-black text-slate-800 border-t-2 border-slate-300">
+                                                <td className="p-4 uppercase text-xs tracking-wider">Totales</td>
+                                                <td className="p-4 text-center font-mono text-lg">{totalQtyAll}</td>
+                                                <td className="p-4 text-right"><PriceDisplay amount={totalRev} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                <td className="p-4 text-right"><PriceDisplay amount={totalCostAll} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                <td className="p-4 text-right"><div className={totalProfAll >= 0 ? 'text-emerald-600' : 'text-red-500'}><PriceDisplay amount={totalProfAll} exchangeRate={exchangeRate} size="small" align="right" /></div></td>
+                                                <td className="p-4 text-center"><span className="text-xs font-black">{totalRev > 0 ? ((totalProfAll / totalRev) * 100).toFixed(1) : 0}%</span></td>
+                                                <td className="p-4"></td>
+                                            </tr>
+                                        );
+                                        return rendered;
+                                    })()}
+                                </tbody>
+                            </table>
+                        </div>
+                    </GlassCard>
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-2 mt-8">
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><AlertTriangle size={16} className="text-red-500" /> Alertas de Stock (Bajo / Agotado)</h3>
+                        <div className="flex gap-2">
+                            <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
+                                const lowStock = ingredients.filter(ing => (ing.stock || 0) <= (ing.minStock || 0));
+                                const data = lowStock.map(ing => [ing.name, `${ing.stock} ${ing.unit}`, `${ing.minStock} ${ing.unit}`, (ing.stock || 0) === 0 ? 'AGOTADO' : 'BAJO STOCK']);
+                                generatePDF('Alertas de Stock', ['Insumo', 'Stock Actual', 'Stock Mínimo', 'Estado'], data, 'alertas_stock.pdf');
+                            }}><Download size={14} /> PDF</GlassButton>
+                            <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
+                                const lowStock = ingredients.filter(ing => (ing.stock || 0) <= (ing.minStock || 0));
+                                const data = lowStock.map(ing => [ing.name, ing.stock, ing.minStock, (ing.stock || 0) === 0 ? 'AGOTADO' : 'BAJO STOCK', ing.unit]);
+                                generateExcel('Alertas de Stock', ['Insumo', 'Stock Actual', 'Stock Mínimo', 'Estado', 'Unidad'], data, 'alertas_stock.csv');
+                            }}><FileText size={14} /> Excel</GlassButton>
+                        </div>
+                    </div>
+                    <GlassCard className="overflow-hidden">
+                        <div className="overflow-x-auto touch-pan-x">
+                            <table className="w-full text-left text-sm min-w-[600px]">
+                                <thead className="bg-slate-50 text-slate-500 font-medium uppercase">
+                                    <tr><th className="p-4">Insumo</th><th className="p-4 text-center">Stock Actual</th><th className="p-4 text-center">Mínimo</th><th className="p-4 text-center">Estado</th></tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {(() => {
+                                        const lowStock = ingredients.filter(ing => (ing.stock || 0) <= (ing.minStock || 0)).sort((a,b) => (a.stock || 0) - (b.stock || 0));
+                                        if (lowStock.length === 0) return <tr><td colSpan="4" className="p-8 text-center text-slate-400">No hay alertas de stock en este momento.</td></tr>;
+                                        return lowStock.map((ing, i) => (
+                                            <tr key={i} className="hover:bg-slate-50">
+                                                <td className="p-4 font-bold">{ing.name}</td>
+                                                <td className="p-4 text-center font-mono font-bold text-lg">{(ing.stock || 0)} {ing.unit}</td>
+                                                <td className="p-4 text-center text-slate-500">{(ing.minStock || 0)} {ing.unit}</td>
+                                                <td className="p-4 text-center">
+                                                    <Badge type={(ing.stock || 0) === 0 ? 'danger' : 'warning'}>
+                                                        {(ing.stock || 0) === 0 ? 'AGOTADO' : 'BAJO STOCK'}
+                                                    </Badge>
+                                                </td>
+                                            </tr>
+                                        ));
+                                    })()}
+                                </tbody>
+                            </table>
+                        </div>
+                    </GlassCard>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <GlassCard className="p-6"><h3 className="font-bold mb-4 flex gap-2"><TrendingUp className="text-yellow-600" /> Ventas Recientes</h3><div style={{height: '240px'}}><ResponsiveContainer width="100%" height={240}><AreaChart data={(() => { const s = viewMode === 'range' ? filterAndSort(salesHistory, [], true) : filterAndSort(salesHistory, [], false, true); return s.slice(0, 7).map(ss => ({ name: formatDateApp(ss.date, 'short-date'), total: ss.total })); })()}><Area type="monotone" dataKey="total" stroke="#fbbf24" fill="#fef3c7" /></AreaChart></ResponsiveContainer></div></GlassCard>
+                        <GlassCard className="p-6 flex flex-col justify-center items-center text-center"><Bot size={48} className="text-yellow-500 mb-4" /><h3 className="font-bold text-lg">Asistente Inteligente</h3><p className="text-slate-500 text-sm mb-4">Genera estrategias de venta o análisis de menú.</p><GlassButton variant="gemini" onClick={() => callGeminiAI("Dame estrategias de venta", "Marketing AI")}>Consultar AI</GlassButton></GlassCard>
+                    </div>
+                </div>)}
 
                 {/* --- CONFIGURACIÓN --- */}
                 {activeTab === 'settings' && (<div className="max-w-4xl mx-auto space-y-8 fade-in mt-10 md:mt-0 pb-10"><header className="flex items-center gap-4 bg-white/50 p-6 rounded-2xl border border-white/40 shadow-sm"><div className="p-3 bg-slate-200 rounded-xl"><Settings className="text-slate-700" size={32} /></div><div><h2 className="text-2xl font-black text-slate-800">Configuración Global</h2><p className="text-slate-500">Usuarios, Respaldos y Nube</p></div></header>
