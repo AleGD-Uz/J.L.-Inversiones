@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
     LayoutDashboard, Package, TrendingUp, Plus, Minus, Trash2,
     Save, Search, AlertCircle, Menu, X, DollarSign, UtensilsCrossed, ChefHat,
@@ -453,7 +453,7 @@ const ProductCard = ({ product, ingredients, addToCart, exchangeRate, getProduct
                 <div className={`w-full text-left bg-yellow-50/60 rounded-xl mb-3 overflow-hidden border border-yellow-100/50 ${isExpanded ? 'p-3' : 'p-2 h-0 opacity-0 hidden'}`}>{isExpanded && (<div><p className="text-[10px] font-bold text-yellow-600 uppercase tracking-wider mb-2">Ingredientes:</p><ul className="text-xs text-slate-600 space-y-1">{product.recipe?.map((r, idx) => {
                     const ing = ingredients.find(i => normalizeId(i.id) === normalizeId(r.ingredientId));
                     return ing ? <li key={idx} className="flex justify-between border-b border-yellow-200/30 pb-1"><span>{ing.name}</span><span className="font-mono font-bold text-yellow-600">x{r.qty}</span></li> : <li key={idx} className="text-red-400">Ingrediente no encontrado ({r.ingredientId})</li>;
-                })}</ul></div>)}</div>
+                    })}</ul></div>)}</div>
                 <div className="mb-2 text-slate-300">{isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</div>
                 <div className="mb-4"><PriceDisplay amount={product.price} exchangeRate={exchangeRate} size="large" align="center" /></div>
                 <GlassButton onClick={(e) => { e.stopPropagation(); addToCart(product); }} disabled={isOutOfStock} className="w-full mt-auto text-xs md:text-sm py-1.5 md:py-2">{isExpanded ? 'Añadir' : 'Agregar'}</GlassButton>
@@ -818,7 +818,7 @@ export default function App() {
     useEffect(() => {
         setSearchQuery("");
         setSelectedCategory("Todos");
-        if (['inventory', 'products'].includes(activeTab)) {
+        if (['inventory', 'products', 'pos', 'reports'].includes(activeTab)) {
             setSortConfig({ key: 'name', direction: 'asc' });
         } else if (['history', 'bitacora', 'inventory_history', 'pending'].includes(activeTab)) {
             setSortConfig({ key: 'date', direction: 'desc' });
@@ -1352,7 +1352,7 @@ export default function App() {
                 <button className="md:hidden absolute top-4 left-4 z-20 bg-white p-2 rounded-full shadow-lg" onClick={() => setIsMobileMenuOpen(true)}><Menu className="text-slate-700" /></button>
 
                 {/* --- POS --- */}
-                {activeTab === 'pos' && (<div className="flex flex-col lg:flex-row gap-6 h-full pb-20 lg:pb-0"><div className="lg:w-2/3 space-y-4 fade-in"><header className="flex flex-col gap-2 mt-10 md:mt-0"><h2 className="text-2xl md:text-3xl font-black text-slate-800">{editingOrderId ? `Editando Venta` : 'Punto de Venta'}</h2><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={{}} setSortConfig={() => { }} placeholder="Buscar producto..." /></header><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', ...new Set(products.map(p => p.category))].map(cat => (<button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${selectedCategory === cat ? 'bg-yellow-500 text-slate-900' : 'bg-white text-slate-600 shadow-sm'}`}>{cat}</button>))}</div><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 items-start pb-24 md:pb-0">{filterAndSort(products, ['name', 'category']).filter(p => selectedCategory === 'Todos' || p.category === selectedCategory).map(product => (<ProductCard key={product.id} product={product} ingredients={ingredients} addToCart={addToCart} exchangeRate={exchangeRate} getProductMaxStock={getProductMaxStock} />))}</div></div><div className={`fixed inset-x-0 bottom-0 z-30 lg:relative lg:w-1/3 lg:h-auto lg:block transition-transform duration-300 ${isCartOpenMobile ? 'translate-y-0' : 'translate-y-[calc(100%-85px)]'} lg:translate-y-0`}><GlassCard className="h-[80vh] lg:h-[calc(100vh-4rem)] flex flex-col rounded-b-none lg:rounded-2xl border-b-0 shadow-[0_-10px_40px_rgba(0,0,0,0.2)]"><div onClick={() => window.innerWidth < 1024 && setIsCartOpenMobile(!isCartOpenMobile)} className={`p-4 border-b border-slate-100 flex justify-between items-center rounded-t-2xl cursor-pointer lg:cursor-default ${editingOrderId ? 'bg-yellow-100' : 'bg-white'}`}><div className="flex items-center gap-2"><h3 className="font-bold text-lg flex items-center gap-2"><CartIcon size={20} /> Orden</h3><Badge>{cart.reduce((a, c) => a + c.qty, 0)} items</Badge></div><div className="lg:hidden text-slate-400 flex items-center gap-2"><span className="font-bold text-yellow-600"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} size="small" /></span>{isCartOpenMobile ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</div></div><div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white/50">{cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-slate-400"><UtensilsCrossed size={48} className="opacity-20 mb-4" /><p>Vacío</p></div> : cart.map(item => (<div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm border border-slate-100"><div className="flex items-center gap-3">{item.image && (String(item.image).startsWith('data:image') || String(item.image).startsWith('http')) ? <img src={item.image} alt="" className="w-8 h-8 object-contain rounded" /> : <span className="text-xl">{item.image || '🍽️'}</span>}<div><p className="font-bold text-sm leading-none">{item.name}</p><PriceDisplay amount={item.price} exchangeRate={exchangeRate} size="small" /></div></div><div className="flex items-center gap-2"><button onClick={() => setCart(prev => prev.map(p => p.id === item.id ? { ...p, qty: p.qty - 1 } : p).filter(p => p.qty > 0))} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Minus size={14} /></button><span className="font-bold w-6 text-center text-sm">{item.qty}</span><button onClick={() => addToCart(item)} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Plus size={14} /></button></div></div>))}</div><div className="p-4 bg-white border-t border-slate-100 space-y-3 pb-8 lg:pb-4"><div className="flex justify-between font-black text-xl"><span>Total</span><div className="text-right"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} align="right" size="large" /></div></div><input type="text" value={saleDescription} onChange={(e) => setSaleDescription(e.target.value)} placeholder="Cliente / Nota..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none shadow-inner" /><div className="grid grid-cols-3 gap-2"><GlassButton variant="secondary" onClick={() => { setCart([]); setEditingOrderId(null); setIsCartOpenMobile(false); }} title="Vaciar carrito"><Trash2 size={16} /></GlassButton><GlassButton onClick={handleSaveToPending} disabled={cart.length === 0} variant="kitchen" title="Enviar a pendientes">{editingOrderId ? 'Actualizar' : 'Pendientes'}</GlassButton><GlassButton onClick={handleDirectCharge} disabled={cart.length === 0} variant="primary" title="Cobrar inmediatamente">Cobrar</GlassButton></div></div></GlassCard></div></div>)}
+                {activeTab === 'pos' && (<div className="flex flex-col lg:flex-row gap-6 h-full pb-20 lg:pb-0"><div className="lg:w-2/3 space-y-4 fade-in"><header className="flex flex-col gap-2 mt-10 md:mt-0"><h2 className="text-2xl md:text-3xl font-black text-slate-800">{editingOrderId ? `Editando Venta` : 'Punto de Venta'}</h2><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'name', label: 'Nombre' }, { value: 'price', label: 'Precio' }, { value: 'category', label: 'Categoría' }]} placeholder="Buscar producto..." /></header><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', ...new Set(products.map(p => p.category))].map(cat => (<button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${selectedCategory === cat ? 'bg-yellow-500 text-slate-900' : 'bg-white text-slate-600 shadow-sm'}`}>{cat}</button>))}</div><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 items-start pb-24 md:pb-0">{filterAndSort(products, ['name', 'category']).filter(p => selectedCategory === 'Todos' || p.category === selectedCategory).map(product => (<ProductCard key={product.id} product={product} ingredients={ingredients} addToCart={addToCart} exchangeRate={exchangeRate} getProductMaxStock={getProductMaxStock} />))}</div></div><div className={`fixed inset-x-0 bottom-0 z-30 lg:relative lg:w-1/3 lg:h-auto lg:block transition-transform duration-300 ${isCartOpenMobile ? 'translate-y-0' : 'translate-y-[calc(100%-85px)]'} lg:translate-y-0`}><GlassCard className="h-[80vh] lg:h-[calc(100vh-4rem)] flex flex-col rounded-b-none lg:rounded-2xl border-b-0 shadow-[0_-10px_40px_rgba(0,0,0,0.2)]"><div onClick={() => window.innerWidth < 1024 && setIsCartOpenMobile(!isCartOpenMobile)} className={`p-4 border-b border-slate-100 flex justify-between items-center rounded-t-2xl cursor-pointer lg:cursor-default ${editingOrderId ? 'bg-yellow-100' : 'bg-white'}`}><div className="flex items-center gap-2"><h3 className="font-bold text-lg flex items-center gap-2"><CartIcon size={20} /> Orden</h3><Badge>{cart.reduce((a, c) => a + c.qty, 0)} items</Badge></div><div className="lg:hidden text-slate-400 flex items-center gap-2"><span className="font-bold text-yellow-600"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} size="small" /></span>{isCartOpenMobile ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</div></div><div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white/50">{cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-slate-400"><UtensilsCrossed size={48} className="opacity-20 mb-4" /><p>Vacío</p></div> : cart.map(item => (<div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm border border-slate-100"><div className="flex items-center gap-3">{item.image && (String(item.image).startsWith('data:image') || String(item.image).startsWith('http')) ? <img src={item.image} alt="" className="w-8 h-8 object-contain rounded" /> : <span className="text-xl">{item.image || '🍽️'}</span>}<div><p className="font-bold text-sm leading-none">{item.name}</p><PriceDisplay amount={item.price} exchangeRate={exchangeRate} size="small" /></div></div><div className="flex items-center gap-2"><button onClick={() => setCart(prev => prev.map(p => p.id === item.id ? { ...p, qty: p.qty - 1 } : p).filter(p => p.qty > 0))} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Minus size={14} /></button><span className="font-bold w-6 text-center text-sm">{item.qty}</span><button onClick={() => addToCart(item)} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Plus size={14} /></button></div></div>))}</div><div className="p-4 bg-white border-t border-slate-100 space-y-3 pb-8 lg:pb-4"><div className="flex justify-between font-black text-xl"><span>Total</span><div className="text-right"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} align="right" size="large" /></div></div><input type="text" value={saleDescription} onChange={(e) => setSaleDescription(e.target.value)} placeholder="Cliente / Nota..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none shadow-inner" /><div className="grid grid-cols-3 gap-2"><GlassButton variant="secondary" onClick={() => { setCart([]); setEditingOrderId(null); setIsCartOpenMobile(false); }} title="Vaciar carrito"><Trash2 size={16} /></GlassButton><GlassButton onClick={handleSaveToPending} disabled={cart.length === 0} variant="kitchen" title="Enviar a pendientes">{editingOrderId ? 'Actualizar' : 'Pendientes'}</GlassButton><GlassButton onClick={handleDirectCharge} disabled={cart.length === 0} variant="primary" title="Cobrar inmediatamente">Cobrar</GlassButton></div></div></GlassCard></div></div>)}
 
                 {/* --- PENDIENTES --- */}
                 {activeTab === 'pending' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><header className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 md:p-6 rounded-2xl border border-white/40 shadow-sm"><div><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Clock3 className="text-yellow-600" /> Pendientes</h2></div><div className="w-full md:w-auto"><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} /></div></header><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-20">{filterAndSort(pendingOrders, ['description', 'id']).map(order => (<GlassCard key={order.id} className="border-l-4 border-yellow-500 p-0 flex flex-col"><div className="p-4 bg-yellow-50 flex justify-between"><div><h3 className="font-bold text-lg">{order.description}</h3><p className="text-xs text-slate-500">{formatDateApp(order.date, 'time')}</p></div><Badge type="warning">Cocina</Badge></div><div className="p-4 flex-1 space-y-1">{order.items.map((i, idx) => <div key={idx} className="flex justify-between text-sm"><span className="text-slate-600"><b>{i.qty}</b> {i.name}</span></div>)}</div><div className="p-4 bg-white border-t flex flex-col gap-3"><div className="flex justify-between items-end"><span className="text-xs text-slate-400">Total</span><PriceDisplay amount={order.total} exchangeRate={exchangeRate} align="right" /></div><div className="grid grid-cols-3 gap-2"><button onClick={() => { setCart(order.items); setSaleDescription(order.description); setEditingOrderId(order.id); setActiveTab('pos'); }} className="py-3 md:py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation hover:bg-slate-200 transition-colors"><Edit size={14} /> Editar</button><button onClick={() => handleCancelPendingOrder(order)} className="py-3 md:py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation hover:bg-red-100 transition-colors"><Trash2 size={14} /> Cancelar</button><button onClick={() => handleCobrar(order)} className="py-3 md:py-2 bg-gradient-to-br from-yellow-400 to-yellow-600 text-slate-900 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation shadow-lg shadow-yellow-500/20 active:shadow-none transition-all"><Zap size={14} /> Cobrar</button></div></div></GlassCard>))}</div></div>)}
@@ -1561,149 +1561,123 @@ export default function App() {
 
                 {/* --- REPORTES --- */}
                 {activeTab === 'reports' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0 pb-20">
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><TrendingUp className="text-yellow-600" /> Reportes</h2>
-                        <GlassButton variant="gemini" onClick={() => callGeminiAI(`Analiza estas ventas y dame recomendaciones: ${JSON.stringify(salesHistory.slice(0, 15))}`, "Análisis de Ventas")}>Analizar AI</GlassButton>
-                    </div>
-                    <PeriodNavigator currentDate={currentDateView} setCurrentDate={setCurrentDateView} viewMode={viewMode} setViewMode={setViewMode} />
-                    {viewMode === 'range' && <DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} onDownloadPdf={() => handleDownloadReport(filterAndSort(salesHistory, [], true))} title="Filtrar Reportes" />}
                     {(() => {
+                        const reportSortOptions = [{ value: 'name', label: 'Nombre' }, { value: 'revenue', label: 'Ingreso' }, { value: 'qty', label: 'Vendidos' }];
                         const periodSales = viewMode === 'range' ? filterAndSort(salesHistory, [], true) : filterAndSort(salesHistory, [], false, true);
                         const totalRevenue = periodSales.reduce((sum, s) => sum + s.total, 0);
                         const totalItemsSold = periodSales.reduce((sum, s) => sum + s.items.reduce((a, i) => a + i.qty, 0), 0);
-                        return (
+                        const buildProductMap = () => {
+                            const productMap = {};
+                            periodSales.forEach(sale => { sale.items.forEach(item => { if (!productMap[item.id]) { const prod = products.find(p => p.id === item.id); const rc = prod ? calculateRecipeCost(prod.recipe) : 0; productMap[item.id] = { name: item.name, qty: 0, revenue: 0, unitCost: rc, category: prod?.category || '-' }; } productMap[item.id].qty += item.qty; productMap[item.id].revenue += item.price * item.qty; }); });
+                            return Object.values(productMap).filter(r => !searchQuery || r.name.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => { let valA = a[sortConfig.key], valB = b[sortConfig.key]; if (typeof valA === 'string') { valA = valA.toLowerCase(); valB = valB.toLowerCase(); } return sortConfig.direction === 'asc' ? (valA < valB ? -1 : 1) : (valA > valB ? -1 : 1); });
+                        };
+                        return (<>
+                            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                                <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><TrendingUp className="text-yellow-600" /> Reportes</h2>
+                                <GlassButton variant="gemini" onClick={() => callGeminiAI(`Analiza estas ventas y dame recomendaciones: ${JSON.stringify(salesHistory.slice(0, 15))}`, "Análisis de Ventas")}>Analizar AI</GlassButton>
+                            </div>
+                            <PeriodNavigator currentDate={currentDateView} setCurrentDate={setCurrentDateView} viewMode={viewMode} setViewMode={setViewMode} />
+                            {viewMode === 'range' && <DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} onDownloadPdf={() => handleDownloadReport(filterAndSort(salesHistory, [], true))} title="Filtrar Reportes" />}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <GlassCard className="p-4 border-l-4 border-slate-400"><p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase">Transacciones</p><p className="text-xl md:text-2xl font-black text-slate-800 mt-1">{periodSales.length}</p></GlassCard>
                                 <GlassCard className="p-4 border-l-4 border-blue-400"><p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase">Unidades Vendidas</p><p className="text-xl md:text-2xl font-black text-slate-800 mt-1">{totalItemsSold}</p></GlassCard>
                                 <GlassCard className="p-4 border-l-4 border-emerald-400"><p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase">Ingreso Total</p><PriceDisplay amount={totalRevenue} exchangeRate={exchangeRate} size="normal" /></GlassCard>
                                 <GlassCard className="p-4 border-l-4 border-yellow-400"><p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase">Ticket Promedio</p><PriceDisplay amount={periodSales.length > 0 ? totalRevenue / periodSales.length : 0} exchangeRate={exchangeRate} size="normal" /></GlassCard>
                             </div>
-                        );
+                            <div className="flex flex-col md:flex-row justify-between items-center gap-2">
+                                <div className="flex flex-col gap-1">
+                                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><PieChart size={16} className="text-yellow-600" /> Rendimiento por Producto</h3>
+                                    <p className="text-[10px] text-slate-400">Ordenado por {reportSortOptions.find(o => o.value === sortConfig.key)?.label || 'Nombre'}</p>
+                                </div>
+                                <div className="flex flex-wrap gap-2 items-center">
+                                    <AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={reportSortOptions} placeholder="Buscar en tabla..." />
+                                    <div className="flex gap-2">
+                                        <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => { const rows = buildProductMap(); const data = rows.map(r => { const tc = r.unitCost * r.qty; const pr = r.revenue - tc; const mg = r.revenue > 0 ? ((pr / r.revenue) * 100).toFixed(1) + '%' : '0%'; return [r.name, r.category, r.qty, `$${r.revenue.toFixed(2)}`, `$${tc.toFixed(2)}`, `$${pr.toFixed(2)}`, mg, pr > 0 ? 'Sí' : 'No']; }); generatePDF('Rendimiento por Producto', ['Producto', 'Categoría', 'Uds.', 'Ingreso', 'Costo', 'Ganancia', 'Margen', 'Rentable'], data, 'rendimiento_productos.pdf'); }}><Download size={14} /> PDF</GlassButton>
+                                        <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => { const rows = buildProductMap(); const data = rows.map(r => { const tc = r.unitCost * r.qty; const pr = r.revenue - tc; const mg = r.revenue > 0 ? ((pr / r.revenue) * 100).toFixed(1) : '0'; return [r.name, r.category, r.qty, r.revenue.toFixed(2), tc.toFixed(2), pr.toFixed(2), mg, pr > 0 ? 'Sí' : 'No', `Bs ${(r.revenue * exchangeRate).toFixed(2)}`, `Bs ${(tc * exchangeRate).toFixed(2)}`, `Bs ${(pr * exchangeRate).toFixed(2)}`]; }); generateExcel('Rendimiento por Producto', ['Producto', 'Categoría', 'Uds.', 'Ingreso ($)', 'Costo ($)', 'Ganancia ($)', 'Margen %', 'Rentable', 'Ingreso (Bs)', 'Costo (Bs)', 'Ganancia (Bs)'], data, 'rendimiento_productos.csv'); }}><FileText size={14} /> Excel</GlassButton>
+                                    </div>
+                                </div>
+                            </div>
+                            <GlassCard className="overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm min-w-[850px]">
+                                        <thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4">Producto</th><th className="p-4 text-center">Uds.</th><th className="p-4 text-right">Ingreso</th><th className="p-4 text-right">Costo Prod.</th><th className="p-4 text-right">Ganancia</th><th className="p-4 text-center">Margen</th><th className="p-4 text-center">Rentable</th></tr></thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {(() => {
+                                                const rows = buildProductMap();
+                                                if (rows.length === 0) return <tr><td colSpan="7" className="p-8 text-center text-slate-400">No hay datos de ventas en este período.</td></tr>;
+                                                let totalRev = 0, totalCostAll = 0, totalProfAll = 0, totalQtyAll = 0;
+                                                const rendered = rows.map((r, i) => {
+                                                    const tc = r.unitCost * r.qty;
+                                                    const pr = r.revenue - tc;
+                                                    const mg = r.revenue > 0 ? ((pr / r.revenue) * 100) : 0;
+                                                    totalRev += r.revenue; totalCostAll += tc; totalProfAll += pr; totalQtyAll += r.qty;
+                                                    return (
+                                                        <tr key={i} className="hover:bg-slate-50">
+                                                            <td className="p-4"><div><span className="font-bold">{r.name}</span><span className="block text-[10px] text-slate-400">{r.category}</span></div></td>
+                                                            <td className="p-4 text-center font-mono font-bold text-lg">{r.qty}</td>
+                                                            <td className="p-4 text-right"><PriceDisplay amount={r.revenue} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                            <td className="p-4 text-right"><PriceDisplay amount={tc} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                            <td className="p-4 text-right"><div className={pr >= 0 ? 'text-emerald-600' : 'text-red-500'}><PriceDisplay amount={pr} exchangeRate={exchangeRate} size="small" align="right" /></div></td>
+                                                            <td className="p-4 text-center"><div className="flex flex-col items-center gap-1"><span className={`text-xs font-black ${mg >= 30 ? 'text-emerald-600' : mg >= 15 ? 'text-amber-600' : 'text-red-500'}`}>{mg.toFixed(1)}%</span><div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden"><div className={`h-full rounded-full ${mg >= 30 ? 'bg-emerald-500' : mg >= 15 ? 'bg-amber-500' : 'bg-red-500'}`} style={{width: `${Math.min(mg, 100)}%`}}></div></div></div></td>
+                                                            <td className="p-4 text-center"><Badge type={pr > 0 ? 'success' : 'danger'}>{pr > 0 ? 'Sí' : 'No'}</Badge></td>
+                                                        </tr>
+                                                    );
+                                                });
+                                                rendered.push(
+                                                    <tr key="totals" className="bg-slate-100 font-black text-slate-800 border-t-2 border-slate-300">
+                                                        <td className="p-4 uppercase text-xs tracking-wider">Totales</td>
+                                                        <td className="p-4 text-center font-mono text-lg">{totalQtyAll}</td>
+                                                        <td className="p-4 text-right"><PriceDisplay amount={totalRev} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                        <td className="p-4 text-right"><PriceDisplay amount={totalCostAll} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                        <td className="p-4 text-right"><div className={totalProfAll >= 0 ? 'text-emerald-600' : 'text-red-500'}><PriceDisplay amount={totalProfAll} exchangeRate={exchangeRate} size="small" align="right" /></div></td>
+                                                        <td className="p-4 text-center"><span className="text-xs font-black">{totalRev > 0 ? ((totalProfAll / totalRev) * 100).toFixed(1) : 0}%</span></td>
+                                                        <td className="p-4"></td>
+                                                    </tr>
+                                                );
+                                                return rendered;
+                                            })()}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </GlassCard>
+                            <div className="flex flex-col md:flex-row justify-between items-center gap-2 mt-8">
+                                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><AlertTriangle size={16} className="text-red-500" /> Alertas de Stock (Bajo / Agotado)</h3>
+                                <div className="flex gap-2">
+                                    <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => { const lowStock = ingredients.filter(ing => (ing.stock || 0) <= (ing.minStock || 0)); const data = lowStock.map(ing => [ing.name, `${ing.stock} ${ing.unit}`, `${ing.minStock} ${ing.unit}`, (ing.stock || 0) === 0 ? 'AGOTADO' : 'BAJO STOCK']); generatePDF('Alertas de Stock', ['Insumo', 'Stock Actual', 'Stock Mínimo', 'Estado'], data, 'alertas_stock.pdf'); }}><Download size={14} /> PDF</GlassButton>
+                                    <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => { const lowStock = ingredients.filter(ing => (ing.stock || 0) <= (ing.minStock || 0)); const data = lowStock.map(ing => [ing.name, ing.stock, ing.minStock, (ing.stock || 0) === 0 ? 'AGOTADO' : 'BAJO STOCK', ing.unit]); generateExcel('Alertas de Stock', ['Insumo', 'Stock Actual', 'Stock Mínimo', 'Estado', 'Unidad'], data, 'alertas_stock.csv'); }}><FileText size={14} /> Excel</GlassButton>
+                                </div>
+                            </div>
+                            <GlassCard className="overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm min-w-[600px]">
+                                        <thead className="bg-slate-50 text-slate-500 font-medium uppercase">
+                                            <tr><th className="p-4">Insumo</th><th className="p-4 text-center">Stock Actual</th><th className="p-4 text-center">Mínimo</th><th className="p-4 text-center">Estado</th></tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {(() => {
+                                                const lowStock = ingredients.filter(ing => (ing.stock || 0) <= (ing.minStock || 0)).sort((a,b) => (a.stock || 0) - (b.stock || 0));
+                                                if (lowStock.length === 0) return <tr><td colSpan="4" className="p-8 text-center text-slate-400">No hay alertas de stock en este momento.</td></tr>;
+                                                return lowStock.map((ing, i) => (
+                                                    <tr key={i} className="hover:bg-slate-50">
+                                                        <td className="p-4 font-bold">{ing.name}</td>
+                                                        <td className="p-4 text-center font-mono font-bold text-lg">{(ing.stock || 0)} {ing.unit}</td>
+                                                        <td className="p-4 text-center text-slate-500">{(ing.minStock || 0)} {ing.unit}</td>
+                                                        <td className="p-4 text-center"><Badge type={(ing.stock || 0) === 0 ? 'danger' : 'warning'}>{(ing.stock || 0) === 0 ? 'AGOTADO' : 'BAJO STOCK'}</Badge></td>
+                                                    </tr>
+                                                ));
+                                            })()}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </GlassCard>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <GlassCard className="p-6"><h3 className="font-bold mb-4 flex gap-2"><TrendingUp className="text-yellow-600" /> Ventas Recientes</h3><div style={{height: '240px'}}><ResponsiveContainer width="100%" height={240}><AreaChart data={(() => { const s = viewMode === 'range' ? filterAndSort(salesHistory, [], true) : filterAndSort(salesHistory, [], false, true); return s.slice(0, 7).map(ss => ({ name: formatDateApp(ss.date, 'short-date'), total: ss.total })); })()}><Area type="monotone" dataKey="total" stroke="#fbbf24" fill="#fef3c7" /></AreaChart></ResponsiveContainer></div></GlassCard>
+                                <GlassCard className="p-6 flex flex-col justify-center items-center text-center"><Bot size={48} className="text-yellow-500 mb-4" /><h3 className="font-bold text-lg">Asistente Inteligente</h3><p className="text-slate-500 text-sm mb-4">Genera estrategias de venta o análisis de menú.</p><GlassButton variant="gemini" onClick={() => callGeminiAI("Dame estrategias de venta", "Marketing AI")}>Consultar AI</GlassButton></GlassCard>
+                            </div>
+                        </>);
                     })()}
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-2">
-                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><PieChart size={16} className="text-yellow-600" /> Rendimiento por Producto</h3>
-                        <div className="flex gap-2">
-                            <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
-                                const periodSales = viewMode === 'range' ? filterAndSort(salesHistory, [], true) : filterAndSort(salesHistory, [], false, true);
-                                const productMap = {};
-                                periodSales.forEach(sale => { sale.items.forEach(item => { if (!productMap[item.id]) { const prod = products.find(p => p.id === item.id); const rc = prod ? calculateRecipeCost(prod.recipe) : 0; productMap[item.id] = { name: item.name, qty: 0, revenue: 0, unitCost: rc, category: prod?.category || '-' }; } productMap[item.id].qty += item.qty; productMap[item.id].revenue += item.price * item.qty; }); });
-                                const rows = Object.values(productMap).sort((a, b) => b.revenue - a.revenue);
-                                const data = rows.map(r => { const tc = r.unitCost * r.qty; const pr = r.revenue - tc; const mg = r.revenue > 0 ? ((pr / r.revenue) * 100).toFixed(1) + '%' : '0%'; return [r.name, r.category, r.qty, `$${r.revenue.toFixed(2)}`, `$${tc.toFixed(2)}`, `$${pr.toFixed(2)}`, mg, pr > 0 ? 'Sí' : 'No']; });
-                                generatePDF('Rendimiento por Producto', ['Producto', 'Categoría', 'Uds.', 'Ingreso', 'Costo', 'Ganancia', 'Margen', 'Rentable'], data, 'rendimiento_productos.pdf');
-                            }}><Download size={14} /> PDF</GlassButton>
-                            <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
-                                const periodSales = viewMode === 'range' ? filterAndSort(salesHistory, [], true) : filterAndSort(salesHistory, [], false, true);
-                                const productMap = {};
-                                periodSales.forEach(sale => { sale.items.forEach(item => { if (!productMap[item.id]) { const prod = products.find(p => p.id === item.id); const rc = prod ? calculateRecipeCost(prod.recipe) : 0; productMap[item.id] = { name: item.name, qty: 0, revenue: 0, unitCost: rc, category: prod?.category || '-' }; } productMap[item.id].qty += item.qty; productMap[item.id].revenue += item.price * item.qty; }); });
-                                const rows = Object.values(productMap).sort((a, b) => b.revenue - a.revenue);
-                                const data = rows.map(r => { const tc = r.unitCost * r.qty; const pr = r.revenue - tc; const mg = r.revenue > 0 ? ((pr / r.revenue) * 100).toFixed(1) : '0'; return [r.name, r.category, r.qty, r.revenue.toFixed(2), tc.toFixed(2), pr.toFixed(2), mg, pr > 0 ? 'Sí' : 'No', `Bs ${(r.revenue * exchangeRate).toFixed(2)}`, `Bs ${(tc * exchangeRate).toFixed(2)}`, `Bs ${(pr * exchangeRate).toFixed(2)}`]; });
-                                generateExcel('Rendimiento por Producto', ['Producto', 'Categoría', 'Uds.', 'Ingreso ($)', 'Costo ($)', 'Ganancia ($)', 'Margen %', 'Rentable', 'Ingreso (Bs)', 'Costo (Bs)', 'Ganancia (Bs)'], data, 'rendimiento_productos.csv');
-                            }}><FileText size={14} /> Excel</GlassButton>
-                        </div>
-                    </div>
-                    <GlassCard className="overflow-hidden">
-                        <div className="overflow-x-auto ">
-                            <table className="w-full text-left text-sm min-w-[850px]">
-                                <thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4">Producto</th><th className="p-4 text-center">Uds.</th><th className="p-4 text-right">Ingreso</th><th className="p-4 text-right">Costo Prod.</th><th className="p-4 text-right">Ganancia</th><th className="p-4 text-center">Margen</th><th className="p-4 text-center">Rentable</th></tr></thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {(() => {
-                                        const periodSales = viewMode === 'range' ? filterAndSort(salesHistory, [], true) : filterAndSort(salesHistory, [], false, true);
-                                        const productMap = {};
-                                        periodSales.forEach(sale => {
-                                            sale.items.forEach(item => {
-                                                if (!productMap[item.id]) {
-                                                    const prod = products.find(p => p.id === item.id);
-                                                    const recipeCost = prod ? calculateRecipeCost(prod.recipe) : 0;
-                                                    productMap[item.id] = { name: item.name, qty: 0, revenue: 0, unitCost: recipeCost, category: prod?.category || '-' };
-                                                }
-                                                productMap[item.id].qty += item.qty;
-                                                productMap[item.id].revenue += item.price * item.qty;
-                                            });
-                                        });
-                                        const rows = Object.values(productMap).sort((a, b) => b.revenue - a.revenue);
-                                        if (rows.length === 0) return <tr><td colSpan="7" className="p-8 text-center text-slate-400">No hay datos de ventas en este período.</td></tr>;
-                                        let totalRev = 0, totalCostAll = 0, totalProfAll = 0, totalQtyAll = 0;
-                                        const rendered = rows.map((r, i) => {
-                                            const tc = r.unitCost * r.qty;
-                                            const pr = r.revenue - tc;
-                                            const mg = r.revenue > 0 ? ((pr / r.revenue) * 100) : 0;
-                                            totalRev += r.revenue; totalCostAll += tc; totalProfAll += pr; totalQtyAll += r.qty;
-                                            return (
-                                                <tr key={i} className="hover:bg-slate-50">
-                                                    <td className="p-4"><div><span className="font-bold">{r.name}</span><span className="block text-[10px] text-slate-400">{r.category}</span></div></td>
-                                                    <td className="p-4 text-center font-mono font-bold text-lg">{r.qty}</td>
-                                                    <td className="p-4 text-right"><PriceDisplay amount={r.revenue} exchangeRate={exchangeRate} size="small" align="right" /></td>
-                                                    <td className="p-4 text-right"><PriceDisplay amount={tc} exchangeRate={exchangeRate} size="small" align="right" /></td>
-                                                    <td className="p-4 text-right"><div className={pr >= 0 ? 'text-emerald-600' : 'text-red-500'}><PriceDisplay amount={pr} exchangeRate={exchangeRate} size="small" align="right" /></div></td>
-                                                    <td className="p-4 text-center"><div className="flex flex-col items-center gap-1"><span className={`text-xs font-black ${mg >= 30 ? 'text-emerald-600' : mg >= 15 ? 'text-amber-600' : 'text-red-500'}`}>{mg.toFixed(1)}%</span><div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden"><div className={`h-full rounded-full ${mg >= 30 ? 'bg-emerald-500' : mg >= 15 ? 'bg-amber-500' : 'bg-red-500'}`} style={{width: `${Math.min(mg, 100)}%`}}></div></div></div></td>
-                                                    <td className="p-4 text-center"><Badge type={pr > 0 ? 'success' : 'danger'}>{pr > 0 ? 'Sí' : 'No'}</Badge></td>
-                                                </tr>
-                                            );
-                                        });
-                                        rendered.push(
-                                            <tr key="totals" className="bg-slate-100 font-black text-slate-800 border-t-2 border-slate-300">
-                                                <td className="p-4 uppercase text-xs tracking-wider">Totales</td>
-                                                <td className="p-4 text-center font-mono text-lg">{totalQtyAll}</td>
-                                                <td className="p-4 text-right"><PriceDisplay amount={totalRev} exchangeRate={exchangeRate} size="small" align="right" /></td>
-                                                <td className="p-4 text-right"><PriceDisplay amount={totalCostAll} exchangeRate={exchangeRate} size="small" align="right" /></td>
-                                                <td className="p-4 text-right"><div className={totalProfAll >= 0 ? 'text-emerald-600' : 'text-red-500'}><PriceDisplay amount={totalProfAll} exchangeRate={exchangeRate} size="small" align="right" /></div></td>
-                                                <td className="p-4 text-center"><span className="text-xs font-black">{totalRev > 0 ? ((totalProfAll / totalRev) * 100).toFixed(1) : 0}%</span></td>
-                                                <td className="p-4"></td>
-                                            </tr>
-                                        );
-                                        return rendered;
-                                    })()}
-                                </tbody>
-                            </table>
-                        </div>
-                    </GlassCard>
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-2 mt-8">
-                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><AlertTriangle size={16} className="text-red-500" /> Alertas de Stock (Bajo / Agotado)</h3>
-                        <div className="flex gap-2">
-                            <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
-                                const lowStock = ingredients.filter(ing => (ing.stock || 0) <= (ing.minStock || 0));
-                                const data = lowStock.map(ing => [ing.name, `${ing.stock} ${ing.unit}`, `${ing.minStock} ${ing.unit}`, (ing.stock || 0) === 0 ? 'AGOTADO' : 'BAJO STOCK']);
-                                generatePDF('Alertas de Stock', ['Insumo', 'Stock Actual', 'Stock Mínimo', 'Estado'], data, 'alertas_stock.pdf');
-                            }}><Download size={14} /> PDF</GlassButton>
-                            <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
-                                const lowStock = ingredients.filter(ing => (ing.stock || 0) <= (ing.minStock || 0));
-                                const data = lowStock.map(ing => [ing.name, ing.stock, ing.minStock, (ing.stock || 0) === 0 ? 'AGOTADO' : 'BAJO STOCK', ing.unit]);
-                                generateExcel('Alertas de Stock', ['Insumo', 'Stock Actual', 'Stock Mínimo', 'Estado', 'Unidad'], data, 'alertas_stock.csv');
-                            }}><FileText size={14} /> Excel</GlassButton>
-                        </div>
-                    </div>
-                    <GlassCard className="overflow-hidden">
-                        <div className="overflow-x-auto ">
-                            <table className="w-full text-left text-sm min-w-[600px]">
-                                <thead className="bg-slate-50 text-slate-500 font-medium uppercase">
-                                    <tr><th className="p-4">Insumo</th><th className="p-4 text-center">Stock Actual</th><th className="p-4 text-center">Mínimo</th><th className="p-4 text-center">Estado</th></tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {(() => {
-                                        const lowStock = ingredients.filter(ing => (ing.stock || 0) <= (ing.minStock || 0)).sort((a,b) => (a.stock || 0) - (b.stock || 0));
-                                        if (lowStock.length === 0) return <tr><td colSpan="4" className="p-8 text-center text-slate-400">No hay alertas de stock en este momento.</td></tr>;
-                                        return lowStock.map((ing, i) => (
-                                            <tr key={i} className="hover:bg-slate-50">
-                                                <td className="p-4 font-bold">{ing.name}</td>
-                                                <td className="p-4 text-center font-mono font-bold text-lg">{(ing.stock || 0)} {ing.unit}</td>
-                                                <td className="p-4 text-center text-slate-500">{(ing.minStock || 0)} {ing.unit}</td>
-                                                <td className="p-4 text-center">
-                                                    <Badge type={(ing.stock || 0) === 0 ? 'danger' : 'warning'}>
-                                                        {(ing.stock || 0) === 0 ? 'AGOTADO' : 'BAJO STOCK'}
-                                                    </Badge>
-                                                </td>
-                                            </tr>
-                                        ));
-                                    })()}
-                                </tbody>
-                            </table>
-                        </div>
-                    </GlassCard>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <GlassCard className="p-6"><h3 className="font-bold mb-4 flex gap-2"><TrendingUp className="text-yellow-600" /> Ventas Recientes</h3><div style={{height: '240px'}}><ResponsiveContainer width="100%" height={240}><AreaChart data={(() => { const s = viewMode === 'range' ? filterAndSort(salesHistory, [], true) : filterAndSort(salesHistory, [], false, true); return s.slice(0, 7).map(ss => ({ name: formatDateApp(ss.date, 'short-date'), total: ss.total })); })()}><Area type="monotone" dataKey="total" stroke="#fbbf24" fill="#fef3c7" /></AreaChart></ResponsiveContainer></div></GlassCard>
-                        <GlassCard className="p-6 flex flex-col justify-center items-center text-center"><Bot size={48} className="text-yellow-500 mb-4" /><h3 className="font-bold text-lg">Asistente Inteligente</h3><p className="text-slate-500 text-sm mb-4">Genera estrategias de venta o análisis de menú.</p><GlassButton variant="gemini" onClick={() => callGeminiAI("Dame estrategias de venta", "Marketing AI")}>Consultar AI</GlassButton></GlassCard>
-                    </div>
                 </div>)}
+
 
                 {/* --- CONFIGURACIÓN --- */}
                 {activeTab === 'settings' && (<div className="max-w-4xl mx-auto space-y-8 fade-in mt-10 md:mt-0 pb-10"><header className="flex items-center gap-4 bg-white/50 p-6 rounded-2xl border border-white/40 shadow-sm"><div className="p-3 bg-slate-200 rounded-xl"><Settings className="text-slate-700" size={32} /></div><div><h2 className="text-2xl font-black text-slate-800">Configuración Global</h2><p className="text-slate-500">Usuarios, Respaldos y Nube</p></div></header>
