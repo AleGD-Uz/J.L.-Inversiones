@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
     LayoutDashboard, Package, TrendingUp, Plus, Minus, Trash2,
     Save, Search, AlertCircle, Menu, X, DollarSign, UtensilsCrossed, ChefHat,
@@ -1130,6 +1130,19 @@ export default function App() {
         showNotification("Producto eliminado");
     };
 
+    const handleDeleteExpense = (expense) => {
+        setConfirmation({
+            show: true,
+            message: `¿Eliminar gasto "${expense.description}"?`,
+            onConfirm: async () => {
+                await deleteFromDB('other_expenses', expense.id);
+                logActivity('Gasto', `Gasto eliminado: ${expense.description} ($${expense.amount.toFixed(2)})`);
+                setConfirmation({ show: false });
+                showNotification("Gasto eliminado");
+            }
+        });
+    };
+
     const handleSaveIngredient = (e) => {
         e.preventDefault();
         const fd = new FormData(e.target);
@@ -1552,6 +1565,56 @@ export default function App() {
                                                 </tr>
                                             );
                                         });
+                                    })()}
+                                </tbody>
+                            </table>
+                        </div>
+                    </GlassCard>
+
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-2 mt-12">
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Lista de Gastos Registrados</h3>
+                        <div className="flex gap-2">
+                            <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
+                                const activeExpenses = filterAndSort(otherExpenses, [], false, true);
+                                const data = activeExpenses.map(e => [formatDateApp(e.date, 'full'), e.description, e.category, `$${e.amount.toFixed(2)}`]);
+                                generatePDF('Lista de Gastos - Balance', ['Fecha', 'Descripción', 'Categoría', 'Monto'], data, 'gastos_balance.pdf');
+                            }}><Download size={14} /> PDF</GlassButton>
+                            <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
+                                const activeExpenses = filterAndSort(otherExpenses, [], false, true);
+                                const data = activeExpenses.map(e => [formatDateApp(e.date, 'full'), e.description, e.category, e.amount.toFixed(2), `Bs ${(e.amount * exchangeRate).toFixed(2)}`]);
+                                generateExcel('Lista de Gastos', ['Fecha', 'Descripción', 'Categoría', 'Monto ($)', 'Monto (Bs)'], data, 'gastos_balance.csv');
+                            }}><FileText size={14} /> Excel</GlassButton>
+                        </div>
+                    </div>
+                    <GlassCard className="overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm min-w-[700px]">
+                                <thead className="bg-slate-50 text-slate-500 font-medium uppercase">
+                                    <tr>
+                                        <th className="p-4">Fecha</th>
+                                        <th className="p-4">Descripción</th>
+                                        <th className="p-4">Categoría</th>
+                                        <th className="p-4 text-right">Monto</th>
+                                        <th className="p-4 text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {(() => {
+                                        const activeExpenses = filterAndSort(otherExpenses, [], false, true);
+                                        if (activeExpenses.length === 0) return <tr><td colSpan="5" className="p-8 text-center text-slate-400">No hay gastos registrados en este período.</td></tr>;
+                                        return activeExpenses.map((expense) => (
+                                            <tr key={expense.id} className="hover:bg-slate-50">
+                                                <td className="p-4 text-slate-500 text-xs">{formatDateApp(expense.date, 'full')}</td>
+                                                <td className="p-4 font-bold">{expense.description}</td>
+                                                <td className="p-4"><Badge type="neutral">{expense.category}</Badge></td>
+                                                <td className="p-4 text-right"><PriceDisplay amount={expense.amount} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                <td className="p-4 text-center">
+                                                    <button onClick={() => handleDeleteExpense(expense)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar Gasto">
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ));
                                     })()}
                                 </tbody>
                             </table>
