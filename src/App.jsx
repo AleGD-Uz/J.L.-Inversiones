@@ -477,7 +477,7 @@ const ProductCard = ({ product, ingredients, addToCart, exchangeRate, getProduct
     );
 };
 
-const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin }) => {
+const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("Todos");
 
@@ -511,7 +511,7 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin }) => {
                     onClick={onGoToLogin}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 shadow-lg shadow-yellow-500/10 active:scale-95 animate-in fade-in"
                 >
-                    <LogIn size={14} /> Personal
+                    {user ? <LayoutDashboard size={14} /> : <LogIn size={14} />} {user ? "Administración" : "Personal"}
                 </button>
             </header>
 
@@ -2201,19 +2201,26 @@ export default function App() {
     // --- RENDERIZADO PRINCIPAL ---
     if (authLoading || ((user || isPublicCatalogMode) && dataLoading)) { return (<div className="h-screen flex items-center justify-center bg-slate-900 text-white"><Loader2 size={48} className="animate-spin text-yellow-500" /><p className="ml-3 text-slate-400">Sincronizando con la nube...</p></div>); }
 
-    if (!user) {
-        if (isPublicCatalogMode) {
-            return (
-                <PublicCatalogScreen 
-                    products={products} 
-                    exchangeRate={exchangeRate} 
-                    onGoToLogin={() => {
+    if (isPublicCatalogMode) {
+        return (
+            <PublicCatalogScreen 
+                products={products} 
+                exchangeRate={exchangeRate} 
+                user={user}
+                onGoToLogin={() => {
+                    if (user) {
+                        window.location.hash = '#/dashboard';
+                        setIsPublicCatalogMode(false);
+                    } else {
                         window.location.hash = '#/login';
                         setIsPublicCatalogMode(false);
-                    }} 
-                />
-            );
-        }
+                    }
+                }} 
+            />
+        );
+    }
+
+    if (!user) {
         return (
             <LoginScreen 
                 onLogin={handleLogin} 
