@@ -4,11 +4,11 @@ import {
     Save, Search, AlertCircle, Menu, X, DollarSign, UtensilsCrossed, ChefHat,
     Info, Edit, RefreshCw, Settings, AlertTriangle, Calendar, Clock, Sparkles,
     Bot, Loader2, Zap, FileText, Download, Megaphone, ClipboardList, Eye,
-    MessageSquare, Calculator, History, ArrowRightLeft, Utensils, ChevronDown,
+    MessageSquare, Calculator, History, ArrowRightLeft, Utensils, Palette, ChevronDown,
     ChevronUp, Wallet, PieChart, ArrowUpCircle, ArrowDownCircle, Lightbulb,
     ShieldCheck, Hash, CreditCard, Receipt, Clock3, Filter, SortAsc, SortDesc,
     Maximize2, Minimize2, CalendarDays, ChevronLeft, ChevronRight, Upload, Database,
-    Cloud, Wifi, WifiOff, LogOut, Lock, User, Mail, Key, Users, UserPlus, UserMinus,
+    Cloud, Wifi, WifiOff, LogOut, LogIn, Lock, User, Mail, Key, Users, UserPlus, UserMinus,
     CheckCircle, Activity, Link, UserCog, UserCheck, Timer, FileSearch
 } from 'lucide-react';
 import {
@@ -210,7 +210,7 @@ const useIdleTimer = (timeout = 1800000, onIdle) => {
 };
 
 // --- HOOK DE SINCRONIZACIÓN DE DATOS ---
-const useDataSync = (user, appId) => {
+const useDataSync = (user, appId, isPublicCatalogMode = false) => {
     const [data, setData] = useState({
         ingredients: [],
         products: [],
@@ -220,6 +220,7 @@ const useDataSync = (user, appId) => {
         pendingOrders: [],
         appUsers: [],
         bitacoraLogs: [],
+        customers: [],
         config: { exchangeRate: 0 }
     });
 
@@ -229,7 +230,7 @@ const useDataSync = (user, appId) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!user || !db || !appId) {
+        if ((!user && !isPublicCatalogMode) || !db || !appId) {
             setLoading(false);
             return;
         }
@@ -241,8 +242,6 @@ const useDataSync = (user, appId) => {
 
         const subscribe = (colName, stateKey, orderField = null) => {
             let q = publicPath(colName);
-            // Si el nombre de la colección es muy grande, Firestore puede tardar sin índice. 
-            // Manejamos el orden localmente en filterAndSort para evitar problemas de índices caídos.
             return onSnapshot(q,
                 (snapshot) => {
                     const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
@@ -261,19 +260,30 @@ const useDataSync = (user, appId) => {
             );
         };
 
-        const unsubs = [
-            subscribe('ingredients', 'ingredients'),
-            subscribe('products', 'products'),
-            subscribe('sales', 'salesHistory'),
-            subscribe('stock_history', 'stockHistory'),
-            subscribe('other_expenses', 'otherExpenses'),
-            subscribe('pending_orders', 'pendingOrders'),
-            subscribe('users', 'appUsers'),
-            subscribe('bitacora', 'bitacoraLogs'), // NUEVA SUSCRIPCIÓN A BITÁCORA
+        const unsubs = [];
+        if (user) {
+            unsubs.push(
+                subscribe('ingredients', 'ingredients'),
+                subscribe('products', 'products'),
+                subscribe('sales', 'salesHistory'),
+                subscribe('stock_history', 'stockHistory'),
+                subscribe('other_expenses', 'otherExpenses'),
+                subscribe('pending_orders', 'pendingOrders'),
+                subscribe('users', 'appUsers'),
+                subscribe('bitacora', 'bitacoraLogs'),
+                subscribe('customers', 'customers')
+            );
+        } else if (isPublicCatalogMode) {
+            unsubs.push(
+                subscribe('products', 'products')
+            );
+        }
+
+        unsubs.push(
             onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'general'), (docSnap) => {
                 if (docSnap.exists()) setData(prev => ({ ...prev, config: docSnap.data() }));
             })
-        ];
+        );
 
         const updatePresence = async () => {
             if (user?.uid) {
@@ -294,7 +304,7 @@ const useDataSync = (user, appId) => {
             clearInterval(presenceInterval);
             setStatus(prev => ({ ...prev, connected: false }));
         };
-    }, [user, appId]);
+    }, [user, appId, isPublicCatalogMode]);
 
     return { data, status, loading };
 };
@@ -346,10 +356,15 @@ const PriceDisplay = ({ amount = 0, className = "", exchangeRate, size = "normal
     const formattedUsd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(safeAmount);
     const alignClass = align === 'right' ? 'text-right' : (align === 'center' ? 'text-center' : 'text-left');
     const textSize = size === 'large' ? 'text-lg md:text-2xl' : (size === 'small' ? 'text-xs' : 'text-sm md:text-base');
+    
+    const isVES = window.__primaryCurrency === 'VES';
+    const mainText = isVES ? formattedBs : formattedUsd;
+    const secondaryText = isVES ? formattedUsd : formattedBs;
+
     return (
         <div className={`${className} ${alignClass}`}>
-            <div className={`font-bold text-slate-800 leading-none ${textSize}`}>{formattedUsd}</div>
-            {!hideSecondary && <div className="text-[9px] md:text-xs text-slate-500 font-mono mt-0.5">{formattedBs}</div>}
+            <div className={`font-bold text-slate-800 leading-none ${textSize}`}>{mainText}</div>
+            {!hideSecondary && <div className="text-[9px] md:text-xs text-slate-500 font-mono mt-0.5">{secondaryText}</div>}
         </div>
     );
 };
@@ -462,7 +477,125 @@ const ProductCard = ({ product, ingredients, addToCart, exchangeRate, getProduct
     );
 };
 
-const LoginScreen = ({ onLogin }) => {
+const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin }) => {
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState("Todos");
+
+    const categories = useMemo(() => {
+        return ["Todos", ...new Set(products.map(p => p.category).filter(Boolean))];
+    }, [products]);
+
+    const filteredProducts = useMemo(() => {
+        return products.filter(p => {
+            const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                  (p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase()));
+            const matchesCategory = selectedCategory === "Todos" || p.category === selectedCategory;
+            return matchesSearch && matchesCategory;
+        });
+    }, [products, searchQuery, selectedCategory]);
+
+    return (
+        <div className="min-h-screen bg-slate-900 text-white flex flex-col font-sans overflow-x-hidden">
+            {/* Header */}
+            <header className="bg-slate-800/80 backdrop-blur-md border-b border-slate-700/50 sticky top-0 z-50 px-4 py-4 md:px-8 flex justify-between items-center shadow-lg">
+                <div className="flex items-center gap-3">
+                    <div className="bg-gradient-to-tr from-yellow-400 to-yellow-600 p-2 rounded-xl shadow-lg shadow-yellow-500/20">
+                        <Palette size={20} className="text-slate-900" />
+                    </div>
+                    <div>
+                        <h1 className="text-lg md:text-xl font-black text-white tracking-tight">Catálogo de Productos</h1>
+                        <p className="text-[10px] md:text-xs text-slate-400">J.L. Inversiones</p>
+                    </div>
+                </div>
+                <button 
+                    onClick={onGoToLogin}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 shadow-lg shadow-yellow-500/10 active:scale-95 animate-in fade-in"
+                >
+                    <LogIn size={14} /> Personal
+                </button>
+            </header>
+
+            {/* Main Content */}
+            <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 lg:p-8 space-y-6">
+                {/* Search and Category Filter Toolbar */}
+                <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 bg-slate-800/40 p-4 rounded-2xl border border-slate-700/50 shadow-inner">
+                    <div className="relative flex-1">
+                        <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input 
+                            type="text" 
+                            placeholder="Buscar producto..." 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-yellow-500 text-sm"
+                        />
+                    </div>
+                </div>
+
+                {/* Categories */}
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+                    {categories.map(cat => (
+                        <button 
+                            key={cat} 
+                            onClick={() => setSelectedCategory(cat)} 
+                            className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold transition-all ${
+                                selectedCategory === cat 
+                                    ? 'bg-yellow-500 text-slate-900 shadow-lg shadow-yellow-500/10' 
+                                    : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700/50'
+                            }`}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Products Grid */}
+                {filteredProducts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+                        <Utensils size={48} className="opacity-20 mb-4 animate-bounce" />
+                        <p>No se encontraron productos.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        {filteredProducts.map(product => {
+                            const priceBs = (product.price || 0) * (exchangeRate || 0);
+                            return (
+                                <div 
+                                    key={product.id} 
+                                    className="bg-slate-800/60 border border-slate-700/50 rounded-3xl p-5 flex flex-col gap-4 hover:border-yellow-500/50 hover:shadow-xl hover:shadow-yellow-500/5 transition-all duration-300 group"
+                                >
+                                    {/* Image/Emoji area */}
+                                    <div className="aspect-square bg-slate-900 rounded-2xl flex items-center justify-center text-5xl overflow-hidden shadow-inner border border-slate-800 relative">
+                                        {product.image && (String(product.image).startsWith('data:image') || String(product.image).startsWith('http')) ? (
+                                            <img src={product.image} alt={product.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" />
+                                        ) : (
+                                            <span className="group-hover:scale-110 transition-transform duration-300 block">{product.image || '🎨'}</span>
+                                        )}
+                                    </div>
+
+                                    {/* Product Details */}
+                                    <div className="flex-1 flex flex-col justify-between gap-2">
+                                        <div>
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{product.category || 'Otros'}</span>
+                                            <h3 className="font-bold text-sm text-white group-hover:text-yellow-400 transition-colors line-clamp-2 mt-1">{product.name}</h3>
+                                        </div>
+                                        <div className="mt-2 pt-3 border-t border-slate-700/50">
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Precio</span>
+                                            <div className="text-lg font-black text-yellow-500 tracking-tight mt-0.5">
+                                                {new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'VES' }).format(priceBs)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </main>
+        </div>
+    );
+};
+
+const LoginScreen = ({ onLogin, onViewPublicCatalog }) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState(null);
@@ -498,12 +631,81 @@ const LoginScreen = ({ onLogin }) => {
                     <div className="space-y-1"><label className="text-xs font-bold text-slate-400 uppercase ml-1">Contraseña</label><input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-3 pl-10 text-white focus:outline-none focus:border-yellow-500" placeholder="••••••••" /></div>
                     <button type="submit" disabled={loading} className="w-full text-slate-900 font-bold py-3 rounded-xl shadow-lg transition-all disabled:opacity-50 flex justify-center items-center gap-2 bg-gradient-to-r from-yellow-400 to-yellow-600 hover:shadow-yellow-500/30">{loading ? <Loader2 size={20} className="animate-spin" /> : 'Iniciar Sesión'}</button>
                     <div className="text-center mt-4">
-                        <p className="text-xs text-slate-400">Acceso restringido a personal autorizado.</p>
+                        <p className="text-xs text-slate-400">Acceso restringido a personal autorisado.</p>
+                        {onViewPublicCatalog && (
+                            <button 
+                                type="button" 
+                                onClick={onViewPublicCatalog} 
+                                className="mt-4 text-xs font-black text-yellow-500 hover:text-yellow-400 hover:underline uppercase tracking-wider block mx-auto transition-all duration-300"
+                            >
+                                Ver Catálogo de Productos
+                            </button>
+                        )}
                     </div>
                 </form>
             </GlassCard>
         </div>
     );
+};
+
+const DEFAULT_PERMISSIONS_BY_ROLE = {
+    'Gerente': {},
+    'Cajero': {
+        dashboard: { view: true, edit: false },
+        pos: { view: true, edit: true },
+        pending: { view: true, edit: true },
+        history: { view: true, edit: false },
+        products: { view: true, edit: false },
+        inventory: { view: true, edit: false },
+        inventory_history: { view: false, edit: false },
+        customers: { view: true, edit: true },
+        balance: { view: false, edit: false },
+        reports: { view: false, edit: false },
+        bitacora: { view: false, edit: false },
+        settings: { view: false, edit: false }
+    },
+    'Diseñador': {
+        dashboard: { view: true, edit: false },
+        pos: { view: false, edit: false },
+        pending: { view: true, edit: true },
+        history: { view: false, edit: false },
+        products: { view: true, edit: true },
+        inventory: { view: true, edit: false },
+        inventory_history: { view: false, edit: false },
+        customers: { view: false, edit: false },
+        balance: { view: false, edit: false },
+        reports: { view: false, edit: false },
+        bitacora: { view: false, edit: false },
+        settings: { view: false, edit: false }
+    },
+    'Empleado': {
+        dashboard: { view: true, edit: false },
+        pos: { view: false, edit: false },
+        pending: { view: true, edit: false },
+        history: { view: false, edit: false },
+        products: { view: true, edit: false },
+        inventory: { view: true, edit: false },
+        inventory_history: { view: false, edit: false },
+        customers: { view: false, edit: false },
+        balance: { view: false, edit: false },
+        reports: { view: false, edit: false },
+        bitacora: { view: false, edit: false },
+        settings: { view: false, edit: false }
+    },
+    'Encargado': {
+        dashboard: { view: true, edit: true },
+        pos: { view: true, edit: true },
+        pending: { view: true, edit: true },
+        history: { view: true, edit: true },
+        products: { view: true, edit: true },
+        inventory: { view: true, edit: true },
+        inventory_history: { view: true, edit: true },
+        customers: { view: true, edit: true },
+        balance: { view: true, edit: false },
+        reports: { view: true, edit: false },
+        bitacora: { view: false, edit: false },
+        settings: { view: false, edit: false }
+    }
 };
 
 // --- GESTIÓN DE USUARIOS ---
@@ -517,7 +719,18 @@ const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, curr
 
     const [editName, setEditName] = useState("");
     const [editRole, setEditRole] = useState("");
+    const [editPermissions, setEditPermissions] = useState({});
     const [loading, setLoading] = useState(false);
+
+    const handlePermissionChange = (sectionId, type, checked) => {
+        setEditPermissions(prev => ({
+            ...prev,
+            [sectionId]: {
+                ...(prev[sectionId] || { view: true, edit: false }),
+                [type]: checked
+            }
+        }));
+    };
 
     const totalUsers = appUsers.length;
     const adminCount = appUsers.filter(u => u.role === 'Gerente').length;
@@ -542,7 +755,11 @@ const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, curr
         e.preventDefault();
         setLoading(true);
         try {
-            await onEditUser(editingUser.uid, { name: editName, role: editRole });
+            await onEditUser(editingUser.uid, { 
+                name: editName, 
+                role: editRole, 
+                permissions: editRole === 'Gerente' ? {} : editPermissions 
+            });
             setEditingUser(null);
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
@@ -587,7 +804,7 @@ const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, curr
                             <div>
                                 <label className="text-xs font-bold text-slate-500 ml-1">Rol</label>
                                 <select value={newRole} onChange={e => setNewRole(e.target.value)} className="w-full p-3 md:p-2.5 border border-slate-300 rounded-xl bg-white focus:border-yellow-500 outline-none">
-                                    <option>Gerente</option><option>Cajero</option><option>Cocina</option><option>Empleado</option>
+                                    <option>Gerente</option><option>Encargado</option><option>Cajero</option><option>Diseñador</option><option>Empleado</option>
                                 </select>
                             </div>
                             <div>
@@ -610,34 +827,112 @@ const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, curr
 
             {editingUser && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                    <GlassCard className="w-full max-w-md p-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-                        <div className="flex justify-between items-start mb-4">
-                            <h4 className="font-bold text-slate-700 flex items-center gap-2"><UserCog size={20} className="text-amber-500" /> Editar Usuario</h4>
-                            <button onClick={() => setEditingUser(null)} className="p-1 hover:bg-slate-100 rounded-full"><X size={20} /></button>
+                    <div className="bg-[#e2e8f0]/95 backdrop-blur-xl border border-white/60 shadow-2xl rounded-[2.5rem] w-full max-w-md p-8 animate-in zoom-in-95 max-h-[95vh] overflow-y-auto text-slate-800">
+                        <div className="flex justify-between items-center mb-6">
+                            <h4 className="text-xl font-black text-slate-900 flex items-center gap-2 tracking-wide uppercase">
+                                <Edit size={22} className="text-purple-600" /> Editar Usuario
+                            </h4>
+                            <button onClick={() => setEditingUser(null)} className="p-1.5 hover:bg-slate-200/50 rounded-full text-slate-500 transition-colors">
+                                <X size={20} />
+                            </button>
                         </div>
-                        <form onSubmit={handleUpdate} className="space-y-4">
-                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4">
-                                <p className="text-xs text-slate-400 uppercase font-bold">Cuenta</p>
-                                <p className="text-sm font-mono text-slate-600 truncate">{editingUser.email}</p>
+                        <form onSubmit={handleUpdate} className="space-y-5">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">Nombre / Alias</label>
+                                <input 
+                                    required 
+                                    type="text" 
+                                    value={editName} 
+                                    onChange={e => setEditName(e.target.value)} 
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 text-sm font-bold text-slate-800 shadow-inner" 
+                                />
                             </div>
-                            <div>
-                                <label className="text-xs font-bold text-slate-500 ml-1">Nombre</label>
-                                <input required type="text" value={editName} onChange={e => setEditName(e.target.value)} className="w-full p-3 md:p-2.5 border rounded-xl" />
-                            </div>
-                            <div>
-                                <label className="text-xs font-bold text-slate-500 ml-1">Rol / Permisos</label>
-                                <select value={editRole} onChange={e => setEditRole(e.target.value)} className="w-full p-3 md:p-2.5 border rounded-xl bg-white">
-                                    <option>Gerente</option><option>Cajero</option><option>Cocina</option><option>Empleado</option>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">Rol en el Sistema</label>
+                                <select 
+                                    value={editRole} 
+                                    onChange={e => {
+                                        const newRole = e.target.value;
+                                        setEditRole(newRole);
+                                        setEditPermissions(DEFAULT_PERMISSIONS_BY_ROLE[newRole] || {});
+                                    }} 
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 text-sm font-bold text-slate-800 shadow-inner cursor-pointer"
+                                >
+                                    <option>Gerente</option>
+                                    <option>Encargado</option>
+                                    <option>Cajero</option>
+                                    <option>Diseñador</option>
+                                    <option>Empleado</option>
                                 </select>
                             </div>
-                            <div className="flex justify-end gap-2 pt-4">
-                                <GlassButton onClick={() => setEditingUser(null)} variant="secondary">Cancelar</GlassButton>
-                                <GlassButton type="submit" disabled={loading} variant="success">
-                                    {loading ? <Loader2 className="animate-spin" /> : 'Guardar'}
-                                </GlassButton>
+
+                            {editRole !== 'Gerente' && (
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">Permisos por Apartado</label>
+                                    <div className="max-h-60 overflow-y-auto pr-1 space-y-2 rounded-2xl bg-slate-50/50 p-2 border border-slate-200/60 custom-scrollbar">
+                                        {[
+                                            { id: 'dashboard', label: 'Dashboard' },
+                                            { id: 'pos', label: 'Ventas / POS' },
+                                            { id: 'pending', label: 'Pending' },
+                                            { id: 'history', label: 'History' },
+                                            { id: 'products', label: 'Menu' },
+                                            { id: 'inventory', label: 'Inventory' },
+                                            { id: 'inventory_history', label: 'Kardex' },
+                                            { id: 'customers', label: 'Clientes' },
+                                            { id: 'balance', label: 'Balance' },
+                                            { id: 'reports', label: 'Reportes' },
+                                            { id: 'bitacora', label: 'Bitácora' },
+                                            { id: 'settings', label: 'Configuración' }
+                                        ].map(sec => {
+                                            const p = editPermissions[sec.id] || { view: true, edit: false };
+                                            return (
+                                                <div key={sec.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                                    <span className="font-bold text-xs text-slate-700">{sec.label}</span>
+                                                    <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                                        <label className="flex items-center gap-1 cursor-pointer">
+                                                            <span>Ver</span>
+                                                            <input 
+                                                                type="checkbox" 
+                                                                checked={p.view !== false} 
+                                                                onChange={e => handlePermissionChange(sec.id, 'view', e.target.checked)}
+                                                                className="rounded text-purple-600 focus:ring-purple-500 w-3.5 h-3.5"
+                                                            />
+                                                        </label>
+                                                        <label className="flex items-center gap-1 cursor-pointer">
+                                                            <span>Editar</span>
+                                                            <input 
+                                                                type="checkbox" 
+                                                                checked={p.edit === true} 
+                                                                onChange={e => handlePermissionChange(sec.id, 'edit', e.target.checked)}
+                                                                className="rounded text-purple-600 focus:ring-purple-500 w-3.5 h-3.5"
+                                                            />
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setEditingUser(null)} 
+                                    className="text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors px-4 py-2"
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    disabled={loading} 
+                                    className="bg-purple-100 text-purple-700 border border-purple-300 rounded-full px-6 py-2.5 font-bold hover:bg-purple-200 active:scale-95 transition-all text-xs flex items-center gap-1.5 shadow-md shadow-purple-500/10 disabled:opacity-50"
+                                >
+                                    {loading ? <Loader2 className="animate-spin" size={14} /> : 'Guardar Cambios'}
+                                </button>
                             </div>
                         </form>
-                    </GlassCard>
+                    </div>
                 </div>
             )}
 
@@ -646,7 +941,7 @@ const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, curr
                     const online = isOnline(u.lastActive);
                     return (
                         <div key={u.id || Math.random()} className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                            <div className={`h-2 w-full ${u.role === 'Gerente' ? 'bg-yellow-500' : (u.role === 'Cocina' ? 'bg-amber-400' : 'bg-slate-300')}`}></div>
+                            <div className={`h-2 w-full ${u.role === 'Gerente' ? 'bg-yellow-500' : (u.role === 'Diseñador' ? 'bg-amber-400' : 'bg-slate-300')}`}></div>
                             <div className="p-5">
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-3">
@@ -674,7 +969,12 @@ const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, curr
                                     <div className="flex gap-1">
                                         {u.uid !== currentUserId ? (
                                             <>
-                                                <button onClick={() => { setEditingUser(u); setEditName(u.name || ""); setEditRole(u.role || "Empleado"); }} className="p-3 md:p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Editar">
+                                                <button onClick={() => { 
+                                                    setEditingUser(u); 
+                                                    setEditName(u.name || ""); 
+                                                    setEditRole(u.role || "Empleado"); 
+                                                    setEditPermissions(u.permissions || DEFAULT_PERMISSIONS_BY_ROLE[u.role || "Empleado"] || {});
+                                                }} className="p-3 md:p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Editar">
                                                     <Edit size={16} />
                                                 </button>
                                                 <button onClick={() => onDeleteUser(u)} className="p-3 md:p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
@@ -682,7 +982,12 @@ const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, curr
                                                 </button>
                                             </>
                                         ) : (
-                                            <button onClick={() => { setEditingUser(u); setEditName(u.name || ""); setEditRole(u.role || "Empleado"); }} className="p-3 md:p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Editar mi perfil">
+                                            <button onClick={() => { 
+                                                setEditingUser(u); 
+                                                setEditName(u.name || ""); 
+                                                setEditRole(u.role || "Empleado"); 
+                                                setEditPermissions(u.permissions || DEFAULT_PERMISSIONS_BY_ROLE[u.role || "Empleado"] || {});
+                                            }} className="p-3 md:p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Editar mi perfil">
                                                 <UserCheck size={16} />
                                             </button>
                                         )}
@@ -697,11 +1002,15 @@ const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, curr
     );
 };
 
+
+
 // --- COMPONENTE PRINCIPAL APP ---
 export default function App() {
-    const [activeTab, setActiveTab] = useState('pos');
+    const [activeTab, setActiveTab] = useState('dashboard');
+    const [currencyMode, setCurrencyMode] = useState(() => localStorage.getItem('currencyMode') || 'USD');
     const [user, setUser] = useState(null);
     const [authLoading, setAuthLoading] = useState(true);
+    const [isPublicCatalogMode, setIsPublicCatalogMode] = useState(false);
 
     const [currentAppId, setCurrentAppId] = useState(ENV_APP_ID);
 
@@ -712,6 +1021,23 @@ export default function App() {
         });
         return () => unsubscribe();
     }, []);
+
+    useEffect(() => {
+        const handleHashChange = () => {
+            if (window.location.hash === '#/catalogo') {
+                setIsPublicCatalogMode(true);
+            } else if (window.location.hash === '#/login') {
+                setIsPublicCatalogMode(false);
+            }
+        };
+        handleHashChange();
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem('currencyMode', currencyMode);
+    }, [currencyMode]);
 
     const handleLogout = useCallback(() => signOut(auth).then(() => {
         setUser(null);
@@ -724,9 +1050,217 @@ export default function App() {
         }
     });
 
-    const { data, status: connectionStatus, loading: dataLoading } = useDataSync(user, currentAppId);
-    const { ingredients, products, salesHistory, stockHistory, otherExpenses, pendingOrders, appUsers, bitacoraLogs, config } = data;
+    const { data, status: connectionStatus, loading: dataLoading } = useDataSync(user, currentAppId, isPublicCatalogMode);
+    const { ingredients, products, salesHistory, stockHistory, otherExpenses, pendingOrders, appUsers, bitacoraLogs, config, customers = [] } = data;
     const exchangeRate = config?.exchangeRate || 0;
+
+    window.__primaryCurrency = currencyMode;
+    window.__exchangeRate = exchangeRate;
+
+    const currentUserData = useMemo(() => {
+        if (!user || !appUsers?.length) return null;
+        return appUsers.find(u => u.uid === user.uid);
+    }, [user, appUsers]);
+
+    const PERMISSION_SECTIONS = [
+        { id: 'dashboard', label: 'Dashboard' },
+        { id: 'pos', label: 'Ventas / POS' },
+        { id: 'pending', label: 'Pending' },
+        { id: 'history', label: 'History' },
+        { id: 'products', label: 'Menu' },
+        { id: 'inventory', label: 'Inventory' },
+        { id: 'inventory_history', label: 'Kardex' },
+        { id: 'customers', label: 'Clientes' },
+        { id: 'balance', label: 'Balance' },
+        { id: 'reports', label: 'Reportes' },
+        { id: 'bitacora', label: 'Bitácora' },
+        { id: 'settings', label: 'Configuración' }
+    ];
+
+    const hasPermission = (tabId, type = 'view') => {
+        if (!user) return false;
+        if (!currentUserData) return true; // Default to true while loading
+        if (currentUserData.role === 'Gerente') return true;
+        
+        const perms = currentUserData.permissions || {};
+        const tabPerms = perms[tabId] || {};
+        
+        if (type === 'view') {
+            return tabPerms.view !== false; // Default to true if undefined
+        }
+        if (type === 'edit') {
+            return tabPerms.edit === true;  // Default to false if undefined
+        }
+        return false;
+    };
+
+    // Redirección si no tiene permisos de ver el tab activo
+    useEffect(() => {
+        if (currentUserData && currentUserData.role !== 'Gerente') {
+            const currentTabPerm = (currentUserData.permissions || {})[activeTab];
+            const isAllowed = currentTabPerm?.view !== false;
+            if (!isAllowed) {
+                const firstAllowedTab = PERMISSION_SECTIONS.find(t => {
+                    const p = (currentUserData.permissions || {})[t.id];
+                    return p?.view !== false;
+                });
+                if (firstAllowedTab) {
+                    setActiveTab(firstAllowedTab.id);
+                }
+            }
+        }
+    }, [activeTab, currentUserData]);
+
+    // --- CÁLCULOS DEL DASHBOARD ---
+    const todaySales = useMemo(() => {
+        return salesHistory.filter(s => {
+            if (!s.date) return false;
+            const d = getZonedDate(s.date);
+            const today = getZonedDate(new Date());
+            return d.getDate() === today.getDate() &&
+                   d.getMonth() === today.getMonth() &&
+                   d.getFullYear() === today.getFullYear();
+        });
+    }, [salesHistory]);
+
+    const dailyIncome = useMemo(() => {
+        return todaySales.reduce((acc, s) => acc + s.total, 0);
+    }, [todaySales]);
+
+    const dailyOrdersCount = todaySales.length;
+
+    const averageOrderCost = useMemo(() => {
+        return dailyOrdersCount > 0 ? dailyIncome / dailyOrdersCount : 0;
+    }, [dailyIncome, dailyOrdersCount]);
+
+    const hourlySalesData = useMemo(() => {
+        const hours = Array.from({ length: 24 }, (_, i) => {
+            const period = i >= 12 ? 'PM' : 'AM';
+            const hour12 = i % 12 === 0 ? 12 : i % 12;
+            return {
+                hour: i,
+                label: `${hour12} ${period}`,
+                Monto: 0,
+                ventas: 0
+            };
+        });
+        
+        todaySales.forEach(s => {
+            if (!s.date) return;
+            const d = getZonedDate(s.date);
+            const hour = d.getHours();
+            if (hours[hour]) {
+                hours[hour].Monto += s.total;
+                hours[hour].ventas += 1;
+            }
+        });
+        
+        return hours.filter(h => h.Monto > 0 || (h.hour >= 7 && h.hour <= 22));
+    }, [todaySales]);
+
+    const weeklyBalanceData = useMemo(() => {
+        const today = getZonedDate(new Date());
+        const dataList = [];
+        
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            d.setHours(0, 0, 0, 0);
+            
+            const dailySales = salesHistory.filter(s => {
+                if (!s.date) return false;
+                const sd = getZonedDate(s.date);
+                return sd.getDate() === d.getDate() &&
+                       sd.getMonth() === d.getMonth() &&
+                       sd.getFullYear() === d.getFullYear();
+            });
+            
+            const dailyExpenses = otherExpenses.filter(e => {
+                if (!e.date) return false;
+                const ed = getZonedDate(e.date);
+                return ed.getDate() === d.getDate() &&
+                       ed.getMonth() === d.getMonth() &&
+                       ed.getFullYear() === d.getFullYear();
+            });
+            
+            const stockExpenses = stockHistory.filter(l => {
+                if (!l.date) return false;
+                if (l.type !== 'ADD' || l.reason.includes('Cancelación')) return false;
+                const ld = getZonedDate(l.date);
+                return ld.getDate() === d.getDate() &&
+                       ld.getMonth() === d.getMonth() &&
+                       ld.getFullYear() === d.getFullYear();
+            });
+            
+            const income = dailySales.reduce((sum, s) => sum + s.total, 0);
+            const expense = dailyExpenses.reduce((sum, e) => sum + e.amount, 0) +
+                            stockExpenses.reduce((sum, l) => sum + (l.totalValue || 0), 0);
+            
+            const name = d.toLocaleDateString('es-VE', { weekday: 'short', day: 'numeric', timeZone: APP_TIMEZONE });
+            
+            dataList.push({
+                name: name.charAt(0).toUpperCase() + name.slice(1),
+                Ingresos: Number(income.toFixed(2)),
+                Gastos: Number(expense.toFixed(2))
+            });
+        }
+        return dataList;
+    }, [salesHistory, otherExpenses, stockHistory]);
+
+    const topSellingProducts = useMemo(() => {
+        const productQuantities = {};
+        salesHistory.forEach(sale => {
+            sale.items?.forEach(item => {
+                if (!productQuantities[item.id]) {
+                    productQuantities[item.id] = {
+                        id: item.id,
+                        name: item.name,
+                        image: item.image,
+                        price: item.price,
+                        qty: 0,
+                        totalSales: 0
+                    };
+                }
+                productQuantities[item.id].qty += item.qty;
+                productQuantities[item.id].totalSales += item.price * item.qty;
+            });
+        });
+        return Object.values(productQuantities)
+            .sort((a, b) => b.qty - a.qty)
+            .slice(0, 5);
+    }, [salesHistory]);
+
+    const criticalStockProducts = useMemo(() => {
+        return ingredients
+            .filter(ing => (ing.stock || 0) <= (ing.minStock || 0))
+            .sort((a, b) => {
+                const ratioA = a.minStock > 0 ? (a.stock / a.minStock) : 0;
+                const ratioB = b.minStock > 0 ? (b.stock / b.minStock) : 0;
+                return ratioA - ratioB;
+            })
+            .slice(0, 5);
+    }, [ingredients]);
+
+    const recentOrdersWithStatus = useMemo(() => {
+        const pending = pendingOrders.map(o => ({
+            ...o,
+            type: 'pending',
+            statusLabel: 'Pendiente',
+            badgeType: 'warning',
+            rawDate: o.date
+        }));
+        const completed = salesHistory.map(s => ({
+            ...s,
+            type: 'completed',
+            statusLabel: 'Completado',
+            badgeType: 'success',
+            rawDate: s.date
+        }));
+        
+        return [...pending, ...completed]
+            .sort((a, b) => new Date(b.rawDate || 0) - new Date(a.rawDate || 0))
+            .slice(0, 10);
+    }, [pendingOrders, salesHistory]);
 
     // --- ESTADOS CORE ---
     const [notification, setNotification] = useState(null);
@@ -776,6 +1310,12 @@ export default function App() {
 
     const [cart, setCart] = useState([]);
     const [saleDescription, setSaleDescription] = useState("");
+    const [orderDeliveryDate, setOrderDeliveryDate] = useState("");
+    const [orderDesignLink, setOrderDesignLink] = useState("");
+    const [showMermaForm, setShowMermaForm] = useState(false);
+    const [mermaIngredientId, setMermaIngredientId] = useState("");
+    const [mermaQty, setMermaQty] = useState("");
+    const [mermaReason, setMermaReason] = useState("");
     const [editingOrderId, setEditingOrderId] = useState(null);
     const [selectedSale, setSelectedSale] = useState(null);
     const [observationText, setObservationText] = useState("");
@@ -807,6 +1347,29 @@ export default function App() {
     const [isIvaApplied, setIsIvaApplied] = useState(false);
     const [baseCostBeforeIva, setBaseCostBeforeIva] = useState(0);
     const [showCalculator, setShowCalculator] = useState(false);
+    const [expensesLimit, setExpensesLimit] = useState(10);
+    const [editingExpense, setEditingExpense] = useState(null);
+    const [editingCustomer, setEditingCustomer] = useState(null);
+    const [showCustomerForm, setShowCustomerForm] = useState(false);
+
+    const [expenseCurrency, setExpenseCurrency] = useState('USD');
+    const [tempExpenseAmount, setTempExpenseAmount] = useState(0);
+    const [productCurrency, setProductCurrency] = useState('USD');
+    const [tempProductPrice, setTempProductPrice] = useState(0);
+
+    useEffect(() => {
+        if (showExpenseForm) {
+            setExpenseCurrency(currencyMode);
+            setTempExpenseAmount(editingExpense ? editingExpense.amount : 0);
+        }
+    }, [showExpenseForm, editingExpense, currencyMode]);
+
+    useEffect(() => {
+        if (showProductForm) {
+            setProductCurrency(currencyMode);
+            setTempProductPrice(editingProduct ? editingProduct.price || 0 : 0);
+        }
+    }, [showProductForm, editingProduct, currencyMode]);
 
     useEffect(() => {
         if (!showIngredientForm && !showProductForm) {
@@ -818,7 +1381,8 @@ export default function App() {
     useEffect(() => {
         setSearchQuery("");
         setSelectedCategory("Todos");
-        if (['inventory', 'products', 'pos', 'reports'].includes(activeTab)) {
+        setExpensesLimit(10);
+        if (['inventory', 'products', 'pos', 'reports', 'customers'].includes(activeTab)) {
             setSortConfig({ key: 'name', direction: 'asc' });
         } else if (['history', 'bitacora', 'inventory_history', 'pending'].includes(activeTab)) {
             setSortConfig({ key: 'date', direction: 'desc' });
@@ -854,7 +1418,15 @@ export default function App() {
             const secondaryAuth = getAuth(secondaryApp);
             const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
             const newUser = userCredential.user;
-            await setDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', 'users', newUser.uid), { uid: newUser.uid, name: name, email: email, role: role, createdAt: new Date().toISOString() });
+            const defaultPerms = DEFAULT_PERMISSIONS_BY_ROLE[role] || {};
+            await setDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', 'users', newUser.uid), { 
+                uid: newUser.uid, 
+                name: name, 
+                email: email, 
+                role: role, 
+                permissions: defaultPerms, 
+                createdAt: new Date().toISOString() 
+            });
             await signOut(secondaryAuth);
             logActivity('Sistema', `Usuario creado: ${name} (${role})`);
             showNotification(`Usuario ${name} creado exitosamente`);
@@ -905,6 +1477,7 @@ export default function App() {
     };
 
     const addToCart = (product) => {
+        if (!hasPermission('pos', 'edit')) { showNotification("No tienes permisos para interactuar con la orden", "error"); return; }
         if (cart.find(c => c.id === product.id)?.qty >= getProductMaxStock(product)) { showNotification(`¡Stock insuficiente!`, "error"); return; }
         setCart(prev => {
             const ex = prev.find(i => i.id === product.id);
@@ -951,7 +1524,7 @@ export default function App() {
         logActivity('Venta', `Venta directa realizada: ${desc} - ${formatCurrency(total)}`);
         showNotification("Venta procesada exitosamente");
         setReceiptModal({ show: true, sale });
-        setCart([]); setSaleDescription(""); setIsCartOpenMobile(false);
+        setCart([]); setSaleDescription(""); setOrderDeliveryDate(""); setOrderDesignLink(""); setIsCartOpenMobile(false);
     };
 
     const handleSaveToPending = async () => {
@@ -959,7 +1532,7 @@ export default function App() {
         const isUpdate = editingOrderId !== null;
         const orderId = isUpdate ? editingOrderId : generateSecureId();
         const desc = saleDescription || "Cliente General";
-        const order = { id: orderId, date: new Date().toISOString(), items: cart, total: cart.reduce((s, i) => s + i.price * i.qty, 0), description: desc, status: 'pending' };
+        const order = { id: orderId, date: new Date().toISOString(), items: cart, total: cart.reduce((s, i) => s + i.price * i.qty, 0), description: desc, status: 'pending', deliveryDate: orderDeliveryDate, designLink: orderDesignLink };
 
         // Calculamos la diferencia neta de inventario a descontar/devolver
         const stockDeductions = {};
@@ -1007,9 +1580,9 @@ export default function App() {
         }
 
         saveToDB('pending_orders', order, order.id);
-        logActivity('Comanda', `Orden ${isUpdate ? 'actualizada' : 'enviada a pendientes'}: ${desc}`);
+        logActivity('Pedido', `Orden ${isUpdate ? 'actualizada' : 'enviada a pendientes'}: ${desc}`);
         showNotification(isUpdate ? "Orden actualizada" : "Enviada a pendientes");
-        setCart([]); setSaleDescription(""); setEditingOrderId(null); setIsCartOpenMobile(false); if (isUpdate) setActiveTab('pending');
+        setCart([]); setSaleDescription(""); setOrderDeliveryDate(""); setOrderDesignLink(""); setEditingOrderId(null); setIsCartOpenMobile(false); if (isUpdate) setActiveTab('pending');
     };
 
     const handleCancelPendingOrder = (order) => {
@@ -1038,28 +1611,74 @@ export default function App() {
                     }
                 }));
                 deleteFromDB('pending_orders', order.id);
-                logActivity('Cancelación', `Orden de cocina cancelada: ${order.description}`);
+                logActivity('Cancelación', `Pedido cancelado: ${order.description}`);
                 setConfirmation({ show: false });
                 showNotification("Orden cancelada");
             }
         });
     };
 
+    
+    const handleGenerateQuotation = () => {
+        if (cart.length === 0) return;
+        const isVES = currencyMode === 'VES';
+        const formatVal = (val) => isVES ? `Bs ${(val * exchangeRate).toFixed(2)}` : `$${val.toFixed(2)}`;
+        const data = cart.map(item => [item.qty, `${item.name}${item.variantDetails ? ` (${item.variantDetails})` : ''}`, formatVal(item.price), formatVal(item.price * item.qty)]);
+        const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+        data.push(['', 'TOTAL', '', formatVal(total)]);
+        generatePDF('Cotización', ['Cant', 'Descripción', 'Unit', 'Subtotal'], data, `cotizacion_${new Date().getTime()}.pdf`, `Cliente: ${saleDescription || 'A quien corresponda'}\nValidez: 15 días`);
+    };
+
+    const handleReportMerma = (e) => {
+        e.preventDefault();
+        const ing = ingredients.find(i => i.id === mermaIngredientId);
+        if (!ing || !mermaQty || isNaN(mermaQty)) return;
+        const qtyToDeduct = parseFloat(mermaQty);
+        if (qtyToDeduct > ing.stock) { showNotification('Stock insuficiente', 'error'); return; }
+        
+        const newStock = ing.stock - qtyToDeduct;
+        saveToDB('ingredients', { ...ing, stock: newStock }, ing.id);
+        const log = {
+            id: generateSecureId(),
+            date: new Date().toISOString(),
+            type: 'LOSS',
+            ingredientName: ing.name,
+            ingredientId: ing.id,
+            qtyChange: -qtyToDeduct,
+            costPerUnit: ing.cost || 0,
+            totalValue: -qtyToDeduct * (ing.cost || 0),
+            previousStock: ing.stock,
+            newStock: newStock,
+            reason: `Merma/Daño: ${mermaReason}`
+        };
+        saveToDB('stock_history', log, log.id);
+        logActivity('Sistema', `Merma reportada: ${qtyToDeduct} ${ing.unit} de ${ing.name} (${mermaReason})`);
+        showNotification('Merma registrada', 'warning');
+        setShowMermaForm(false);
+        setMermaIngredientId(''); setMermaQty(''); setMermaReason('');
+    };
+
     // FUNCIONES DE PDF
     const handleDownloadReceipt = (sale) => {
-        const data = sale.items.map(item => [item.qty, item.name, `$${item.price.toFixed(2)}`, `$${(item.price * item.qty).toFixed(2)}`]);
-        data.push(['', 'TOTAL', '', `$${sale.total.toFixed(2)}`]);
+        const isVES = currencyMode === 'VES';
+        const formatVal = (val) => isVES ? `Bs ${(val * exchangeRate).toFixed(2)}` : `$${val.toFixed(2)}`;
+        const data = sale.items.map(item => [item.qty, `${item.name}${item.variantDetails || item.details ? ` (${item.variantDetails || item.details})` : ''}`, formatVal(item.price), formatVal(item.price * item.qty)]);
+        data.push(['', 'TOTAL', '', formatVal(sale.total)]);
         generatePDF(`Recibo #${String(sale.id).slice(-6)}`, ["Cant", "Item", "Unit", "Subtotal"], data, `recibo_${sale.id}.pdf`, `Cliente: ${sale.description || 'Consumidor Final'}`);
     };
 
     const handleDownloadReport = (data) => {
-        const rows = data.map(s => [formatDateApp(s.date, 'full'), s.description || '-', `$${s.total.toFixed(2)}`]);
+        const isVES = currencyMode === 'VES';
+        const formatVal = (val) => isVES ? `Bs ${(val * exchangeRate).toFixed(2)}` : `$${val.toFixed(2)}`;
+        const rows = data.map(s => [formatDateApp(s.date, 'full'), s.description || '-', formatVal(s.total)]);
         generatePDF('Reporte de Ventas', ["Fecha", "Cliente", "Total"], rows, 'reporte_ventas.pdf');
     };
 
     const handleDownloadMenu = () => {
-        const rows = products.map(p => [p.name, p.category, `$${p.price.toFixed(2)}`]);
-        generatePDF('Menú de Productos', ["Nombre", "Categoría", "Precio"], rows, 'menu.pdf');
+        const isVES = currencyMode === 'VES';
+        const formatVal = (val) => isVES ? `Bs ${(val * exchangeRate).toFixed(2)}` : `$${val.toFixed(2)}`;
+        const rows = products.map(p => [p.name, p.category, formatVal(p.price)]);
+        generatePDF('Catálogo de Productos', ["Nombre", "Categoría", "Precio"], rows, 'catalogo.pdf');
     };
 
     const handleCobrar = (order) => {
@@ -1090,11 +1709,15 @@ export default function App() {
     const handleSaveExpense = (e) => {
         e.preventDefault();
         const fd = new FormData(e.target);
-        const expense = { id: generateSecureId(), date: new Date().toISOString(), description: fd.get('description'), amount: parseFloat(fd.get('amount')), category: fd.get('category') };
-        saveToDB('other_expenses', expense, expense.id);
-        logActivity('Gasto', `Gasto registrado: ${expense.description} ($${expense.amount.toFixed(2)})`);
+        const isEdit = editingExpense !== null;
+        const id = isEdit ? editingExpense.id : generateSecureId();
+        const date = isEdit ? editingExpense.date : new Date().toISOString();
+        const expense = { id, date, description: fd.get('description'), amount: tempExpenseAmount, category: fd.get('category') };
+        saveToDB('other_expenses', expense, id);
+        logActivity('Gasto', `Gasto ${isEdit ? 'editado' : 'registrado'}: ${expense.description} ($${tempExpenseAmount.toFixed(2)})`);
         setShowExpenseForm(false);
-        showNotification("Gasto registrado");
+        setEditingExpense(null);
+        showNotification(isEdit ? "Gasto actualizado" : "Gasto registrado");
     };
 
     const handleSaveProduct = async (e) => {
@@ -1116,9 +1739,9 @@ export default function App() {
             }
         }
 
-        const d = { id: editingProduct?.id || generateSecureId(), name: fd.get('name'), price: parseFloat(fd.get('price')), category: fd.get('category'), image: finalImage, recipe: editingProduct?.recipe || [] };
+        const d = { id: editingProduct?.id || generateSecureId(), name: fd.get('name'), price: tempProductPrice, category: fd.get('category'), image: finalImage, recipe: editingProduct?.recipe || [] };
         saveToDB('products', d, d.id);
-        logActivity('Menú', `Producto ${isNew ? 'creado' : 'editado'}: ${d.name}`);
+        logActivity('Catálogo', `Producto ${isNew ? 'creado' : 'editado'}: ${d.name}`);
         setShowProductForm(false);
         setProductIconPreview(null);
         showNotification("Producto guardado");
@@ -1126,7 +1749,7 @@ export default function App() {
 
     const handleDeleteProduct = (prod) => {
         deleteFromDB('products', prod.id);
-        logActivity('Menú', `Producto eliminado: ${prod.name}`);
+        logActivity('Catálogo', `Producto eliminado: ${prod.name}`);
         showNotification("Producto eliminado");
     };
 
@@ -1154,7 +1777,7 @@ export default function App() {
             cost: tempCost || 0,
             stock: parseFloat(fd.get('stock')),
             ivaPercent: ivaPercent,
-            minStock: 10
+            minStock: parseFloat(fd.get('minStock')) || 0
         };
         if (isNew) {
             const log = {
@@ -1170,8 +1793,44 @@ export default function App() {
             saveToDB('stock_history', log, log.id);
         }
         saveToDB('ingredients', d, d.id);
-        logActivity('Inventario', `Insumo ${isNew ? 'creado' : 'editado'}: ${d.name}`);
+        logActivity('Inventario', `Material ${isNew ? 'creado' : 'editado'}: ${d.name}`);
         setShowIngredientForm(false);
+    };
+
+    const handleSaveCustomer = (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const isNew = !editingCustomer?.id;
+        const d = {
+            id: editingCustomer?.id || generateSecureId(),
+            name: fd.get('name'),
+            phone: fd.get('phone'),
+            email: fd.get('email'),
+            address: fd.get('address')
+        };
+        saveToDB('customers', d, d.id);
+        logActivity('Clientes', `Cliente ${isNew ? 'creado' : 'editado'}: ${d.name}`);
+        setShowCustomerForm(false);
+        setEditingCustomer(null);
+        showNotification(`Cliente ${isNew ? 'creado' : 'editado'} exitosamente`);
+    };
+
+    const handleDeleteCustomer = (customer) => {
+        setConfirmation({
+            show: true,
+            message: `¿Estás seguro de eliminar a ${customer.name}?`,
+            onConfirm: async () => {
+                try {
+                    await deleteFromDB('customers', customer.id);
+                    logActivity('Clientes', `Cliente eliminado: ${customer.name}`);
+                    showNotification("Cliente eliminado correctamente");
+                    setConfirmation({ show: false });
+                } catch (e) {
+                    console.error("Error al eliminar cliente:", e);
+                    showNotification("Error al eliminar cliente", "error");
+                }
+            }
+        });
     };
 
     const handleUpdateExchangeRate = (val) => {
@@ -1230,7 +1889,7 @@ export default function App() {
         return processed;
     };
 
-    const callGeminiAI = async (prompt, title) => { setAiModal({ show: true, title, content: '', loading: true }); try { const apiKey = "AIzaSyDQfb1krfzT_4LKyqPmYH-7zXedNd-hzHc"; const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }); const data = await response.json(); setAiModal(prev => ({ ...prev, loading: false, content: data.candidates?.[0]?.content?.parts?.[0]?.text || "Sin respuesta." })); } catch (error) { setAiModal(prev => ({ ...prev, loading: false, content: `Error: ${error.message}.` })); } };
+    const callGeminiAI = async (prompt, title) => { setAiModal({ show: true, title, content: '', loading: true }); try { const apiKey = "AIzaSyDQfb1krfzT_4LKyqPmYH-7zXedNd-hzHc"; const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }); const data = await response.json(); setAiModal(prev => ({ ...prev, loading: false, content: data.candidates?.[0]?.content?.parts?.[0]?.text || "Sin respuesta." })); } catch (error) { setAiModal(prev => ({ ...prev, loading: false, content: `Error: ${error.message}.` })); } };
 
     // --- RESTAURACIÓN DE BACKUP MEJORADA (BORRA DATOS ANTIGUOS) ---
     const handleImportData = (e) => {
@@ -1307,25 +1966,264 @@ export default function App() {
         logActivity('Sistema', 'Respaldo de datos descargado');
     };
 
+    const handleLoadSublimationDemoData = () => {
+        setConfirmation({
+            show: true,
+            message: "¿Estás seguro de que quieres cargar el catálogo demo de Sublimados? Esto BORRARÁ permanentemente todos tus datos actuales de Firestore.",
+            onConfirm: async () => {
+                setConfirmation({ show: false });
+                setIsRestoring(true);
+                setRestoreStatus("Inicializando base de datos de Sublimación...");
+                try {
+                    const collectionsMap = {
+                        ingredients: 'ingredients',
+                        products: 'products',
+                        salesHistory: 'sales',
+                        stockHistory: 'stock_history',
+                        otherExpenses: 'other_expenses',
+                        pendingOrders: 'pending_orders',
+                        bitacoraLogs: 'bitacora'
+                    };
+
+                    // 1. Limpiar colecciones
+                    for (const colName of Object.values(collectionsMap)) {
+                        const q = query(collection(db, 'artifacts', currentAppId, 'public', 'data', colName));
+                        const snapshot = await getDocs(q);
+                        if (!snapshot.empty) {
+                            const batch = writeBatch(db);
+                            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+                            await batch.commit();
+                        }
+                    }
+
+                    // 2. Materiales demo
+                    const demoIngredients = [
+                        { id: 'mat-taza-blanca', name: 'Taza Blanca de Cerámica 11oz', unit: 'Unid', cost: 1.20, stock: 150, minStock: 24, ivaPercent: 0 },
+                        { id: 'mat-taza-magica', name: 'Taza Mágica de Cerámica 11oz', unit: 'Unid', cost: 2.50, stock: 50, minStock: 12, ivaPercent: 0 },
+                        { id: 'mat-camiseta-m', name: 'Camiseta Poliéster Blanca M', unit: 'Unid', cost: 3.00, stock: 80, minStock: 15, ivaPercent: 0 },
+                        { id: 'mat-camiseta-l', name: 'Camiseta Poliéster Blanca L', unit: 'Unid', cost: 3.20, stock: 60, minStock: 15, ivaPercent: 0 },
+                        { id: 'mat-gorra-base', name: 'Gorra Trucker Base', unit: 'Unid', cost: 1.80, stock: 40, minStock: 10, ivaPercent: 0 },
+                        { id: 'mat-mousepad-base', name: 'Mousepad Neopreno Base', unit: 'Unid', cost: 1.00, stock: 100, minStock: 20, ivaPercent: 0 },
+                        { id: 'mat-papel-a4', name: 'Papel Sublimación A4', unit: 'Unid', cost: 0.15, stock: 500, minStock: 50, ivaPercent: 0 },
+                        { id: 'mat-tinta-ml', name: 'Tinta Sublimación CMYK', unit: 'ml', cost: 0.05, stock: 1000, minStock: 200, ivaPercent: 0 },
+                        { id: 'mat-cinta-thermal', name: 'Cinta Térmica Sublimación', unit: 'm', cost: 0.10, stock: 100, minStock: 10, ivaPercent: 0 }
+                    ];
+
+                    const batchIngredients = writeBatch(db);
+                    demoIngredients.forEach(ing => {
+                        const ref = doc(db, 'artifacts', currentAppId, 'public', 'data', 'ingredients', ing.id);
+                        batchIngredients.set(ref, ing);
+                    });
+                    await batchIngredients.commit();
+
+                    // 3. Productos demo
+                    const demoProducts = [
+                        {
+                            id: 'prod-taza-blanca',
+                            name: 'Taza Blanca Personalizada',
+                            price: 5.00,
+                            category: 'Tazas',
+                            image: '☕',
+                            recipe: [
+                                { ingredientId: 'mat-taza-blanca', qty: 1 },
+                                { ingredientId: 'mat-papel-a4', qty: 0.25 },
+                                { ingredientId: 'mat-tinta-ml', qty: 2 },
+                                { ingredientId: 'mat-cinta-thermal', qty: 0.05 }
+                            ]
+                        },
+                        {
+                            id: 'prod-taza-magica',
+                            name: 'Taza Mágica Personalizada',
+                            price: 8.50,
+                            category: 'Tazas',
+                            image: '✨',
+                            recipe: [
+                                { ingredientId: 'mat-taza-magica', qty: 1 },
+                                { ingredientId: 'mat-papel-a4', qty: 0.25 },
+                                { ingredientId: 'mat-tinta-ml', qty: 2 },
+                                { ingredientId: 'mat-cinta-thermal', qty: 0.05 }
+                            ]
+                        },
+                        {
+                            id: 'prod-camiseta-m',
+                            name: 'Camiseta Sublimada Talla M',
+                            price: 12.00,
+                            category: 'Telas',
+                            image: '👕',
+                            recipe: [
+                                { ingredientId: 'mat-camiseta-m', qty: 1 },
+                                { ingredientId: 'mat-papel-a4', qty: 1 },
+                                { ingredientId: 'mat-tinta-ml', qty: 5 },
+                                { ingredientId: 'mat-cinta-thermal', qty: 0.1 }
+                            ]
+                        },
+                        {
+                            id: 'prod-camiseta-l',
+                            name: 'Camiseta Sublimada Talla L',
+                            price: 13.00,
+                            category: 'Telas',
+                            image: '👕',
+                            recipe: [
+                                { ingredientId: 'mat-camiseta-l', qty: 1 },
+                                { ingredientId: 'mat-papel-a4', qty: 1 },
+                                { ingredientId: 'mat-tinta-ml', qty: 5 },
+                                { ingredientId: 'mat-cinta-thermal', qty: 0.1 }
+                            ]
+                        },
+                        {
+                            id: 'prod-gorra-trucker',
+                            name: 'Gorra Trucker Sublimada',
+                            price: 6.00,
+                            category: 'Accesorios',
+                            image: '🧢',
+                            recipe: [
+                                { ingredientId: 'mat-gorra-base', qty: 1 },
+                                { ingredientId: 'mat-papel-a4', qty: 0.12 },
+                                { ingredientId: 'mat-tinta-ml', qty: 1 },
+                                { ingredientId: 'mat-cinta-thermal', qty: 0.03 }
+                            ]
+                        },
+                        {
+                            id: 'prod-mousepad',
+                            name: 'Mousepad Personalizado',
+                            price: 4.50,
+                            category: 'Accesorios',
+                            image: '🖱️',
+                            recipe: [
+                                { ingredientId: 'mat-mousepad-base', qty: 1 },
+                                { ingredientId: 'mat-papel-a4', qty: 0.25 },
+                                { ingredientId: 'mat-tinta-ml', qty: 1.5 },
+                                { ingredientId: 'mat-cinta-thermal', qty: 0.05 }
+                            ]
+                        }
+                    ];
+
+                    const batchProducts = writeBatch(db);
+                    demoProducts.forEach(prod => {
+                        const ref = doc(db, 'artifacts', currentAppId, 'public', 'data', 'products', prod.id);
+                        batchProducts.set(ref, prod);
+                    });
+                    await batchProducts.commit();
+
+                    // 4. Kardex inicial
+                    const batchLogs = writeBatch(db);
+                    demoIngredients.forEach(ing => {
+                        const logId = generateSecureId();
+                        const logRef = doc(db, 'artifacts', currentAppId, 'public', 'data', 'stock_history', logId);
+                        batchLogs.set(logRef, {
+                            id: logId,
+                            date: new Date().toISOString(),
+                            type: 'ADD',
+                            ingredientName: ing.name,
+                            qtyChange: ing.stock,
+                            reason: 'Carga de Catálogo Demo',
+                            newStock: ing.stock,
+                            totalValue: ing.stock * ing.cost
+                        });
+                    });
+                    await batchLogs.commit();
+
+                    // Log activity in bitacora
+                    const logId = generateSecureId();
+                    await setDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', 'bitacora', logId), {
+                        id: logId,
+                        date: new Date().toISOString(),
+                        userName: user.email,
+                        action: 'Sistema',
+                        details: 'Inicializado catálogo demo de Sublimación y Diseño.'
+                    });
+
+                    showNotification("Catálogo demo cargado con éxito.", "success");
+                } catch (err) {
+                    console.error("Error al cargar demo:", err);
+                    showNotification("Error: " + err.message, "error");
+                } finally {
+                    setIsRestoring(false);
+                    setRestoreStatus("");
+                }
+            }
+        });
+    };
+
     // --- CALCULOS FINANCIEROS MEMOIZADOS ---
     const inventoryValue = useMemo(() => ingredients.reduce((sum, ing) => sum + (ing.stock * (ing.cost || 0)), 0), [ingredients]);
-    const financialData = useMemo(() => { const activeSales = filterAndSort(salesHistory, [], false, true); const activeStock = filterAndSort(stockHistory, [], false, true); const activeExpenses = filterAndSort(otherExpenses, [], false, true); const income = activeSales.reduce((acc, sale) => acc + sale.total, 0); let cogs = 0; activeSales.forEach(sale => { sale.items.forEach(item => { const product = products.find(p => p.id === item.id); if (product && product.recipe) { const unitCost = product.recipe.reduce((sum, r) => { const ing = ingredients.find(i => normalizeId(i.id) === normalizeId(r.ingredientId)); return sum + (ing ? (ing.cost || 0) * r.qty : 0); }, 0); cogs += unitCost * item.qty; } }); }); const grossProfit = income - cogs; const invExp = activeStock.filter(l => l.type === 'ADD' && !l.reason.includes('Cancelación')).reduce((acc, l) => acc + (l.totalValue || 0), 0); const otherExp = activeExpenses.reduce((acc, e) => acc + e.amount, 0); return { income, cogs, grossProfit, expenses: invExp + otherExp, netCashFlow: income - (invExp + otherExp) }; }, [salesHistory, stockHistory, otherExpenses, viewMode, currentDateView, products, ingredients]);
-
+    const financialData = useMemo(() => {
+        const activeSales = filterAndSort(salesHistory, [], false, true);
+        const activeStock = filterAndSort(stockHistory, [], false, true);
+        const activeExpenses = filterAndSort(otherExpenses, [], false, true);
+        
+        const income = activeSales.reduce((acc, sale) => acc + sale.total, 0);
+        let cogs = 0;
+        activeSales.forEach(sale => {
+            sale.items.forEach(item => {
+                const product = products.find(p => p.id === item.id);
+                if (product && product.recipe) {
+                    const unitCost = product.recipe.reduce((sum, r) => {
+                        const ing = ingredients.find(i => normalizeId(i.id) === normalizeId(r.ingredientId));
+                        return sum + (ing ? (ing.cost || 0) * r.qty : 0);
+                    }, 0);
+                    cogs += unitCost * item.qty;
+                }
+            });
+        });
+        
+        const activeLosses = activeStock.filter(l => l.type === 'LOSS');
+        const lossCost = activeLosses.reduce((acc, l) => acc + Math.abs(l.totalValue || 0), 0);
+        
+        const grossProfit = income - cogs;
+        const invExp = activeStock.filter(l => l.type === 'ADD' && !l.reason.includes('Cancelación')).reduce((acc, l) => acc + (l.totalValue || 0), 0);
+        const otherExp = activeExpenses.reduce((acc, e) => acc + e.amount, 0);
+        
+        return { 
+            income, 
+            cogs, 
+            grossProfit, 
+            lossCost, 
+            expenses: invExp + otherExp, 
+            netCashFlow: income - (invExp + otherExp) 
+        };
+    }, [salesHistory, stockHistory, otherExpenses, viewMode, currentDateView, products, ingredients]);
+ 
     const handleDownloadBalance = () => {
+        const isVES = currencyMode === 'VES';
+        const formatVal = (val) => isVES ? `Bs ${(val * exchangeRate).toFixed(2)}` : `$${val.toFixed(2)}`;
         const data = [
-            ['Ventas Totales', `$${financialData.income.toFixed(2)}`],
-            ['Costo de Ventas', `$${financialData.cogs.toFixed(2)}`],
-            ['Ganancia Bruta', `$${financialData.grossProfit.toFixed(2)}`],
-            ['Gastos Operativos', `$${financialData.expenses.toFixed(2)}`],
-            ['Flujo Neto', `$${financialData.netCashFlow.toFixed(2)}`]
+            ['Ventas Totales', formatVal(financialData.income)],
+            ['Costo de Ventas', formatVal(financialData.cogs)],
+            ['Costo de Mermas', formatVal(financialData.lossCost)],
+            ['Ganancia Bruta Ajustada', formatVal(financialData.grossProfit - financialData.lossCost)],
+            ['Gastos Operativos', formatVal(financialData.expenses)],
+            ['Flujo Neto', formatVal(financialData.netCashFlow)]
         ];
         generatePDF('Balance Financiero', ["Concepto", "Monto"], data, 'balance.pdf');
     };
 
     // --- RENDERIZADO PRINCIPAL ---
-    if (authLoading || (user && dataLoading)) { return (<div className="h-screen flex items-center justify-center bg-slate-900 text-white"><Loader2 size={48} className="animate-spin text-yellow-500" /><p className="ml-3 text-slate-400">Sincronizando con la nube...</p></div>); }
+    if (authLoading || ((user || isPublicCatalogMode) && dataLoading)) { return (<div className="h-screen flex items-center justify-center bg-slate-900 text-white"><Loader2 size={48} className="animate-spin text-yellow-500" /><p className="ml-3 text-slate-400">Sincronizando con la nube...</p></div>); }
 
-    if (!user) { return <LoginScreen onLogin={handleLogin} />; }
+    if (!user) {
+        if (isPublicCatalogMode) {
+            return (
+                <PublicCatalogScreen 
+                    products={products} 
+                    exchangeRate={exchangeRate} 
+                    onGoToLogin={() => {
+                        window.location.hash = '#/login';
+                        setIsPublicCatalogMode(false);
+                    }} 
+                />
+            );
+        }
+        return (
+            <LoginScreen 
+                onLogin={handleLogin} 
+                onViewPublicCatalog={() => {
+                    window.location.hash = '#/catalogo';
+                    setIsPublicCatalogMode(true);
+                }} 
+            />
+        );
+    }
 
     return (
         <div className="flex h-[100dvh] bg-slate-100 font-sans text-slate-800 overflow-hidden text-xs md:text-sm lg:text-base">
@@ -1346,40 +2244,466 @@ export default function App() {
                     </div>
                 </div>
 
-                <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">{[
-                    { id: 'pos', label: 'Punto de Venta', icon: <CartIcon size={20} /> },
-                    { id: 'pending', label: 'Pendientes', icon: <Clock3 size={20} />, count: pendingOrders.length },
-                    { id: 'products', label: 'Catálogo', icon: <Utensils size={20} /> },
-                    { id: 'inventory', label: 'Inventario', icon: <Package size={20} /> },
-                    { id: 'inventory_history', label: 'Entrada/Salida', icon: <ArrowRightLeft size={20} /> },
-                    { id: 'history', label: 'Historial', icon: <ClipboardList size={20} /> },
-                    { id: 'balance', label: 'Balance', icon: <Wallet size={20} /> },
-                    { id: 'reports', label: 'Reportes', icon: <TrendingUp size={20} /> },
-                    { id: 'bitacora', label: 'Bitácora', icon: <FileSearch size={20} /> },
-                    { id: 'settings', label: 'Configuración', icon: <Settings size={20} /> },
-                ].map(item => (<button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-yellow-500 text-slate-900 shadow-xl shadow-yellow-500/10' : 'text-slate-400 hover:bg-slate-800'}`}>{item.icon} {item.label}{item.count > 0 && <span className="ml-auto bg-slate-800 text-yellow-500 text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count}</span>}</button>))}</nav>
+                <nav className="flex-1 p-4 space-y-4 overflow-y-auto custom-scrollbar">
+                    {(() => {
+                        const items = [
+                            { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+                            { id: 'pos', label: 'Punto de Venta', icon: <CartIcon size={20} /> },
+                            { id: 'pending', label: 'Pedidos', icon: <Clock3 size={20} />, count: pendingOrders.length },
+                            { id: 'history', label: 'Historial', icon: <ClipboardList size={20} /> },
+                            { id: 'customers', label: 'Clientes', icon: <Users size={20} /> },
+                        ].filter(item => hasPermission(item.id, 'view'));
+                        if (items.length === 0) return null;
+                        return (
+                            <div className="space-y-1">
+                                <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider px-3 mb-1">Operaciones</div>
+                                {items.map(item => (
+                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-yellow-500 text-slate-900 shadow-xl shadow-yellow-500/10' : 'text-slate-400 hover:bg-slate-800'}`}>
+                                        {item.icon} <span className="truncate">{item.label}</span>
+                                        {item.count > 0 && <span className="ml-auto bg-slate-800 text-yellow-500 text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count}</span>}
+                                    </button>
+                                ))}
+                            </div>
+                        );
+                    })()}
+
+                    {(() => {
+                        const items = [
+                            { id: 'products', label: 'Catálogo', icon: <Palette size={20} /> },
+                            { id: 'inventory', label: 'Inventario', icon: <Package size={20} /> },
+                            { id: 'inventory_history', label: 'Entrada/Salida', icon: <ArrowRightLeft size={20} /> },
+                        ].filter(item => hasPermission(item.id, 'view'));
+                        if (items.length === 0) return null;
+                        return (
+                            <div className="space-y-1">
+                                <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider px-3 mb-1">Catálogo</div>
+                                {items.map(item => (
+                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-yellow-500 text-slate-900 shadow-xl shadow-yellow-500/10' : 'text-slate-400 hover:bg-slate-800'}`}>
+                                        {item.icon} <span className="truncate">{item.label}</span>
+                                        {item.count > 0 && <span className="ml-auto bg-slate-800 text-yellow-500 text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count}</span>}
+                                    </button>
+                                ))}
+                            </div>
+                        );
+                    })()}
+
+                    {(() => {
+                        const items = [
+                            { id: 'balance', label: 'Balance', icon: <Wallet size={20} /> },
+                            { id: 'reports', label: 'Reportes', icon: <TrendingUp size={20} /> },
+                            { id: 'bitacora', label: 'Bitácora', icon: <FileSearch size={20} /> },
+                            { id: 'settings', label: 'Configuración', icon: <Settings size={20} /> },
+                        ].filter(item => hasPermission(item.id, 'view'));
+                        if (items.length === 0) return null;
+                        return (
+                            <div className="space-y-1">
+                                <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider px-3 mb-1">Administración</div>
+                                {items.map(item => (
+                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-yellow-500 text-slate-900 shadow-xl shadow-yellow-500/10' : 'text-slate-400 hover:bg-slate-800'}`}>
+                                        {item.icon} <span className="truncate">{item.label}</span>
+                                        {item.count > 0 && <span className="ml-auto bg-slate-800 text-yellow-500 text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count}</span>}
+                                    </button>
+                                ))}
+                            </div>
+                        );
+                    })()}
+                </nav>
                 <div className="p-4 border-t border-slate-700/50 bg-slate-800/50 space-y-3"><div className="flex items-center gap-2 bg-slate-900 p-2 rounded-lg border border-slate-700"><DollarSign size={16} className="text-green-400" /><input type="number" value={exchangeRate} onChange={(e) => handleUpdateExchangeRate(parseFloat(e.target.value))} className="bg-transparent w-full text-white font-mono text-right focus:outline-none" /><span className="text-slate-500 text-xs">Bs</span></div><button onClick={() => handleLogout()} className="w-full flex items-center gap-2 p-2 text-sm text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"><LogOut size={16} /> Cerrar Sesión</button></div>
             </aside>
 
             <main className="flex-1 overflow-y-auto relative p-4 md:p-6 lg:p-8 bg-slate-100">
                 <button className="md:hidden absolute top-4 left-4 z-20 bg-white p-2 rounded-full shadow-lg" onClick={() => setIsMobileMenuOpen(true)}><Menu className="text-slate-700" /></button>
 
+                {/* Switch de moneda global */}
+                <div className={`absolute top-4 z-20 flex items-center gap-2 transition-all duration-300 ${activeTab === 'pos' ? 'right-4 md:right-6 lg:right-[calc(33.333333%+3rem)]' : 'right-4 md:right-6 lg:right-8'}`}>
+                    <div className="bg-white/80 backdrop-blur-md border border-white/40 shadow-lg rounded-2xl p-1 flex items-center gap-1 select-none">
+                        <button 
+                            type="button"
+                            onClick={() => setCurrencyMode('USD')}
+                            className={`px-3 py-1.5 rounded-xl font-black text-[10px] transition-all uppercase tracking-wider ${currencyMode === 'USD' ? 'bg-yellow-500 text-slate-900 shadow-md shadow-yellow-500/10' : 'text-slate-400 hover:text-slate-700'}`}
+                        >
+                            $ USD
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => setCurrencyMode('VES')}
+                            className={`px-3 py-1.5 rounded-xl font-black text-[10px] transition-all uppercase tracking-wider ${currencyMode === 'VES' ? 'bg-yellow-500 text-slate-900 shadow-md shadow-yellow-500/10' : 'text-slate-400 hover:text-slate-700'}`}
+                        >
+                            Bs VES
+                        </button>
+                    </div>
+                </div>
+
+                {/* --- DASHBOARD --- */}
+                {activeTab === 'dashboard' && (
+                    <div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0 pb-20">
+                        {/* Cabecera */}
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 md:p-6 rounded-2xl border border-white/40 shadow-sm">
+                            <div>
+                                <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+                                    <LayoutDashboard className="text-yellow-500" /> Dashboard General
+                                </h2>
+                                <p className="text-slate-500 text-xs mt-1">Resumen del estado actual del negocio en tiempo real</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="h-2.5 w-2.5 bg-emerald-500 rounded-full animate-ping"></div>
+                                <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Actualizado en vivo</span>
+                            </div>
+                        </div>
+
+                        {/* Tarjetas de Indicadores (KPIs) */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <GlassCard className="p-6 border-l-4 border-emerald-500 transition-all hover:scale-[1.01]">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ingresos del Día</p>
+                                        <div className="mt-2">
+                                            <PriceDisplay amount={dailyIncome} exchangeRate={exchangeRate} size="large" />
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600">
+                                        <DollarSign size={24} />
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-3 font-medium">Ventas acumuladas hoy ({todaySales.length} transacciones)</p>
+                            </GlassCard>
+
+                            <GlassCard className="p-6 border-l-4 border-yellow-500 transition-all hover:scale-[1.01]">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Órdenes del Día</p>
+                                        <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono">{dailyOrdersCount}</h3>
+                                    </div>
+                                    <div className="p-3 bg-yellow-50 rounded-xl text-yellow-600">
+                                        <Zap size={24} />
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-4 font-medium">Pedidos concretados y cobrados hoy</p>
+                            </GlassCard>
+
+                            <GlassCard className="p-6 border-l-4 border-indigo-500 transition-all hover:scale-[1.01]">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ticket Promedio</p>
+                                        <div className="mt-2">
+                                            <PriceDisplay amount={averageOrderCost} exchangeRate={exchangeRate} size="large" />
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600">
+                                        <Calculator size={24} />
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-3 font-medium">Costo promedio de orden facturada hoy</p>
+                            </GlassCard>
+                        </div>
+
+                        {/* Gráficos */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Gráfico de flujo de ventas de hoy */}
+                            <GlassCard className="p-6 flex flex-col">
+                                <div className="mb-4">
+                                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                        <TrendingUp size={18} className="text-yellow-500" /> Flujo de Ventas (Hoy)
+                                    </h3>
+                                    <p className="text-xs text-slate-400">Distribución de ingresos por hora en el día actual</p>
+                                </div>
+                                <div style={{ height: '260px' }} className="w-full flex-1">
+                                    {todaySales.length === 0 ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                                            <TrendingUp size={48} className="opacity-25 mb-2 animate-pulse" />
+                                            <p className="text-sm">No hay ventas registradas el día de hoy.</p>
+                                        </div>
+                                    ) : (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={hourlySalesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                <defs>
+                                                    <linearGradient id="colorMonto" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#eab308" stopOpacity={0.4}/>
+                                                        <stop offset="95%" stopColor="#eab308" stopOpacity={0}/>
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                                <XAxis dataKey="label" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                                                <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => currencyMode === 'VES' ? `Bs ${(val * exchangeRate).toFixed(0)}` : `$${val}`} />
+                                                <Tooltip 
+                                                    formatter={(value) => [currencyMode === 'VES' ? `Bs ${(value * exchangeRate).toFixed(2)}` : `$${value.toFixed(2)}`, 'Vendido']}
+                                                    labelClassName="font-bold text-slate-700"
+                                                    contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }} 
+                                                />
+                                                <Area type="monotone" dataKey="Monto" stroke="#eab308" strokeWidth={2.5} fillOpacity={1} fill="url(#colorMonto)" />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    )}
+                                </div>
+                            </GlassCard>
+
+                            {/* Gráfico de balance semanal */}
+                            <GlassCard className="p-6 flex flex-col">
+                                <div className="mb-4">
+                                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                        <BarChart size={18} className="text-yellow-500" /> Balance Semanal (Gastos vs Ingresos)
+                                    </h3>
+                                    <p className="text-xs text-slate-400">Comparativa histórica de ingresos y egresos de los últimos 7 días</p>
+                                </div>
+                                <div style={{ height: '260px' }} className="w-full flex-1">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={weeklyBalanceData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                                            <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => currencyMode === 'VES' ? `Bs ${(val * exchangeRate).toFixed(0)}` : `$${val}`} />
+                                            <Tooltip 
+                                                formatter={(value, name) => [currencyMode === 'VES' ? `Bs ${(value * exchangeRate).toFixed(2)}` : `$${value.toFixed(2)}`, name]}
+                                                labelClassName="font-bold text-slate-700"
+                                                contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }} 
+                                            />
+                                            <Bar dataKey="Ingresos" fill="#10b981" radius={[4, 4, 0, 0]} barSize={16} />
+                                            <Bar dataKey="Gastos" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={16} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </GlassCard>
+                        </div>
+
+                        {/* Listas y Alertas */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Top productos más vendidos */}
+                            <GlassCard className="p-6 flex flex-col h-[380px]">
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                                    <Sparkles size={18} className="text-yellow-500" /> Top Productos Más Vendidos
+                                </h3>
+                                <div className="overflow-y-auto flex-1 custom-scrollbar pr-1 space-y-3">
+                                    {topSellingProducts.length === 0 ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-slate-400 py-10">
+                                            <Utensils size={40} className="opacity-20 mb-2" />
+                                            <p className="text-xs">No hay datos de ventas.</p>
+                                        </div>
+                                    ) : (
+                                        topSellingProducts.map((p, idx) => (
+                                            <div key={p.id} className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm border border-slate-100/60 hover:bg-slate-50 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-mono font-black text-slate-400 text-sm w-5">{idx + 1}</span>
+                                                    <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-2xl border shadow-inner overflow-hidden shrink-0">
+                                                        {p.image && (String(p.image).startsWith('data:image') || String(p.image).startsWith('http')) ? (
+                                                            <img src={p.image} alt={p.name} className="w-full h-full object-contain" />
+                                                        ) : (
+                                                            p.image || '🎨'
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-xs md:text-sm text-slate-800">{p.name}</h4>
+                                                        <p className="text-[10px] text-slate-400 font-medium">Uds. vendidas: <span className="font-bold text-slate-600">{p.qty}</span></p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <PriceDisplay amount={p.totalSales} exchangeRate={exchangeRate} size="small" align="right" />
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </GlassCard>
+
+                            {/* Alertas de stock crítico */}
+                            <GlassCard className="p-6 flex flex-col h-[380px]">
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                                    <AlertTriangle size={18} className="text-rose-500 animate-pulse" /> Materiales de Stock Crítico
+                                </h3>
+                                <div className="overflow-y-auto flex-1 custom-scrollbar pr-1 space-y-3">
+                                    {criticalStockProducts.length === 0 ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-emerald-500 py-10 bg-emerald-50/50 rounded-2xl border border-dashed border-emerald-200">
+                                            <CheckCircle size={40} className="mb-2" />
+                                            <p className="text-xs font-bold uppercase tracking-wider">Inventario Saludable</p>
+                                            <p className="text-[10px] text-emerald-600/70 mt-1">Todos los materiales están por encima del stock mínimo.</p>
+                                        </div>
+                                    ) : (
+                                        criticalStockProducts.map((ing) => {
+                                            const stockPercent = ing.minStock > 0 ? Math.min((ing.stock / ing.minStock) * 100, 100) : 0;
+                                            return (
+                                                <div key={ing.id} className="p-3 bg-white rounded-xl shadow-sm border border-slate-100/60 hover:bg-slate-50 transition-colors">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <div>
+                                                            <h4 className="font-bold text-xs md:text-sm text-slate-800">{ing.name}</h4>
+                                                            <p className="text-[10px] text-slate-400 font-medium">Mínimo requerido: <span className="font-bold">{ing.minStock} {ing.unit}</span></p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <span className={`text-xs font-black font-mono ${ing.stock === 0 ? 'text-red-600 bg-red-50' : 'text-amber-600 bg-amber-50'} px-2 py-0.5 rounded-lg border border-current`}>
+                                                                {ing.stock} {ing.unit}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    {/* Barra de progreso */}
+                                                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border">
+                                                        <div 
+                                                            className={`h-full rounded-full ${ing.stock === 0 ? 'bg-red-500' : 'bg-amber-500'}`} 
+                                                            style={{ width: `${Math.max(stockPercent, 5)}%` }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </GlassCard>
+                        </div>
+
+                        {/* Historial de pedidos más recientes en tiempo real */}
+                        <GlassCard className="p-6">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-4">
+                                <div>
+                                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                        <History size={18} className="text-yellow-500" /> Historial de Pedidos Recientes
+                                    </h3>
+                                    <p className="text-xs text-slate-400">Últimas 10 transacciones (pendientes y cobradas) en tiempo real</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={() => setActiveTab('pos')} 
+                                        className="px-3 py-1.5 bg-yellow-500 text-slate-900 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-yellow-500/10 hover:bg-yellow-400 transition-colors"
+                                    >
+                                        <Plus size={14} /> Nueva Venta
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveTab('history')} 
+                                        className="px-3 py-1.5 bg-slate-100 text-slate-600 font-bold rounded-xl text-xs flex items-center gap-1.5 hover:bg-slate-200 transition-colors"
+                                    >
+                                        Ver Todo
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm min-w-[600px]">
+                                    <thead className="bg-slate-50 text-slate-500 font-medium uppercase text-xs">
+                                        <tr>
+                                            <th className="p-3">Fecha y Hora</th>
+                                            <th className="p-3">Cliente / Detalle</th>
+                                            <th className="p-3 text-center">Items</th>
+                                            <th className="p-3 text-right">Monto</th>
+                                            <th className="p-3 text-center">Estado</th>
+                                            <th className="p-3 text-center">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                                        {recentOrdersWithStatus.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="6" className="p-8 text-center text-slate-400">
+                                                    No se han registrado transacciones aún.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            recentOrdersWithStatus.map((order) => (
+                                                <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className="p-3 text-xs font-mono text-slate-500">
+                                                        {formatDateApp(order.rawDate, 'full')}
+                                                    </td>
+                                                    <td className="p-3 font-bold text-xs md:text-sm">
+                                                        {order.description || (order.type === 'completed' ? 'Consumidor Final' : 'Cliente General')}
+                                                    </td>
+                                                    <td className="p-3 text-center font-mono font-bold text-xs md:text-sm">
+                                                        {order.items?.reduce((acc, curr) => acc + curr.qty, 0) || 0}
+                                                    </td>
+                                                    <td className="p-3 text-right">
+                                                        <PriceDisplay amount={order.total} exchangeRate={exchangeRate} size="small" align="right" />
+                                                    </td>
+                                                    <td className="p-3 text-center">
+                                                        <Badge type={order.badgeType}>{order.statusLabel}</Badge>
+                                                    </td>
+                                                    <td className="p-3 text-center">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            {order.type === 'completed' ? (
+                                                                <button 
+                                                                    onClick={() => { setSelectedSale(order); setObservationText(order.observation || ""); }} 
+                                                                    className="p-1.5 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200 transition-colors"
+                                                                    title="Ver Detalle de Venta"
+                                                                >
+                                                                    <Eye size={14} />
+                                                                </button>
+                                                            ) : (
+                                                                <button 
+                                                                    onClick={() => setActiveTab('pending')} 
+                                                                    className="p-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors"
+                                                                    title="Gestionar Pedido Pendiente"
+                                                                >
+                                                                    <Zap size={14} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </GlassCard>
+                    </div>
+                )}
+
                 {/* --- POS --- */}
-                {activeTab === 'pos' && (<div className="flex flex-col lg:flex-row gap-6 h-full pb-20 lg:pb-0"><div className="lg:w-2/3 space-y-4 fade-in"><header className="flex flex-col gap-2 mt-10 md:mt-0"><h2 className="text-2xl md:text-3xl font-black text-slate-800">{editingOrderId ? `Editando Venta` : 'Punto de Venta'}</h2><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'name', label: 'Nombre' }, { value: 'price', label: 'Precio' }, { value: 'category', label: 'Categoría' }]} placeholder="Buscar producto..." /></header><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', ...new Set(products.map(p => p.category))].map(cat => (<button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${selectedCategory === cat ? 'bg-yellow-500 text-slate-900' : 'bg-white text-slate-600 shadow-sm'}`}>{cat}</button>))}</div><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 items-start pb-24 md:pb-0">{filterAndSort(products, ['name', 'category']).filter(p => selectedCategory === 'Todos' || p.category === selectedCategory).map(product => (<ProductCard key={product.id} product={product} ingredients={ingredients} addToCart={addToCart} exchangeRate={exchangeRate} getProductMaxStock={getProductMaxStock} />))}</div></div><div className={`fixed inset-x-0 bottom-0 z-30 lg:relative lg:w-1/3 lg:h-auto lg:block transition-transform duration-300 ${isCartOpenMobile ? 'translate-y-0' : 'translate-y-[calc(100%-85px)]'} lg:translate-y-0`}><GlassCard className="h-[80vh] lg:h-[calc(100vh-4rem)] flex flex-col rounded-b-none lg:rounded-2xl border-b-0 shadow-[0_-10px_40px_rgba(0,0,0,0.2)]"><div onClick={() => window.innerWidth < 1024 && setIsCartOpenMobile(!isCartOpenMobile)} className={`p-4 border-b border-slate-100 flex justify-between items-center rounded-t-2xl cursor-pointer lg:cursor-default ${editingOrderId ? 'bg-yellow-100' : 'bg-white'}`}><div className="flex items-center gap-2"><h3 className="font-bold text-lg flex items-center gap-2"><CartIcon size={20} /> Orden</h3><Badge>{cart.reduce((a, c) => a + c.qty, 0)} items</Badge></div><div className="lg:hidden text-slate-400 flex items-center gap-2"><span className="font-bold text-yellow-600"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} size="small" /></span>{isCartOpenMobile ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</div></div><div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white/50">{cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-slate-400"><UtensilsCrossed size={48} className="opacity-20 mb-4" /><p>Vacío</p></div> : cart.map(item => (<div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm border border-slate-100"><div className="flex items-center gap-3">{item.image && (String(item.image).startsWith('data:image') || String(item.image).startsWith('http')) ? <img src={item.image} alt="" className="w-8 h-8 object-contain rounded" /> : <span className="text-xl">{item.image || '🍽️'}</span>}<div><p className="font-bold text-sm leading-none">{item.name}</p><PriceDisplay amount={item.price} exchangeRate={exchangeRate} size="small" /></div></div><div className="flex items-center gap-2"><button onClick={() => setCart(prev => prev.map(p => p.id === item.id ? { ...p, qty: p.qty - 1 } : p).filter(p => p.qty > 0))} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Minus size={14} /></button><span className="font-bold w-6 text-center text-sm">{item.qty}</span><button onClick={() => addToCart(item)} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Plus size={14} /></button></div></div>))}</div><div className="p-4 bg-white border-t border-slate-100 space-y-3 pb-8 lg:pb-4"><div className="flex justify-between font-black text-xl"><span>Total</span><div className="text-right"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} align="right" size="large" /></div></div><input type="text" value={saleDescription} onChange={(e) => setSaleDescription(e.target.value)} placeholder="Cliente / Nota..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none shadow-inner" /><div className="grid grid-cols-3 gap-2"><GlassButton variant="secondary" onClick={() => { setCart([]); setEditingOrderId(null); setIsCartOpenMobile(false); }} title="Vaciar carrito"><Trash2 size={16} /></GlassButton><GlassButton onClick={handleSaveToPending} disabled={cart.length === 0} variant="kitchen" title="Enviar a pendientes">{editingOrderId ? 'Actualizar' : 'Pendientes'}</GlassButton><GlassButton onClick={handleDirectCharge} disabled={cart.length === 0} variant="primary" title="Cobrar inmediatamente">Cobrar</GlassButton></div></div></GlassCard></div></div>)}
+                {activeTab === 'pos' && (<div className="flex flex-col lg:flex-row gap-6 h-full pb-20 lg:pb-0"><div className="lg:w-2/3 space-y-4 fade-in"><header className="flex flex-col gap-2 mt-10 md:mt-0"><h2 className="text-2xl md:text-3xl font-black text-slate-800">{editingOrderId ? `Editando Venta` : 'Punto de Venta'}</h2><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'name', label: 'Nombre' }, { value: 'price', label: 'Precio' }, { value: 'category', label: 'Categoría' }]} placeholder="Buscar producto..." /></header><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', ...new Set(products.map(p => p.category))].map(cat => (<button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${selectedCategory === cat ? 'bg-yellow-500 text-slate-900' : 'bg-white text-slate-600 shadow-sm'}`}>{cat}</button>))}</div><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 items-start pb-24 md:pb-0">{filterAndSort(products, ['name', 'category']).filter(p => selectedCategory === 'Todos' || p.category === selectedCategory).map(product => (<ProductCard key={product.id} product={product} ingredients={ingredients} addToCart={addToCart} exchangeRate={exchangeRate} getProductMaxStock={getProductMaxStock} />))}</div></div><div className={`fixed inset-x-0 bottom-0 z-30 lg:relative lg:w-1/3 lg:h-auto lg:block transition-transform duration-300 ${isCartOpenMobile ? 'translate-y-0' : 'translate-y-[calc(100%-85px)]'} lg:translate-y-0`}><GlassCard className="h-[80vh] lg:h-[calc(100vh-4rem)] flex flex-col rounded-b-none lg:rounded-2xl border-b-0 shadow-[0_-10px_40px_rgba(0,0,0,0.2)]"><div onClick={() => window.innerWidth < 1024 && setIsCartOpenMobile(!isCartOpenMobile)} className={`p-4 border-b border-slate-100 flex justify-between items-center rounded-t-2xl cursor-pointer lg:cursor-default ${editingOrderId ? 'bg-yellow-100' : 'bg-white'}`}><div className="flex items-center gap-2"><h3 className="font-bold text-lg flex items-center gap-2"><CartIcon size={20} /> Orden</h3><Badge>{cart.reduce((a, c) => a + c.qty, 0)} items</Badge></div><div className="lg:hidden text-slate-400 flex items-center gap-2"><span className="font-bold text-yellow-600"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} size="small" /></span>{isCartOpenMobile ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</div></div><div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white/50">{cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-slate-400"><Palette size={48} className="opacity-20 mb-4" /><p>Vacío</p></div> : cart.map(item => (<div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm border border-slate-100"><div className="flex items-center gap-3">{item.image && (String(item.image).startsWith('data:image') || String(item.image).startsWith('http')) ? <img src={item.image} alt="" className="w-8 h-8 object-contain rounded" /> : <span className="text-xl">{item.image || '🎨'}</span>}<div className="flex-1"> <p className="font-bold text-sm leading-none">{item.name}</p><PriceDisplay amount={item.price} exchangeRate={exchangeRate} size="small" /><input type="text" placeholder="Talla, Color, Detalles..." value={item.variantDetails || ''} onChange={(e) => setCart(prev => prev.map(p => p.id === item.id ? {...p, variantDetails: e.target.value} : p))} className="text-xs p-1 mt-1 bg-slate-50 border border-slate-200 rounded outline-none focus:border-yellow-500 w-full"/></div></div><div className="flex items-center gap-2"><button onClick={() => setCart(prev => prev.map(p => p.id === item.id ? { ...p, qty: p.qty - 1 } : p).filter(p => p.qty > 0))} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Minus size={14} /></button><span className="font-bold w-6 text-center text-sm">{item.qty}</span><button onClick={() => addToCart(item)} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Plus size={14} /></button></div></div>))}</div><div className="p-4 bg-white border-t border-slate-100 space-y-3 pb-8 lg:pb-4"><div className="flex justify-between font-black text-xl"><span>Total</span><div className="text-right"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} align="right" size="large" /></div></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Entrega (Prometida)</label><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Entrega (Prometida)</label><input type="date" value={orderDeliveryDate} onChange={(e) => setOrderDeliveryDate(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none shadow-inner text-slate-500" /></div></div><input type="url" value={orderDesignLink} onChange={(e) => setOrderDesignLink(e.target.value)} placeholder="Enlace del Diseño (Drive, Canva, etc)" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none shadow-inner" /><input type="text" value={saleDescription} onChange={(e) => setSaleDescription(e.target.value)} placeholder="Cliente / Nota..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none shadow-inner" /><div className="grid grid-cols-3 gap-2">{orderDesignLink && <a href={orderDesignLink} target="_blank" rel="noreferrer" className="col-span-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 hover:bg-indigo-100 transition-colors"><Link size={14}/> Ver Diseño Original</a>}
+                                <GlassButton variant="secondary" onClick={() => { setCart([]); setEditingOrderId(null); setIsCartOpenMobile(false); }} disabled={!hasPermission('pos', 'edit')} title="Vaciar carrito"><Trash2 size={16} /></GlassButton>
+                                <GlassButton onClick={handleSaveToPending} disabled={cart.length === 0 || !hasPermission('pos', 'edit')} variant="kitchen" title="Enviar a pendientes">{editingOrderId ? 'Actualizar' : 'Pendientes'}</GlassButton>
+                                <GlassButton onClick={handleDirectCharge} disabled={cart.length === 0 || !hasPermission('pos', 'edit')} variant="primary" title="Cobrar inmediatamente">Cobrar</GlassButton>
+                                </div></div></GlassCard></div></div>)}
 
                 {/* --- PENDIENTES --- */}
-                {activeTab === 'pending' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><header className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 md:p-6 rounded-2xl border border-white/40 shadow-sm"><div><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Clock3 className="text-yellow-600" /> Pendientes</h2></div><div className="w-full md:w-auto"><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} /></div></header><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-20">{filterAndSort(pendingOrders, ['description', 'id']).map(order => (<GlassCard key={order.id} className="border-l-4 border-yellow-500 p-0 flex flex-col"><div className="p-4 bg-yellow-50 flex justify-between"><div><h3 className="font-bold text-lg">{order.description}</h3><p className="text-xs text-slate-500">{formatDateApp(order.date, 'time')}</p></div><Badge type="warning">Cocina</Badge></div><div className="p-4 flex-1 space-y-1">{order.items.map((i, idx) => <div key={idx} className="flex justify-between text-sm"><span className="text-slate-600"><b>{i.qty}</b> {i.name}</span></div>)}</div><div className="p-4 bg-white border-t flex flex-col gap-3"><div className="flex justify-between items-end"><span className="text-xs text-slate-400">Total</span><PriceDisplay amount={order.total} exchangeRate={exchangeRate} align="right" /></div><div className="grid grid-cols-3 gap-2"><button onClick={() => { setCart(order.items); setSaleDescription(order.description); setEditingOrderId(order.id); setActiveTab('pos'); }} className="py-3 md:py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation hover:bg-slate-200 transition-colors"><Edit size={14} /> Editar</button><button onClick={() => handleCancelPendingOrder(order)} className="py-3 md:py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation hover:bg-red-100 transition-colors"><Trash2 size={14} /> Cancelar</button><button onClick={() => handleCobrar(order)} className="py-3 md:py-2 bg-gradient-to-br from-yellow-400 to-yellow-600 text-slate-900 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation shadow-lg shadow-yellow-500/20 active:shadow-none transition-all"><Zap size={14} /> Cobrar</button></div></div></GlassCard>))}</div></div>)}
+                {activeTab === 'pending' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><header className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 md:p-6 rounded-2xl border border-white/40 shadow-sm"><div><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Clock3 className="text-yellow-600" /> Pendientes</h2></div><div className="w-full md:w-auto"><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} /></div></header><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-20">{filterAndSort(pendingOrders, ['description', 'id']).map(order => (<GlassCard key={order.id} className="border-l-4 border-yellow-500 p-0 flex flex-col"><div className="p-4 bg-yellow-50 flex justify-between"><div><h3 className="font-bold text-lg">{order.description}</h3><p className="text-xs text-slate-500">{formatDateApp(order.date, 'time')} {order.deliveryDate && <span className="text-red-500 font-bold ml-2">Entrega: {order.deliveryDate}</span>}</p></div><Badge type="warning">Pendiente</Badge></div><div className="p-4 flex-1 space-y-1">{order.items.map((i, idx) => <div key={idx} className="flex justify-between text-sm"><span className="text-slate-600"><b>{i.qty}</b> {i.name} {i.variantDetails ? <span className="text-xs text-indigo-500">({i.variantDetails})</span> : ""}</span></div>)}</div><div className="p-4 bg-white border-t flex flex-col gap-3"><div className="flex justify-between items-end">
+                                            <span className="text-xs text-slate-400">Total</span>
+                                            <PriceDisplay amount={order.total} exchangeRate={exchangeRate} align="right" />
+                                        </div>
+                                            {hasPermission('pending', 'edit') ? (
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <button onClick={() => { setCart(order.items); setSaleDescription(order.description); setOrderDeliveryDate(order.deliveryDate || ""); setOrderDesignLink(order.designLink || ""); setEditingOrderId(order.id); setActiveTab('pos'); }} className="py-3 md:py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation hover:bg-slate-200 transition-colors">
+                                                        <Edit size={14} /> Editar
+                                                    </button>
+                                                    <button onClick={() => handleCancelPendingOrder(order)} className="py-3 md:py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation hover:bg-red-100 transition-colors">
+                                                        <Trash2 size={14} /> Cancelar
+                                                    </button>
+                                                    <button onClick={() => handleCobrar(order)} className="py-3 md:py-2 bg-gradient-to-br from-yellow-400 to-yellow-600 text-slate-900 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation shadow-lg shadow-yellow-500/20 active:shadow-none transition-all">
+                                                        <Zap size={14} /> Cobrar
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="text-center text-xs text-slate-400 italic py-2">Solo Lectura</div>
+                                            )}
+                                        </div></GlassCard>))}</div></div>)}
 
                 {/* --- MENÚ / PRODUCTOS --- */}
-                {activeTab === 'products' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 rounded-2xl border border-white/40 shadow-sm"><div><h2 className="text-2xl font-black text-slate-800">Catálogo</h2><p className="text-slate-500">Gestión de productos</p></div><div className="flex w-full md:w-auto gap-2"><GlassButton onClick={handleDownloadMenu} variant="secondary" className="flex-1 md:flex-none"><Download size={16} /> PDF</GlassButton><GlassButton onClick={() => { setEditingProduct({ recipe: [] }); setProductIconPreview(null); setShowProductForm(true); }} className="flex-1 md:flex-none"><Plus size={18} /> Nuevo</GlassButton></div></div><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'name', label: 'Nombre' }, { value: 'price', label: 'Precio' }, { value: 'category', label: 'Categoría' }]} /><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', ...new Set(products.map(p => p.category))].map(cat => (<button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${selectedCategory === cat ? 'bg-yellow-500 text-slate-900' : 'bg-white text-slate-600 shadow-sm'}`}>{cat}</button>))}</div><div className="space-y-4 pb-20">{filterAndSort(products, ['name', 'category']).filter(p => selectedCategory === 'Todos' || p.category === selectedCategory).map(prod => (<GlassCard key={prod.id} className="p-4 flex flex-col md:flex-row items-center gap-4 md:gap-6"><div className="flex items-center gap-4 w-full md:w-auto"><div className="w-16 h-16 flex items-center justify-center shrink-0">
+                {activeTab === 'products' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 rounded-2xl border border-white/40 shadow-sm"><div><h2 className="text-2xl font-black text-slate-800">Catálogo</h2><p className="text-slate-500">Gestión de productos</p></div><div className="flex w-full md:w-auto gap-2"><GlassButton onClick={handleDownloadMenu} variant="secondary" className="flex-1 md:flex-none"><Download size={16} /> PDF</GlassButton>
+                                {hasPermission('products', 'edit') && (
+                                    <GlassButton onClick={() => { setEditingProduct({ recipe: [] }); setProductIconPreview(null); setShowProductForm(true); }} className="flex-1 md:flex-none"><Plus size={18} /> Nuevo</GlassButton>
+                                )}
+                            </div></div><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'name', label: 'Nombre' }, { value: 'price', label: 'Precio' }, { value: 'category', label: 'Categoría' }]} /><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', ...new Set(products.map(p => p.category))].map(cat => (<button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${selectedCategory === cat ? 'bg-yellow-500 text-slate-900' : 'bg-white text-slate-600 shadow-sm'}`}>{cat}</button>))}</div><div className="space-y-4 pb-20">{filterAndSort(products, ['name', 'category']).filter(p => selectedCategory === 'Todos' || p.category === selectedCategory).map(prod => (<GlassCard key={prod.id} className="p-4 flex flex-col md:flex-row items-center gap-4 md:gap-6"><div className="flex items-center gap-4 w-full md:w-auto"><div className="w-16 h-16 flex items-center justify-center shrink-0">
                     {!prod.image || prod.image === "" ? <Utensils size={32} className="text-slate-300" /> : (String(prod.image).startsWith('data:image') || String(prod.image).startsWith('http') ? <img src={prod.image} alt="" className="w-14 h-14 object-contain rounded-lg shadow-sm" /> : <span className="text-4xl">{prod.image}</span>)}
-                </div><div className="md:hidden flex-1"><h4 className="font-bold text-sm uppercase tracking-tight leading-tight">{prod.name}</h4><PriceDisplay amount={prod.price} exchangeRate={exchangeRate} size="small" /></div></div><div className="flex-1 text-center md:text-left hidden md:block"><h4 className="font-bold text-lg">{prod.name}</h4><div className="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">{prod.recipe?.map((r, i) => <span key={i} className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">{ingredients.find(ing => normalizeId(ing.id) === normalizeId(r.ingredientId))?.name || `ID:${r.ingredientId}`} x{r.qty}</span>)}</div></div><div className="text-right w-full md:w-auto"><div className="hidden md:block"><PriceDisplay amount={prod.price} exchangeRate={exchangeRate} size="large" align="right" /></div><div className="flex gap-2 justify-between md:justify-end mt-1 w-full"><button onClick={() => callGeminiAI(`Optimiza receta: ${prod.name}`, "Optimización")} className="p-3 md:p-2 text-teal-500 hover:bg-teal-50 rounded-xl flex-1 md:flex-none flex justify-center border border-slate-100 md:border-transparent transition-colors" title="AI"><Lightbulb size={18} /></button><button onClick={() => { setEditingProduct(prod); setProductIconPreview(null); setShowProductForm(true); }} className="p-3 md:p-2 text-indigo-500 hover:bg-indigo-50 rounded-xl flex-1 md:flex-none flex justify-center border border-slate-100 md:border-transparent transition-colors"><Edit size={18} /></button><button onClick={() => handleDeleteProduct(prod)} className="p-3 md:p-2 text-red-500 hover:bg-red-50 rounded-xl flex-1 md:flex-none flex justify-center border border-slate-100 md:border-transparent transition-colors"><Trash2 size={18} /></button></div></div></GlassCard>))}</div></div>)}
+                </div><div className="md:hidden flex-1"><h4 className="font-bold text-sm uppercase tracking-tight leading-tight">{prod.name}</h4><PriceDisplay amount={prod.price} exchangeRate={exchangeRate} size="small" /></div></div><div className="flex-1 text-center md:text-left hidden md:block"><h4 className="font-bold text-lg">{prod.name}</h4><div className="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">{prod.recipe?.map((r, i) => <span key={i} className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">{ingredients.find(ing => normalizeId(ing.id) === normalizeId(r.ingredientId))?.name || `ID:${r.ingredientId}`} x{r.qty}</span>)}</div></div>
+                        <div className="text-right w-full md:w-auto">
+                            <div className="hidden md:block">
+                                <PriceDisplay amount={prod.price} exchangeRate={exchangeRate} size="large" align="right" />
+                            </div>
+                            <div className="flex gap-2 justify-between md:justify-end mt-1 w-full">
+                                <button onClick={() => callGeminiAI(`Optimiza componentes: ${prod.name}`, "Optimización")} className="p-3 md:p-2 text-teal-500 hover:bg-teal-50 rounded-xl flex-1 md:flex-none flex justify-center border border-slate-100 md:border-transparent transition-colors" title="AI">
+                                    <Lightbulb size={18} />
+                                </button>
+                                {hasPermission('products', 'edit') ? (
+                                    <>
+                                        <button onClick={() => { setEditingProduct(prod); setProductIconPreview(null); setShowProductForm(true); }} className="p-3 md:p-2 text-indigo-500 hover:bg-indigo-50 rounded-xl flex-1 md:flex-none flex justify-center border border-slate-100 md:border-transparent transition-colors">
+                                            <Edit size={18} />
+                                        </button>
+                                        <button onClick={() => handleDeleteProduct(prod)} className="p-3 md:p-2 text-red-500 hover:bg-red-50 rounded-xl flex-1 md:flex-none flex justify-center border border-slate-100 md:border-transparent transition-colors">
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </>
+                                ) : (
+                                    <span className="text-xs text-slate-400 italic flex items-center px-2">Lectura</span>
+                                )}
+                            </div>
+                        </div></GlassCard>))}</div></div>)}
 
                 {/* --- HISTORIAL (VENTAS) --- */}
                 {activeTab === 'history' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4"><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><ClipboardList className="text-yellow-500" /> Historial de Ventas</h2><GlassButton variant="gemini" onClick={() => callGeminiAI(`Analiza ventas: ${JSON.stringify(salesHistory.slice(0, 10))}`, "Tendencias")}>Analizar AI</GlassButton></div><div className="bg-white/60 border border-yellow-200 p-4 rounded-xl text-sm flex items-center gap-3 text-slate-700 shadow-sm"><Info size={24} className="text-yellow-500 shrink-0" /><p>Mostrando las ventas de las fechas seleccionadas. Si borraste el filtro, verás <b>todas</b> las ventas registradas.</p></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} onDownloadPdf={() => handleDownloadReport(filterAndSort(salesHistory, [], true))} title="Filtrar Ventas" /><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }, { value: 'total', label: 'Total' }]} /><GlassCard className="overflow-hidden"><div className="overflow-x-auto "><table className="w-full text-left text-sm min-w-[600px]"><thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4">Fecha exacta</th><th className="p-4">Cliente</th><th className="p-4 text-center">Items</th><th className="p-4 text-right">Total</th><th className="p-4 text-center">Acciones</th></tr></thead><tbody className="divide-y divide-slate-100">{filterAndSort(salesHistory, ['description'], true).map(sale => (<tr key={sale.id} onClick={() => { setSelectedSale(sale); setObservationText(sale.observation || ""); }} className="hover:bg-slate-50 cursor-pointer active:bg-slate-100"><td className="p-4">{formatDateApp(sale.date, 'full')}</td><td className="p-4 font-bold">{sale.description}</td><td className="p-4 text-center">{sale.items.reduce((a, b) => a + b.qty, 0)}</td><td className="p-4 text-right"><PriceDisplay amount={sale.total} exchangeRate={exchangeRate} align="right" size="small" /></td><td className="p-4 text-center"><button className="p-2 bg-white border rounded hover:bg-slate-100"><Eye size={16} /></button></td></tr>))}</tbody></table>{filterAndSort(salesHistory, ['description'], true).length === 0 && <div className="p-8 text-center text-slate-400">No hay ventas registradas en este rango de fechas.</div>}</div></GlassCard></div>)}
 
                 {/* --- BITÁCORA --- */}
-                {activeTab === 'bitacora' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4"><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><FileSearch className="text-yellow-600" /> Registro de Actividades</h2></div><div className="bg-white/60 border border-yellow-200 p-4 rounded-xl text-sm flex items-center gap-3 text-slate-800 shadow-sm"><Activity size={24} className="text-yellow-500 shrink-0" /><p>Aquí queda registrado <b>absolutamente todo</b> lo que ocurre en el sistema. Quién lo hizo, a qué hora y el detalle exacto.</p></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} title="Filtrar Bitácora" /><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} placeholder="Buscar por usuario o detalle..." /><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', 'Venta', 'Inventario', 'Menú', 'Sistema', 'Gasto', 'Comanda', 'Cancelación'].map(cat => (<button key={cat} onClick={() => setBitacoraFilter(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${bitacoraFilter === cat ? 'bg-slate-800 text-white' : 'bg-white text-slate-600'}`}>{cat}</button>))}</div><GlassCard className="overflow-hidden"><div className="overflow-x-auto "><table className="w-full text-left text-sm min-w-[800px]"><thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4 w-40">Fecha y Hora</th><th className="p-4 w-32">Usuario</th><th className="p-4 w-32">Módulo</th><th className="p-4">Detalle de la acción</th></tr></thead><tbody className="divide-y divide-slate-100">{filterAndSort(bitacoraLogs, ['userName', 'details'], true).filter(log => bitacoraFilter === 'Todos' || log.action === bitacoraFilter).map(log => (<tr key={log.id} className="hover:bg-slate-50"><td className="p-4 text-xs font-mono text-slate-500 whitespace-nowrap">{formatDateApp(log.date, 'full')}</td><td className="p-4 font-bold text-slate-700">{log.userName}</td><td className="p-4"><Badge type={log.action === 'Sistema' ? 'danger' : (log.action === 'Venta' ? 'success' : 'info')}>{log.action}</Badge></td><td className="p-4 text-slate-600">{log.details}</td></tr>))}</tbody></table>{filterAndSort(bitacoraLogs, ['userName', 'details'], true).filter(log => bitacoraFilter === 'Todos' || log.action === bitacoraFilter).length === 0 && <div className="p-8 text-center text-slate-400">No se encontraron registros de actividad.</div>}</div></GlassCard></div>)}
+                {activeTab === 'bitacora' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4"><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><FileSearch className="text-yellow-600" /> Registro de Actividades</h2></div><div className="bg-white/60 border border-yellow-200 p-4 rounded-xl text-sm flex items-center gap-3 text-slate-800 shadow-sm"><Activity size={24} className="text-yellow-500 shrink-0" /><p>Aquí queda registrado <b>absolutamente todo</b> lo que ocurre en el sistema. Quién lo hizo, a qué hora y el detalle exacto.</p></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} title="Filtrar Bitácora" /><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} placeholder="Buscar por usuario o detalle..." /><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', 'Venta', 'Inventario', 'Catálogo', 'Sistema', 'Gasto', 'Pedido', 'Cancelación'].map(cat => (<button key={cat} onClick={() => setBitacoraFilter(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${bitacoraFilter === cat ? 'bg-slate-800 text-white' : 'bg-white text-slate-600'}`}>{cat}</button>))}</div><GlassCard className="overflow-hidden"><div className="overflow-x-auto "><table className="w-full text-left text-sm min-w-[800px]"><thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4 w-40">Fecha y Hora</th><th className="p-4 w-32">Usuario</th><th className="p-4 w-32">Módulo</th><th className="p-4">Detalle de la acción</th></tr></thead><tbody className="divide-y divide-slate-100">{filterAndSort(bitacoraLogs, ['userName', 'details'], true).filter(log => bitacoraFilter === 'Todos' || log.action === bitacoraFilter).map(log => (<tr key={log.id} className="hover:bg-slate-50"><td className="p-4 text-xs font-mono text-slate-500 whitespace-nowrap">{formatDateApp(log.date, 'full')}</td><td className="p-4 font-bold text-slate-700">{log.userName}</td><td className="p-4"><Badge type={log.action === 'Sistema' ? 'danger' : (log.action === 'Venta' ? 'success' : 'info')}>{log.action}</Badge></td><td className="p-4 text-slate-600">{log.details}</td></tr>))}</tbody></table>{filterAndSort(bitacoraLogs, ['userName', 'details'], true).filter(log => bitacoraFilter === 'Todos' || log.action === bitacoraFilter).length === 0 && <div className="p-8 text-center text-slate-400">No se encontraron registros de actividad.</div>}</div></GlassCard></div>)}
 
                 {/* --- INVENTARIO --- */}
                 {activeTab === 'inventory' && (
@@ -1392,9 +2716,22 @@ export default function App() {
                             </GlassCard>
                             <div className="md:col-span-2 flex flex-col justify-end gap-2 items-end">
                                 <div className="flex w-full md:w-auto gap-2">
-                                    <GlassButton onClick={() => callGeminiAI(`Tengo ${ingredients.filter(i => i.stock < i.minStock).length} insumos bajos.`, "Compras AI")} variant="secondary" className="flex-1 md:flex-none"><Sparkles size={16} /> AI</GlassButton>
-                                    <GlassButton onClick={() => generatePDF('Inventario', ['Nombre', 'Stock', 'Unidad'], filterAndSort(ingredients).map(i => [i.name, i.stock, i.unit]), 'inventario.pdf')} variant="secondary" className="flex-1 md:flex-none"><Download size={16} /> PDF</GlassButton>
-                                    <GlassButton onClick={() => { setEditingIngredient(null); setIvaPercent(0); setTempCost(0); setFormCurrency('USD'); setIsIvaApplied(false); setBaseCostBeforeIva(0); setShowIngredientForm(true); }} className="flex-1 md:flex-none"><Plus size={16} /> Nuevo</GlassButton>
+                                    <GlassButton onClick={() => callGeminiAI(`Tengo ${ingredients.filter(i => i.stock < i.minStock).length} materiales bajos.`, "Compras AI")} variant="secondary" className="flex-1 md:flex-none">
+                                        <Sparkles size={16} /> AI
+                                    </GlassButton>
+                                    {hasPermission('inventory', 'edit') && (
+                                        <>
+                                            <GlassButton onClick={() => setShowMermaForm(true)} variant="gemini" className="flex-1 md:flex-none">
+                                                <AlertTriangle size={16} /> Merma
+                                            </GlassButton>
+                                            <GlassButton onClick={() => { setEditingIngredient(null); setIvaPercent(0); setTempCost(0); setFormCurrency('USD'); setIsIvaApplied(false); setBaseCostBeforeIva(0); setShowIngredientForm(true); }} className="flex-1 md:flex-none">
+                                                <Plus size={16} /> Nuevo
+                                            </GlassButton>
+                                        </>
+                                    )}
+                                    <GlassButton onClick={() => generatePDF('Inventario', ['Nombre', 'Stock', 'Unidad'], filterAndSort(ingredients).map(i => [i.name, i.stock, i.unit]), 'inventario.pdf')} variant="secondary" className="flex-1 md:flex-none">
+                                        <Download size={16} /> PDF
+                                    </GlassButton>
                                 </div>
                                 <AdvancedToolbar 
                                     searchQuery={searchQuery} 
@@ -1410,29 +2747,36 @@ export default function App() {
                             {/* Desktop View Table */}
                             <div className="hidden md:block overflow-x-auto ">
                                 <GlassCard className="overflow-hidden">
-                                    <table className="w-full text-left text-sm min-w-[600px]">
+                                    <table className="w-full text-left text-sm min-w-[700px]">
                                         <thead className="bg-slate-50 text-slate-500 font-medium uppercase">
-                                            <tr><th className="p-4">Insumo</th><th className="p-4">Costo Unit.</th><th className="p-4 text-center">Stock</th><th className="p-4 text-center">Acciones</th></tr>
+                                            <tr><th className="p-4">Material</th><th className="p-4">Costo Unit.</th><th className="p-4 text-center">Stock</th><th className="p-4 text-right">Valor Total</th><th className="p-4 text-center">Acciones</th></tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">{filterAndSort(ingredients, ['name']).map(ing => {
                                             const isAssociated = products.some(p => p.recipe?.some(r => normalizeId(r.ingredientId) === normalizeId(ing.id)));
+                                            const totalVal = (ing.stock || 0) * (ing.cost || 0);
                                             return (
-                                                <tr key={ing.id}><td className="p-4 font-bold">{ing.name}</td><td className="p-4"><div className="flex flex-col"><PriceDisplay amount={ing.cost || 0} exchangeRate={exchangeRate} size="small" hideSecondary={true} />{ing.ivaPercent > 0 && <span className="text-[9px] text-emerald-600 font-black">+{ing.ivaPercent}% IVA</span>}</div></td><td className="p-4 text-center"><span className={`font-bold ${ing.stock <= ing.minStock ? 'text-red-500' : ''}`}>{ing.stock} {ing.unit}</span></td><td className="p-4 text-center">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <button onClick={() => { if (isAssociated) { alert("El item ya está agregado."); } else { setConfirmation({ show: true, message: "¿Quieres agregar este producto al catálogo?", onConfirm: () => { setConfirmation({ show: false }); setActiveTab('products'); const suggestedPrice = (ing.cost || 0) * 1.30; setEditingProduct({ name: ing.name, price: Number(suggestedPrice.toFixed(2)), category: '', recipe: [{ ingredientId: ing.id, qty: 1 }] }); setProductIconPreview(null); setProfitMargin(30); setShowProductForm(true); } }); } }} className={`p-3 md:p-2 rounded ${isAssociated ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:bg-slate-100 hover:text-emerald-600'}`} title="Añadir al catálogo"><Utensils size={16} /></button>
-                                                        <button onClick={() => { setEditingIngredient(ing); setIvaPercent(ing.ivaPercent || 0); setTempCost(ing.cost || 0); setFormCurrency('USD'); setIsIvaApplied(false); setBaseCostBeforeIva(0); setShowIngredientForm(true); }} className="p-3 md:p-2 hover:bg-slate-100 rounded text-slate-500 hover:text-yellow-600" title="Editar"><Edit size={16} /></button>
-                                                        <button onClick={() => setConfirmation({
-                                                            show: true,
-                                                            message: `¿Eliminar "${ing.name}" del inventario?`,
-                                                            onConfirm: () => {
-                                                                deleteFromDB('ingredients', ing.id);
-                                                                logActivity('Inventario', `Insumo eliminado: ${ing.name}`);
-                                                                setConfirmation({ show: false });
-                                                                showNotification("Insumo eliminado");
-                                                            }
-                                                        })} className="p-3 md:p-2 hover:bg-slate-100 rounded text-slate-400 hover:text-red-500" title="Eliminar"><Trash2 size={16} /></button>
-                                                    </div>
-                                                </td></tr>
+                                                <tr key={ing.id}><td className="p-4 font-bold">{ing.name}</td><td className="p-4"><div className="flex flex-col"><PriceDisplay amount={ing.cost || 0} exchangeRate={exchangeRate} size="small" />{ing.ivaPercent > 0 && <span className="text-[9px] text-emerald-600 font-black">+{ing.ivaPercent}% IVA</span>}</div></td><td className="p-4 text-center"><span className={`font-bold ${ing.stock <= ing.minStock ? 'text-red-500' : ''}`}>{ing.stock} {ing.unit}</span></td><td className="p-4 text-right"><PriceDisplay amount={totalVal} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                    <td className="p-4 text-center">
+                                                        {hasPermission('inventory', 'edit') ? (
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <button onClick={() => { if (isAssociated) { alert("El item ya está agregado."); } else { setConfirmation({ show: true, message: "¿Quieres agregar este producto al catálogo?", onConfirm: () => { setConfirmation({ show: false }); setActiveTab('products'); const suggestedPrice = (ing.cost || 0) * 1.30; setEditingProduct({ name: ing.name, price: Number(suggestedPrice.toFixed(2)), category: '', recipe: [{ ingredientId: ing.id, qty: 1 }] }); setProductIconPreview(null); setProfitMargin(30); setShowProductForm(true); } }); } }} className={`p-3 md:p-2 rounded ${isAssociated ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:bg-slate-100 hover:text-emerald-600'}`} title="Añadir al catálogo"><Utensils size={16} /></button>
+                                                                <button onClick={() => { setEditingIngredient(ing); setIvaPercent(ing.ivaPercent || 0); setTempCost(ing.cost || 0); setFormCurrency('USD'); setIsIvaApplied(false); setBaseCostBeforeIva(0); setShowIngredientForm(true); }} className="p-3 md:p-2 hover:bg-slate-100 rounded text-slate-500 hover:text-yellow-600" title="Editar"><Edit size={16} /></button>
+                                                                <button onClick={() => setConfirmation({
+                                                                    show: true,
+                                                                    message: `¿Eliminar "${ing.name}" del inventario?`,
+                                                                    onConfirm: () => {
+                                                                        deleteFromDB('ingredients', ing.id);
+                                                                        logActivity('Inventario', `Material eliminado: ${ing.name}`);
+                                                                        setConfirmation({ show: false });
+                                                                        showNotification("Material eliminado");
+                                                                    }
+                                                                })} className="p-3 md:p-2 hover:bg-slate-100 rounded text-slate-400 hover:text-red-500" title="Eliminar"><Trash2 size={16} /></button>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-xs text-slate-400 italic">Lectura</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
                                             );
                                         })}</tbody>
                                     </table>
@@ -1454,7 +2798,7 @@ export default function App() {
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-1">
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Costo Unitario {ing.ivaPercent > 0 && <span className="text-emerald-600">+{ing.ivaPercent}%</span>}</p>
-                                                    <PriceDisplay amount={ing.cost || 0} exchangeRate={exchangeRate} size="small" hideSecondary={true} />
+                                                    <PriceDisplay amount={ing.cost || 0} exchangeRate={exchangeRate} size="small" />
                                                 </div>
                                                 <div className="space-y-1 text-right">
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Valor Total</p>
@@ -1462,39 +2806,43 @@ export default function App() {
                                                 </div>
                                             </div>
 
-                                            <div className="flex gap-2 pt-2">
-                                                <GlassButton 
-                                                    onClick={() => { if (isAssociated) { alert("El item ya está agregado."); } else { setConfirmation({ show: true, message: "¿Quieres agregar este producto al catálogo?", onConfirm: () => { setConfirmation({ show: false }); setActiveTab('products'); const suggestedPrice = (ing.cost || 0) * 1.30; setEditingProduct({ name: ing.name, price: Number(suggestedPrice.toFixed(2)), category: '', recipe: [{ ingredientId: ing.id, qty: 1 }] }); setProductIconPreview(null); setProfitMargin(30); setShowProductForm(true); } }); } }}
-                                                    variant="success" 
-                                                    disabled={isAssociated}
-                                                    className={`flex-1 text-[10px] py-3 ${isAssociated ? 'opacity-30 grayscale cursor-not-allowed' : ''}`}
-                                                >
-                                                    <Utensils size={14} /> CATÁLOGO
-                                                </GlassButton>
-                                                <GlassButton 
-                                                    onClick={() => { setEditingIngredient(ing); setIvaPercent(ing.ivaPercent || 0); setTempCost(ing.cost || 0); setFormCurrency('USD'); setIsIvaApplied(false); setBaseCostBeforeIva(0); setShowIngredientForm(true); }}
-                                                    variant="secondary" 
-                                                    className="flex-1 text-[10px] py-3 text-indigo-600 font-black border-indigo-100"
-                                                >
-                                                    <Edit size={14} /> EDITAR
-                                                </GlassButton>
-                                                <GlassButton 
-                                                    onClick={() => setConfirmation({
-                                                        show: true,
-                                                        message: `¿Eliminar "${ing.name}" del inventario?`,
-                                                        onConfirm: () => {
-                                                            deleteFromDB('ingredients', ing.id);
-                                                            logActivity('Inventario', `Insumo eliminado: ${ing.name}`);
-                                                            setConfirmation({ show: false });
-                                                            showNotification("Insumo eliminado");
-                                                        }
-                                                    })}
-                                                    variant="danger" 
-                                                    className="flex-1 text-[10px] py-3"
-                                                >
-                                                    <Trash2 size={14} /> BORRAR
-                                                </GlassButton>
-                                            </div>
+                                            {hasPermission('inventory', 'edit') ? (
+                                                <div className="flex gap-2 pt-2">
+                                                    <GlassButton 
+                                                        onClick={() => { if (isAssociated) { alert("El item ya está agregado."); } else { setConfirmation({ show: true, message: "¿Quieres agregar este producto al catálogo?", onConfirm: () => { setConfirmation({ show: false }); setActiveTab('products'); const suggestedPrice = (ing.cost || 0) * 1.30; setEditingProduct({ name: ing.name, price: Number(suggestedPrice.toFixed(2)), category: '', recipe: [{ ingredientId: ing.id, qty: 1 }] }); setProductIconPreview(null); setProfitMargin(30); setShowProductForm(true); } }); } }}
+                                                        variant="success" 
+                                                        disabled={isAssociated}
+                                                        className={`flex-1 text-[10px] py-3 ${isAssociated ? 'opacity-30 grayscale cursor-not-allowed' : ''}`}
+                                                    >
+                                                        <Utensils size={14} /> CATÁLOGO
+                                                    </GlassButton>
+                                                    <GlassButton 
+                                                        onClick={() => { setEditingIngredient(ing); setIvaPercent(ing.ivaPercent || 0); setTempCost(ing.cost || 0); setFormCurrency('USD'); setIsIvaApplied(false); setBaseCostBeforeIva(0); setShowIngredientForm(true); }}
+                                                        variant="secondary" 
+                                                        className="flex-1 text-[10px] py-3 text-indigo-600 font-black border-indigo-100"
+                                                    >
+                                                        <Edit size={14} /> EDITAR
+                                                    </GlassButton>
+                                                    <GlassButton 
+                                                        onClick={() => setConfirmation({
+                                                            show: true,
+                                                            message: `¿Eliminar "${ing.name}" del inventario?`,
+                                                            onConfirm: () => {
+                                                                deleteFromDB('ingredients', ing.id);
+                                                                logActivity('Inventario', `Material eliminado: ${ing.name}`);
+                                                                setConfirmation({ show: false });
+                                                                showNotification("Material eliminado");
+                                                            }
+                                                        })}
+                                                        variant="danger" 
+                                                        className="flex-1 text-[10px] py-3"
+                                                    >
+                                                        <Trash2 size={14} /> BORRAR
+                                                    </GlassButton>
+                                                </div>
+                                            ) : (
+                                                <div className="text-center text-xs text-slate-400 italic pt-2 bg-slate-50/50 border rounded-xl py-2">Lectura</div>
+                                            )}
                                         </GlassCard>
                                     );
                                 })}
@@ -1504,10 +2852,164 @@ export default function App() {
                 )}
 
                 {/* --- KARDEX (Entrada/Salida) --- */}
-                {activeTab === 'inventory_history' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex justify-between items-center"><h2 className="text-2xl font-black">Entrada/Salida</h2></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} onDownloadPdf={() => generatePDF('Kardex', ['Fecha', 'Insumo', 'Tipo', 'Cant'], filterAndSort(stockHistory, [], true).map(l => [formatDateApp(l.date, 'date'), l.ingredientName, l.type, l.qtyChange]), 'kardex.pdf')} title="Filtrar Movimientos" /><GlassCard className="overflow-hidden"><div className="overflow-x-auto "><table className="w-full text-left text-sm min-w-[800px]"><thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4">Fecha</th><th className="p-4">Item</th><th className="p-4 text-center">Mov</th><th className="p-4 text-right">Cant</th><th className="p-4 text-right">Saldo</th></tr></thead><tbody className="divide-y divide-slate-100">{filterAndSort(stockHistory, ['ingredientName', 'reason'], true).slice(0, 100).map(log => (<React.Fragment key={log.id}><tr onClick={() => { setExpandedKardexId(expandedKardexId === log.id ? null : log.id); setTempKardexObs(log.observation || ""); }} className={`cursor-pointer transition-colors ${expandedKardexId === log.id ? 'bg-yellow-50' : 'hover:bg-slate-50'} active:bg-slate-100`}><td className="p-4 text-slate-500">{formatDateApp(log.date, 'full')}</td><td className="p-4 font-bold">{log.ingredientName}</td><td className="p-4 text-center"><Badge type={log.type === 'ADD' ? 'success' : 'danger'}>{log.type === 'ADD' ? 'Entrada' : 'Salida'}</Badge></td><td className="p-4 text-right font-mono font-bold">{log.qtyChange}</td><td className="p-4 text-right text-slate-500">{log.newStock}</td></tr>{expandedKardexId === log.id && (<tr className="bg-yellow-50/50"><td colSpan="5" className="p-4"><div className="flex flex-col md:flex-row gap-4"><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Razón</p><p className="text-sm bg-white p-2 rounded border border-yellow-100">{log.reason}</p></div><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Valor Movimiento</p><PriceDisplay amount={log.totalValue || 0} exchangeRate={exchangeRate} size="small" /></div><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Nota</p><div className="flex gap-2"><input className="flex-1 p-2 text-sm border rounded" value={tempKardexObs} onChange={e => setTempKardexObs(e.target.value)} /><button onClick={() => handleSaveKardexObservation(log.id)} className="bg-yellow-600 text-white p-2 rounded"><Save size={14} /></button></div></div></div></td></tr>)}</React.Fragment>))}</tbody></table></div></GlassCard></div>)}
+                {activeTab === 'inventory_history' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex justify-between items-center"><h2 className="text-2xl font-black">Entrada/Salida</h2></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} onDownloadPdf={() => generatePDF('Kardex', ['Fecha', 'Material', 'Tipo', 'Cant'], filterAndSort(stockHistory, [], true).map(l => [formatDateApp(l.date, 'date'), l.ingredientName, l.type, l.qtyChange]), 'kardex.pdf')} title="Filtrar Movimientos" /><GlassCard className="overflow-hidden"><div className="overflow-x-auto "><table className="w-full text-left text-sm min-w-[800px]"><thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4">Fecha</th><th className="p-4">Item</th><th className="p-4 text-center">Mov</th><th className="p-4 text-right">Cant</th><th className="p-4 text-right">Saldo</th></tr></thead><tbody className="divide-y divide-slate-100">{filterAndSort(stockHistory, ['ingredientName', 'reason'], true).slice(0, 100).map(log => (<React.Fragment key={log.id}><tr onClick={() => { setExpandedKardexId(expandedKardexId === log.id ? null : log.id); setTempKardexObs(log.observation || ""); }} className={`cursor-pointer transition-colors ${expandedKardexId === log.id ? 'bg-yellow-50' : 'hover:bg-slate-50'} active:bg-slate-100`}><td className="p-4 text-slate-500">{formatDateApp(log.date, 'full')}</td><td className="p-4 font-bold">{log.ingredientName}</td><td className="p-4 text-center"><Badge type={log.type === 'ADD' ? 'success' : 'danger'}>{log.type === 'ADD' ? 'Entrada' : 'Salida'}</Badge></td><td className="p-4 text-right font-mono font-bold">{log.qtyChange}</td><td className="p-4 text-right text-slate-500">{log.newStock}</td></tr>{expandedKardexId === log.id && (<tr className="bg-yellow-50/50"><td colSpan="5" className="p-4"><div className="flex flex-col md:flex-row gap-4"><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Razón</p><p className="text-sm bg-white p-2 rounded border border-yellow-100">{log.reason}</p></div><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Valor Movimiento</p><PriceDisplay amount={log.totalValue || 0} exchangeRate={exchangeRate} size="small" /></div><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Nota</p><div className="flex gap-2"><input className="flex-1 p-2 text-sm border rounded" value={tempKardexObs} onChange={e => setTempKardexObs(e.target.value)} /><button onClick={() => handleSaveKardexObservation(log.id)} className="bg-yellow-600 text-white p-2 rounded"><Save size={14} /></button></div></div></div></td></tr>)}</React.Fragment>))}</tbody></table></div></GlassCard></div>)}
 
                 {/* --- BALANCE --- */}
-                {activeTab === 'balance' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4"><h2 className="text-2xl font-black text-slate-800">Balance Financiero</h2><GlassButton onClick={handleDownloadBalance} variant="secondary"><Download size={16} /> PDF Balance</GlassButton></div><PeriodNavigator currentDate={currentDateView} setCurrentDate={setCurrentDateView} viewMode={viewMode} setViewMode={setViewMode} />{viewMode === 'range' && <DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} title="Rango Personalizado" />}<h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Rentabilidad de Ventas</h3><div className="grid grid-cols-1 md:grid-cols-3 gap-6"><GlassCard className="p-6 border-l-4 border-emerald-500"><p className="text-sm text-slate-500 font-bold mb-1">Ventas Totales</p><PriceDisplay amount={financialData.income} exchangeRate={exchangeRate} size="large" /><p className="text-xs text-slate-400 mt-2">Ingreso Bruto</p></GlassCard><GlassCard className="p-6 border-l-4 border-amber-500"><p className="text-sm text-slate-500 font-bold mb-1">Costo de Insumos (Ventas)</p><PriceDisplay amount={financialData.cogs} exchangeRate={exchangeRate} size="large" /><p className="text-xs text-slate-400 mt-2">Costo Proveedor de lo vendido</p></GlassCard><GlassCard className="p-6 border-l-4 border-yellow-500 bg-yellow-50/50"><p className="text-sm text-yellow-800 font-bold mb-1">Ganancia Bruta</p><PriceDisplay amount={financialData.grossProfit} exchangeRate={exchangeRate} size="large" /><p className="text-xs text-slate-400 mt-2">Ventas - Costo Insumos</p></GlassCard></div><h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mt-4">Flujo de Caja (Dinero Real)</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-6"><GlassCard className="p-6 border-l-4 border-red-500"><div className="flex justify-between items-start"><div><p className="text-sm text-slate-500 font-bold mb-1">Gastos Totales (Salidas)</p><PriceDisplay amount={financialData.expenses} exchangeRate={exchangeRate} size="large" /><p className="text-xs text-slate-400 mt-2">Compras Inventario + Gastos Op.</p></div><GlassButton variant="expense" onClick={() => setShowExpenseForm(true)} className="text-xs py-1"><CreditCard size={14} /> Registrar Gasto</GlassButton></div></GlassCard><GlassCard className={`p-6 border-l-4 ${financialData.netCashFlow >= 0 ? 'border-teal-500' : 'border-rose-500'}`}><p className="text-sm text-slate-500 font-bold mb-1">Flujo Neto</p><PriceDisplay amount={financialData.netCashFlow} exchangeRate={exchangeRate} size="large" /><p className="text-xs text-slate-400 mt-2">Entradas - Salidas Reales</p></GlassCard></div><div style={{height: '280px'}} className="w-full bg-white/50 rounded-2xl p-4 border border-white/40 mt-4"><h4 className="text-xs font-bold text-slate-400 mb-2">Comparativa Rentabilidad vs Flujo</h4><ResponsiveContainer width="100%" height={240}><BarChart data={[{ name: 'Ventas', val: financialData.income, fill: '#10b981' }, { name: 'Costo Venta', val: financialData.cogs, fill: '#f59e0b' }, { name: 'Ganancia', val: financialData.grossProfit, fill: '#fbbf24' }, { name: 'Gastos Reales', val: financialData.expenses, fill: '#ef4444' }]}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" /><YAxis /><Tooltip /><Bar dataKey="val" radius={[8, 8, 0, 0]} barSize={50} /></BarChart></ResponsiveContainer></div>
+                {activeTab === 'balance' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <h2 className="text-2xl font-black text-slate-800">Balance Financiero</h2>
+                        <GlassButton onClick={handleDownloadBalance} variant="secondary">
+                            <Download size={16} /> PDF Balance
+                        </GlassButton>
+                    </div>
+                    <PeriodNavigator currentDate={currentDateView} setCurrentDate={setCurrentDateView} viewMode={viewMode} setViewMode={setViewMode} />
+                    {viewMode === 'range' && <DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} title="Rango Personalizado" />}
+                    
+                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Rentabilidad de Ventas</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <GlassCard className="p-6 border-l-4 border-emerald-500">
+                            <p className="text-sm text-slate-500 font-bold mb-1">Ventas Totales</p>
+                            <PriceDisplay amount={financialData.income} exchangeRate={exchangeRate} size="large" />
+                            <p className="text-xs text-slate-400 mt-2">Ingreso Bruto</p>
+                        </GlassCard>
+                        <GlassCard className="p-6 border-l-4 border-amber-500">
+                            <p className="text-sm text-slate-500 font-bold mb-1">Costo de Materiales (Ventas)</p>
+                            <PriceDisplay amount={financialData.cogs} exchangeRate={exchangeRate} size="large" />
+                            <p className="text-xs text-slate-400 mt-2">Costo Proveedor de materiales de lo vendido</p>
+                        </GlassCard>
+                        <GlassCard className="p-6 border-l-4 border-rose-500 bg-rose-50/10">
+                            <p className="text-sm text-rose-800 font-bold mb-1">Pérdidas por Merma</p>
+                            <PriceDisplay amount={financialData.lossCost} exchangeRate={exchangeRate} size="large" />
+                            <p className="text-xs text-slate-400 mt-2">Costo de material perdido</p>
+                        </GlassCard>
+                        <GlassCard className="p-6 border-l-4 border-yellow-500 bg-yellow-50/50">
+                            <p className="text-sm text-yellow-800 font-bold mb-1">Ganancia Ajustada</p>
+                            <PriceDisplay amount={financialData.grossProfit - financialData.lossCost} exchangeRate={exchangeRate} size="large" />
+                            <p className="text-xs text-slate-400 mt-2">Ventas - Costos - Mermas</p>
+                        </GlassCard>
+                    </div>
+
+                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mt-4">Flujo de Caja (Dinero Real)</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <GlassCard className="p-6 border-l-4 border-red-500">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="text-sm text-slate-500 font-bold mb-1">Gastos Totales (Salidas)</p>
+                                    <PriceDisplay amount={financialData.expenses} exchangeRate={exchangeRate} size="large" />
+                                    <p className="text-xs text-slate-400 mt-2">Compras Inventario + Gastos Op.</p>
+                                </div>
+                                <GlassButton variant="expense" onClick={() => setShowExpenseForm(true)} className="text-xs py-1">
+                                    <CreditCard size={14} /> Registrar Gasto
+                                </GlassButton>
+                            </div>
+                        </GlassCard>
+                        <GlassCard className={`p-6 border-l-4 ${financialData.netCashFlow >= 0 ? 'border-teal-500' : 'border-rose-500'}`}>
+                            <p className="text-sm text-slate-500 font-bold mb-1">Flujo Neto</p>
+                            <PriceDisplay amount={financialData.netCashFlow} exchangeRate={exchangeRate} size="large" />
+                            <p className="text-xs text-slate-400 mt-2">Entradas - Salidas Reales</p>
+                        </GlassCard>
+                    </div>
+
+                    {/* --- LISTA DE GASTOS REGISTRADOS (MOVIDO ARRIBA) --- */}
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-2 mt-8">
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Lista de Gastos Registrados</h3>
+                        <div className="flex gap-2">
+                            <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
+                                const activeExpenses = filterAndSort(otherExpenses, [], false, true);
+                                const isVES = currencyMode === 'VES';
+                                const formatVal = (val) => isVES ? `Bs ${(val * exchangeRate).toFixed(2)}` : `$${val.toFixed(2)}`;
+                                const data = activeExpenses.map(e => [formatDateApp(e.date, 'full'), e.description, e.category, formatVal(e.amount)]);
+                                generatePDF('Lista de Gastos - Balance', ['Fecha', 'Descripción', 'Categoría', 'Monto'], data, 'gastos_balance.pdf');
+                            }}>
+                                <Download size={14} /> PDF
+                            </GlassButton>
+                            <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
+                                const activeExpenses = filterAndSort(otherExpenses, [], false, true);
+                                const data = activeExpenses.map(e => [formatDateApp(e.date, 'full'), e.description, e.category, e.amount.toFixed(2), `Bs ${(e.amount * exchangeRate).toFixed(2)}`]);
+                                generateExcel('Lista de Gastos', ['Fecha', 'Descripción', 'Categoría', 'Monto ($)', 'Monto (Bs)'], data, 'gastos_balance.csv');
+                            }}>
+                                <FileText size={14} /> Excel
+                            </GlassButton>
+                        </div>
+                    </div>
+                    <GlassCard className="overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm min-w-[700px]">
+                                <thead className="bg-slate-50 text-slate-500 font-medium uppercase">
+                                    <tr>
+                                        <th className="p-4">Fecha</th>
+                                        <th className="p-4">Descripción</th>
+                                        <th className="p-4">Categoría</th>
+                                        <th className="p-4 text-right">Monto</th>
+                                        <th className="p-4 text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {(() => {
+                                        const activeExpenses = filterAndSort(otherExpenses, [], false, true);
+                                        if (activeExpenses.length === 0) return <tr><td colSpan="5" className="p-8 text-center text-slate-400">No hay gastos registrados en este período.</td></tr>;
+                                        return activeExpenses.slice(0, expensesLimit).map((expense) => (
+                                            <tr key={expense.id} className="hover:bg-slate-50">
+                                                <td className="p-4 text-slate-500 text-xs">{formatDateApp(expense.date, 'full')}</td>
+                                                <td className="p-4 font-bold">{expense.description}</td>
+                                                <td className="p-4"><Badge type="neutral">{expense.category}</Badge></td>
+                                                <td className="p-4 text-right"><PriceDisplay amount={expense.amount} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                <td className="p-4 text-center">
+                                                    <div className="flex justify-center gap-1">
+                                                        <button 
+                                                            onClick={() => { 
+                                                                setEditingExpense(expense); 
+                                                                setShowExpenseForm(true); 
+                                                            }} 
+                                                            className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" 
+                                                            title="Editar Gasto"
+                                                        >
+                                                            <Edit size={16} />
+                                                        </button>
+                                                        <button onClick={() => handleDeleteExpense(expense)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar Gasto">
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ));
+                                    })()}
+                                </tbody>
+                            </table>
+                        </div>
+                    </GlassCard>
+                    {(() => {
+                        const activeExpenses = filterAndSort(otherExpenses, [], false, true);
+                        return activeExpenses.length > expensesLimit && (
+                            <div className="flex justify-center mt-2">
+                                <GlassButton variant="secondary" onClick={() => setExpensesLimit(prev => prev + 10)}>
+                                    Mostrar más
+                                </GlassButton>
+                            </div>
+                        );
+                    })()}
+
+                    {/* --- GRÁFICO COMPARATIVA (BAJO LA LISTA DE GASTOS) --- */}
+                    <div style={{height: '280px'}} className="w-full bg-white/50 rounded-2xl p-4 border border-white/40 mt-4">
+                        <h4 className="text-xs font-bold text-slate-400 mb-2">Comparativa Rentabilidad vs Flujo</h4>
+                        <ResponsiveContainer width="100%" height={240}>
+                            <BarChart data={[
+                                { name: 'Ventas', val: currencyMode === 'VES' ? financialData.income * exchangeRate : financialData.income, fill: '#10b981' }, 
+                                { name: 'Costo Venta', val: currencyMode === 'VES' ? financialData.cogs * exchangeRate : financialData.cogs, fill: '#f59e0b' }, 
+                                { name: 'Mermas', val: currencyMode === 'VES' ? financialData.lossCost * exchangeRate : financialData.lossCost, fill: '#f43f5e' },
+                                { name: 'Ganancia', val: currencyMode === 'VES' ? (financialData.grossProfit - financialData.lossCost) * exchangeRate : (financialData.grossProfit - financialData.lossCost), fill: '#fbbf24' }, 
+                                { name: 'Gastos Reales', val: currencyMode === 'VES' ? financialData.expenses * exchangeRate : financialData.expenses, fill: '#ef4444' }
+                            ]}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="name" />
+                                <YAxis tickFormatter={(val) => currencyMode === 'VES' ? `Bs ${val.toFixed(0)}` : `$${val.toFixed(0)}`} />
+                                <Tooltip formatter={(value) => [currencyMode === 'VES' ? `Bs ${value.toFixed(2)}` : `$${value.toFixed(2)}`, 'Monto']} />
+                                <Bar dataKey="val" radius={[8, 8, 0, 0]} barSize={50} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    {/* --- DESGLOSE POR PRODUCTO --- */}
                     <div className="flex flex-col md:flex-row justify-between items-center gap-2 mt-8">
                         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Desglose por Producto</h3>
                         <div className="flex gap-2">
@@ -1516,7 +3018,17 @@ export default function App() {
                                 const productMap = {};
                                 periodSales.forEach(sale => { sale.items.forEach(item => { if (!productMap[item.id]) { const prod = products.find(p => p.id === item.id); const rc = prod ? calculateRecipeCost(prod.recipe) : 0; productMap[item.id] = { name: item.name, qty: 0, revenue: 0, unitCost: rc, price: item.price }; } productMap[item.id].qty += item.qty; productMap[item.id].revenue += item.price * item.qty; }); });
                                 const rows = Object.values(productMap).sort((a, b) => b.revenue - a.revenue);
-                                const data = rows.map(r => [r.name, r.qty, `$${r.unitCost.toFixed(2)}`, `$${r.price.toFixed(2)}`, `$${r.revenue.toFixed(2)}`, `$${(r.unitCost * r.qty).toFixed(2)}`, `$${(r.revenue - r.unitCost * r.qty).toFixed(2)}`]);
+                                const isVES = currencyMode === 'VES';
+                                const formatVal = (val) => isVES ? `Bs ${(val * exchangeRate).toFixed(2)}` : `$${val.toFixed(2)}`;
+                                const data = rows.map(r => [
+                                    r.name, 
+                                    r.qty, 
+                                    formatVal(r.unitCost), 
+                                    formatVal(r.price), 
+                                    formatVal(r.revenue), 
+                                    formatVal(r.unitCost * r.qty), 
+                                    formatVal(r.revenue - r.unitCost * r.qty)
+                                ]);
                                 generatePDF('Desglose por Producto - Balance', ['Producto', 'Vendidos', 'Costo Unit.', 'Precio Venta', 'Ingreso', 'Costo Total', 'Ganancia'], data, 'desglose_balance.pdf');
                             }}><Download size={14} /> PDF</GlassButton>
                             <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
@@ -1530,7 +3042,7 @@ export default function App() {
                         </div>
                     </div>
                     <GlassCard className="overflow-hidden">
-                        <div className="overflow-x-auto ">
+                        <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm min-w-[700px]">
                                 <thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4">Producto</th><th className="p-4 text-center">Vendidos</th><th className="p-4 text-right">Costo Unit.</th><th className="p-4 text-right">Precio Venta</th><th className="p-4 text-right">Ingreso</th><th className="p-4 text-right">Costo Total</th><th className="p-4 text-right">Ganancia</th></tr></thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -1570,57 +3082,107 @@ export default function App() {
                             </table>
                         </div>
                     </GlassCard>
+                </div>)}
 
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-2 mt-12">
-                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Lista de Gastos Registrados</h3>
-                        <div className="flex gap-2">
-                            <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
-                                const activeExpenses = filterAndSort(otherExpenses, [], false, true);
-                                const data = activeExpenses.map(e => [formatDateApp(e.date, 'full'), e.description, e.category, `$${e.amount.toFixed(2)}`]);
-                                generatePDF('Lista de Gastos - Balance', ['Fecha', 'Descripción', 'Categoría', 'Monto'], data, 'gastos_balance.pdf');
-                            }}><Download size={14} /> PDF</GlassButton>
-                            <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
-                                const activeExpenses = filterAndSort(otherExpenses, [], false, true);
-                                const data = activeExpenses.map(e => [formatDateApp(e.date, 'full'), e.description, e.category, e.amount.toFixed(2), `Bs ${(e.amount * exchangeRate).toFixed(2)}`]);
-                                generateExcel('Lista de Gastos', ['Fecha', 'Descripción', 'Categoría', 'Monto ($)', 'Monto (Bs)'], data, 'gastos_balance.csv');
-                            }}><FileText size={14} /> Excel</GlassButton>
+                {/* --- CLIENTES --- */}
+                {activeTab === 'customers' && (
+                    <div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0 pb-20">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 rounded-2xl border border-white/40 shadow-sm">
+                            <div>
+                                <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+                                    <Users className="text-yellow-600" /> Clientes
+                                </h2>
+                                <p className="text-slate-500 text-xs mt-1">Gestión de clientes y datos de contacto en tiempo real</p>
+                            </div>
+                            <div className="flex w-full md:w-auto gap-2">
+                                {hasPermission('customers', 'edit') ? (
+                                    <GlassButton onClick={() => { setEditingCustomer({ name: '', phone: '', email: '', address: '' }); setShowCustomerForm(true); }} className="flex-1 md:flex-none">
+                                        <Plus size={18} /> Nuevo Cliente
+                                    </GlassButton>
+                                ) : (
+                                    <span className="text-xs text-slate-400 italic bg-white/40 border border-white/20 p-2.5 rounded-xl font-bold uppercase tracking-wider">Solo Lectura</span>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                    <GlassCard className="overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm min-w-[700px]">
-                                <thead className="bg-slate-50 text-slate-500 font-medium uppercase">
-                                    <tr>
-                                        <th className="p-4">Fecha</th>
-                                        <th className="p-4">Descripción</th>
-                                        <th className="p-4">Categoría</th>
-                                        <th className="p-4 text-right">Monto</th>
-                                        <th className="p-4 text-center">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {(() => {
-                                        const activeExpenses = filterAndSort(otherExpenses, [], false, true);
-                                        if (activeExpenses.length === 0) return <tr><td colSpan="5" className="p-8 text-center text-slate-400">No hay gastos registrados en este período.</td></tr>;
-                                        return activeExpenses.map((expense) => (
-                                            <tr key={expense.id} className="hover:bg-slate-50">
-                                                <td className="p-4 text-slate-500 text-xs">{formatDateApp(expense.date, 'full')}</td>
-                                                <td className="p-4 font-bold">{expense.description}</td>
-                                                <td className="p-4"><Badge type="neutral">{expense.category}</Badge></td>
-                                                <td className="p-4 text-right"><PriceDisplay amount={expense.amount} exchangeRate={exchangeRate} size="small" align="right" /></td>
-                                                <td className="p-4 text-center">
-                                                    <button onClick={() => handleDeleteExpense(expense)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar Gasto">
-                                                        <Trash2 size={16} />
-                                                    </button>
+
+                        <AdvancedToolbar 
+                            searchQuery={searchQuery} 
+                            setSearchQuery={setSearchQuery} 
+                            sortConfig={sortConfig} 
+                            setSortConfig={setSortConfig} 
+                            sortOptions={[{ value: 'name', label: 'Nombre' }]} 
+                            placeholder="Buscar cliente por nombre, teléfono o correo..."
+                        />
+
+                        <GlassCard className="overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm min-w-[700px]">
+                                    <thead className="bg-slate-50 text-slate-500 font-medium uppercase text-xs">
+                                        <tr>
+                                            <th className="p-4">Nombre / Razón Social</th>
+                                            <th className="p-4">Teléfono</th>
+                                            <th className="p-4">Correo Electrónico</th>
+                                            <th className="p-4">Dirección / Notas</th>
+                                            <th className="p-4 text-center">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                                        {filterAndSort(customers, ['name', 'phone', 'email', 'address']).length === 0 ? (
+                                            <tr>
+                                                <td colSpan="5" className="p-8 text-center text-slate-400">
+                                                    No se encontraron clientes registrados.
                                                 </td>
                                             </tr>
-                                        ));
-                                    })()}
-                                </tbody>
-                            </table>
-                        </div>
-                    </GlassCard>
-                </div>)}
+                                        ) : (
+                                            filterAndSort(customers, ['name', 'phone', 'email', 'address']).map((cust) => (
+                                                <tr key={cust.id} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className="p-4 font-bold text-slate-800">
+                                                        {cust.name}
+                                                    </td>
+                                                    <td className="p-4 font-mono text-xs">
+                                                        {cust.phone || '-'}
+                                                    </td>
+                                                    <td className="p-4 text-xs font-mono text-slate-500">
+                                                        {cust.email || '-'}
+                                                    </td>
+                                                    <td className="p-4 text-xs text-slate-600 max-w-xs truncate" title={cust.address}>
+                                                        {cust.address || '-'}
+                                                    </td>
+                                                    <td className="p-4 text-center">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            {hasPermission('customers', 'edit') ? (
+                                                                <>
+                                                                    <button 
+                                                                        type="button"
+                                                                        onClick={() => { setEditingCustomer(cust); setShowCustomerForm(true); }} 
+                                                                        className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-xl transition-colors"
+                                                                        title="Editar Cliente"
+                                                                    >
+                                                                        <Edit size={16} />
+                                                                    </button>
+                                                                    <button 
+                                                                        type="button"
+                                                                        onClick={() => handleDeleteCustomer(cust)} 
+                                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                                                                        title="Eliminar Cliente"
+                                                                    >
+                                                                        <Trash2 size={16} />
+                                                                    </button>
+                                                                </>
+                                                            ) : (
+                                                                <span className="text-xs text-slate-400 italic">Lectura</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </GlassCard>
+                    </div>
+                )}
 
                 {/* --- REPORTES --- */}
                 {activeTab === 'reports' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0 pb-20">
@@ -1655,7 +3217,27 @@ export default function App() {
                                 <div className="flex flex-wrap gap-2 items-center">
                                     <AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={reportSortOptions} placeholder="Buscar en tabla..." />
                                     <div className="flex gap-2">
-                                        <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => { const rows = buildProductMap(); const data = rows.map(r => { const tc = r.unitCost * r.qty; const pr = r.revenue - tc; const mg = r.revenue > 0 ? ((pr / r.revenue) * 100).toFixed(1) + '%' : '0%'; return [r.name, r.category, r.qty, `$${r.revenue.toFixed(2)}`, `$${tc.toFixed(2)}`, `$${pr.toFixed(2)}`, mg, pr > 0 ? 'Sí' : 'No']; }); generatePDF('Rendimiento por Producto', ['Producto', 'Categoría', 'Uds.', 'Ingreso', 'Costo', 'Ganancia', 'Margen', 'Rentable'], data, 'rendimiento_productos.pdf'); }}><Download size={14} /> PDF</GlassButton>
+                                        <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => { 
+                                            const rows = buildProductMap(); 
+                                            const isVES = currencyMode === 'VES';
+                                            const formatVal = (val) => isVES ? `Bs ${(val * exchangeRate).toFixed(2)}` : `$${val.toFixed(2)}`;
+                                            const data = rows.map(r => { 
+                                                const tc = r.unitCost * r.qty; 
+                                                const pr = r.revenue - tc; 
+                                                const mg = r.revenue > 0 ? ((pr / r.revenue) * 100).toFixed(1) + '%' : '0%'; 
+                                                return [
+                                                    r.name, 
+                                                    r.category, 
+                                                    r.qty, 
+                                                    formatVal(r.revenue), 
+                                                    formatVal(tc), 
+                                                    formatVal(pr), 
+                                                    mg, 
+                                                    pr > 0 ? 'Sí' : 'No'
+                                                ]; 
+                                            }); 
+                                            generatePDF('Rendimiento por Producto', ['Producto', 'Categoría', 'Uds.', 'Ingreso', 'Costo', 'Ganancia', 'Margen', 'Rentable'], data, 'rendimiento_productos.pdf'); 
+                                        }}><Download size={14} /> PDF</GlassButton>
                                         <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => { const rows = buildProductMap(); const data = rows.map(r => { const tc = r.unitCost * r.qty; const pr = r.revenue - tc; const mg = r.revenue > 0 ? ((pr / r.revenue) * 100).toFixed(1) : '0'; return [r.name, r.category, r.qty, r.revenue.toFixed(2), tc.toFixed(2), pr.toFixed(2), mg, pr > 0 ? 'Sí' : 'No', `Bs ${(r.revenue * exchangeRate).toFixed(2)}`, `Bs ${(tc * exchangeRate).toFixed(2)}`, `Bs ${(pr * exchangeRate).toFixed(2)}`]; }); generateExcel('Rendimiento por Producto', ['Producto', 'Categoría', 'Uds.', 'Ingreso ($)', 'Costo ($)', 'Ganancia ($)', 'Margen %', 'Rentable', 'Ingreso (Bs)', 'Costo (Bs)', 'Ganancia (Bs)'], data, 'rendimiento_productos.csv'); }}><FileText size={14} /> Excel</GlassButton>
                                     </div>
                                 </div>
@@ -1706,15 +3288,15 @@ export default function App() {
                             <div className="flex flex-col md:flex-row justify-between items-center gap-2 mt-8">
                                 <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><AlertTriangle size={16} className="text-red-500" /> Alertas de Stock (Bajo / Agotado)</h3>
                                 <div className="flex gap-2">
-                                    <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => { const lowStock = ingredients.filter(ing => (ing.stock || 0) <= (ing.minStock || 0)); const data = lowStock.map(ing => [ing.name, `${ing.stock} ${ing.unit}`, `${ing.minStock} ${ing.unit}`, (ing.stock || 0) === 0 ? 'AGOTADO' : 'BAJO STOCK']); generatePDF('Alertas de Stock', ['Insumo', 'Stock Actual', 'Stock Mínimo', 'Estado'], data, 'alertas_stock.pdf'); }}><Download size={14} /> PDF</GlassButton>
-                                    <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => { const lowStock = ingredients.filter(ing => (ing.stock || 0) <= (ing.minStock || 0)); const data = lowStock.map(ing => [ing.name, ing.stock, ing.minStock, (ing.stock || 0) === 0 ? 'AGOTADO' : 'BAJO STOCK', ing.unit]); generateExcel('Alertas de Stock', ['Insumo', 'Stock Actual', 'Stock Mínimo', 'Estado', 'Unidad'], data, 'alertas_stock.csv'); }}><FileText size={14} /> Excel</GlassButton>
+                                    <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => { const lowStock = ingredients.filter(ing => (ing.stock || 0) <= (ing.minStock || 0)); const data = lowStock.map(ing => [ing.name, `${ing.stock} ${ing.unit}`, `${ing.minStock} ${ing.unit}`, (ing.stock || 0) === 0 ? 'AGOTADO' : 'BAJO STOCK']); generatePDF('Alertas de Stock', ['Material', 'Stock Actual', 'Stock Mínimo', 'Estado'], data, 'alertas_stock.pdf'); }}><Download size={14} /> PDF</GlassButton>
+                                    <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => { const lowStock = ingredients.filter(ing => (ing.stock || 0) <= (ing.minStock || 0)); const data = lowStock.map(ing => [ing.name, ing.stock, ing.minStock, (ing.stock || 0) === 0 ? 'AGOTADO' : 'BAJO STOCK', ing.unit]); generateExcel('Alertas de Stock', ['Material', 'Stock Actual', 'Stock Mínimo', 'Estado', 'Unidad'], data, 'alertas_stock.csv'); }}><FileText size={14} /> Excel</GlassButton>
                                 </div>
                             </div>
                             <GlassCard className="overflow-hidden">
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-sm min-w-[600px]">
                                         <thead className="bg-slate-50 text-slate-500 font-medium uppercase">
-                                            <tr><th className="p-4">Insumo</th><th className="p-4 text-center">Stock Actual</th><th className="p-4 text-center">Mínimo</th><th className="p-4 text-center">Estado</th></tr>
+                                            <tr><th className="p-4">Material</th><th className="p-4 text-center">Stock Actual</th><th className="p-4 text-center">Mínimo</th><th className="p-4 text-center">Estado</th></tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
                                             {(() => {
@@ -1735,8 +3317,91 @@ export default function App() {
                             </GlassCard>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <GlassCard className="p-6"><h3 className="font-bold mb-4 flex gap-2"><TrendingUp className="text-yellow-600" /> Ventas Recientes</h3><div style={{height: '240px'}}><ResponsiveContainer width="100%" height={240}><AreaChart data={(() => { const s = viewMode === 'range' ? filterAndSort(salesHistory, [], true) : filterAndSort(salesHistory, [], false, true); return s.slice(0, 7).map(ss => ({ name: formatDateApp(ss.date, 'short-date'), total: ss.total })); })()}><Area type="monotone" dataKey="total" stroke="#fbbf24" fill="#fef3c7" /></AreaChart></ResponsiveContainer></div></GlassCard>
-                                <GlassCard className="p-6 flex flex-col justify-center items-center text-center"><Bot size={48} className="text-yellow-500 mb-4" /><h3 className="font-bold text-lg">Asistente Inteligente</h3><p className="text-slate-500 text-sm mb-4">Genera estrategias de venta o análisis de menú.</p><GlassButton variant="gemini" onClick={() => callGeminiAI("Dame estrategias de venta", "Marketing AI")}>Consultar AI</GlassButton></GlassCard>
+                                <GlassCard className="p-6 flex flex-col justify-center items-center text-center"><Bot size={48} className="text-yellow-500 mb-4" /><h3 className="font-bold text-lg">Asistente Inteligente</h3><p className="text-slate-500 text-sm mb-4">Genera estrategias de venta o análisis de catálogo.</p><GlassButton variant="gemini" onClick={() => callGeminiAI("Dame estrategias de venta", "Marketing AI")}>Consultar AI</GlassButton></GlassCard>
                             </div>
+
+                            {/* --- HISTORIAL DE LA MERMA --- */}
+                            <div className="flex flex-col md:flex-row justify-between items-center gap-2 mt-8">
+                                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                    <AlertTriangle size={16} className="text-red-500" /> Historial de la Merma
+                                </h3>
+                                <div className="flex gap-2">
+                                    <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
+                                        const activeStock = viewMode === 'range' ? filterAndSort(stockHistory, [], true) : filterAndSort(stockHistory, [], false, true);
+                                        const activeLosses = activeStock.filter(l => l.type === 'LOSS');
+                                        const isVES = currencyMode === 'VES';
+                                        const formatVal = (val) => isVES ? `Bs ${(val * exchangeRate).toFixed(2)}` : `$${val.toFixed(2)}`;
+                                        const rows = activeLosses.map(l => {
+                                            const unitCost = Math.abs((l.totalValue || 0) / (l.qtyChange || 1));
+                                            const totalValue = Math.abs(l.totalValue || 0);
+                                            return [
+                                                formatDateApp(l.date, 'full'),
+                                                l.ingredientName,
+                                                `${l.qtyChange} Unid`,
+                                                formatVal(unitCost),
+                                                formatVal(totalValue),
+                                                l.reason
+                                            ];
+                                        });
+                                        generatePDF('Historial de Mermas', ['Fecha', 'Material', 'Cantidad', 'Costo Unit.', 'Costo Total', 'Motivo'], rows, 'mermas_historial.pdf');
+                                    }}>
+                                        <Download size={14} /> PDF
+                                    </GlassButton>
+                                    <GlassButton variant="secondary" className="text-xs py-1.5" onClick={() => {
+                                        const activeStock = viewMode === 'range' ? filterAndSort(stockHistory, [], true) : filterAndSort(stockHistory, [], false, true);
+                                        const activeLosses = activeStock.filter(l => l.type === 'LOSS');
+                                        const rows = activeLosses.map(l => [
+                                            formatDateApp(l.date, 'full'),
+                                            l.ingredientName,
+                                            l.qtyChange,
+                                            Math.abs((l.totalValue || 0) / (l.qtyChange || 1)).toFixed(2),
+                                            Math.abs(l.totalValue || 0).toFixed(2),
+                                            l.reason,
+                                            `Bs ${(Math.abs(l.totalValue || 0) * exchangeRate).toFixed(2)}`
+                                        ]);
+                                        generateExcel('Historial de Mermas', ['Fecha', 'Material', 'Cantidad', 'Costo Unit. ($)', 'Costo Total ($)', 'Motivo', 'Costo Total (Bs)'], rows, 'mermas_historial.csv');
+                                    }}>
+                                        <FileText size={14} /> Excel
+                                    </GlassButton>
+                                </div>
+                            </div>
+                            <GlassCard className="overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm min-w-[700px]">
+                                        <thead className="bg-slate-50 text-slate-500 font-medium uppercase">
+                                            <tr>
+                                                <th className="p-4">Fecha</th>
+                                                <th className="p-4">Material</th>
+                                                <th className="p-4 text-center">Cantidad</th>
+                                                <th className="p-4 text-right">Costo Unit.</th>
+                                                <th className="p-4 text-right">Costo Total</th>
+                                                <th className="p-4">Motivo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {(() => {
+                                                const activeStock = viewMode === 'range' ? filterAndSort(stockHistory, [], true) : filterAndSort(stockHistory, [], false, true);
+                                                const activeLosses = activeStock.filter(l => l.type === 'LOSS');
+                                                if (activeLosses.length === 0) return <tr><td colSpan="6" className="p-8 text-center text-slate-400">No hay mermas registradas en este período.</td></tr>;
+                                                return activeLosses.map((l, i) => {
+                                                    const unitCost = Math.abs((l.totalValue || 0) / (l.qtyChange || 1));
+                                                    const totalCost = Math.abs(l.totalValue || 0);
+                                                    return (
+                                                        <tr key={i} className="hover:bg-slate-50">
+                                                            <td className="p-4 text-slate-500 text-xs">{formatDateApp(l.date, 'full')}</td>
+                                                            <td className="p-4 font-bold">{l.ingredientName}</td>
+                                                            <td className="p-4 text-center font-mono font-bold">{l.qtyChange}</td>
+                                                            <td className="p-4 text-right"><PriceDisplay amount={unitCost} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                            <td className="p-4 text-right"><PriceDisplay amount={totalCost} exchangeRate={exchangeRate} size="small" align="right" /></td>
+                                                            <td className="p-4 text-slate-600">{l.reason}</td>
+                                                        </tr>
+                                                    );
+                                                });
+                                            })()}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </GlassCard>
                         </>);
                     })()}
                 </div>)}
@@ -1753,8 +3418,69 @@ export default function App() {
 
             {/* --- MODALES --- */}
             {receiptModal.show && (<div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm"><GlassCard className="p-8 max-w-sm w-full text-center slide-up max-h-[90vh] overflow-y-auto"><div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500"><ShieldCheck size={32} /></div><h3 className="text-2xl font-black text-slate-800 mb-2">¡Venta Exitosa!</h3><div className="flex flex-col gap-3 mt-6"><GlassButton onClick={() => handleDownloadReceipt(receiptModal.sale)} variant="primary" className="w-full justify-center"><Receipt size={18} /> Descargar Recibo</GlassButton><GlassButton onClick={() => setReceiptModal({ show: false, sale: null })} variant="secondary" className="w-full justify-center">Cerrar</GlassButton></div></GlassCard></div>)}
-            {selectedSale && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-lg p-0 overflow-hidden flex flex-col max-h-[90vh] slide-up"><div className="p-4 bg-slate-50 border-b flex justify-between items-center"><div><h3 className="font-bold text-lg">Detalle Venta</h3></div><button onClick={() => setSelectedSale(null)}><X size={20} /></button></div><div className="p-6 overflow-y-auto"><div className="mb-4"><span className="text-sm text-slate-500">Cliente:</span> <span className="font-bold">{selectedSale.description || "N/A"}</span></div><div className="space-y-2 mb-6">{selectedSale.items.map((item, idx) => (<div key={idx} className="flex justify-between text-sm py-2 border-b"><span>{item.qty}x {item.name}</span><span className="font-bold"><PriceDisplay amount={item.price * item.qty} exchangeRate={exchangeRate} align="right" size="small" /></span></div>))}</div><div className="bg-slate-50 p-4 rounded-xl border border-slate-200"><label className="text-xs font-bold text-slate-500 uppercase">Observaciones</label><textarea className="w-full p-2 mt-2 text-sm border rounded-lg bg-white resize-none" rows="3" value={observationText} onChange={(e) => setObservationText(e.target.value)} placeholder="Añadir nota..."></textarea></div></div><div className="p-4 border-t flex justify-between gap-3 bg-white"><GlassButton variant="info" onClick={() => handleDownloadReceipt(selectedSale)}><Receipt size={16} /> Recibo</GlassButton><GlassButton onClick={() => { handleUpdateObservation(); setSelectedSale(null); }}>Guardar Nota</GlassButton></div></GlassCard></div>)}
-            {showIngredientForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto"><h3 className="font-bold mb-4 text-slate-800">{editingIngredient ? 'Editar' : 'Nuevo'} Insumo</h3><form onSubmit={handleSaveIngredient} className="space-y-4"><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre del Insumo</label><input name="name" required placeholder="Ej. Tomate" defaultValue={editingIngredient?.name} className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div><div className="flex gap-4"><div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Stock Inicial</label><input name="stock" type="number" step="any" required placeholder="0.00" defaultValue={editingIngredient?.stock} className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div><div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Unidad</label><input name="unit" required placeholder="Kg, Unid, etc." defaultValue={editingIngredient?.unit} className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div></div>
+            {selectedSale && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                    <GlassCard className="w-full max-w-lg p-0 overflow-hidden flex flex-col max-h-[90vh] slide-up">
+                        <div className="p-4 bg-slate-50 border-b flex justify-between items-center">
+                            <div><h3 className="font-bold text-lg">Detalle Venta</h3></div>
+                            <button onClick={() => setSelectedSale(null)}><X size={20} /></button>
+                        </div>
+                        <div className="p-6 overflow-y-auto">
+                            <div className="mb-4">
+                                <span className="text-sm text-slate-500">Cliente:</span> <span className="font-bold">{selectedSale.description || "N/A"}</span>
+                            </div>
+                            <div className="space-y-2 mb-6">
+                                {selectedSale.items.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between text-sm py-2 border-b">
+                                        <div className="flex flex-col text-left text-xs md:text-sm">
+                                            <span>{item.qty}x {item.name}</span>
+                                            {(item.variantDetails || item.details) && (
+                                                <span className="text-xs text-indigo-500 font-bold">({item.variantDetails || item.details})</span>
+                                            )}
+                                        </div>
+                                        <span className="font-bold">
+                                            <PriceDisplay amount={item.price * item.qty} exchangeRate={exchangeRate} align="right" size="small" />
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <label className="text-xs font-bold text-slate-500 uppercase">Observaciones</label>
+                                <textarea 
+                                    className="w-full p-2 mt-2 text-sm border rounded-lg bg-white resize-none disabled:bg-slate-100 disabled:text-slate-500" 
+                                    rows="3" 
+                                    value={observationText} 
+                                    onChange={(e) => setObservationText(e.target.value)} 
+                                    placeholder={hasPermission('history', 'edit') ? "Añadir nota..." : "Sin observaciones"}
+                                    disabled={!hasPermission('history', 'edit')}
+                                />
+                            </div>
+                        </div>
+                        <div className="p-4 border-t flex justify-between gap-3 bg-white">
+                            <GlassButton variant="info" onClick={() => handleDownloadReceipt(selectedSale)}><Receipt size={16} /> Recibo</GlassButton>
+                            {hasPermission('history', 'edit') ? (
+                                <GlassButton onClick={() => { handleUpdateObservation(); setSelectedSale(null); }}>Guardar Nota</GlassButton>
+                            ) : (
+                                <GlassButton variant="secondary" onClick={() => setSelectedSale(null)}>Cerrar</GlassButton>
+                            )}
+                        </div>
+                    </GlassCard>
+                </div>
+            )}
+            {showIngredientForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto"><h3 className="font-bold mb-4 text-slate-800">{editingIngredient ? 'Editar' : 'Nuevo'} Material</h3><form onSubmit={handleSaveIngredient} className="space-y-4"><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre del Material</label><input name="name" required placeholder="Ej. Taza de Cerámica Blanca 11oz" defaultValue={editingIngredient?.name} className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div><div className="grid grid-cols-3 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Stock</label>
+                                    <input name="stock" type="number" step="any" required placeholder="0.00" defaultValue={editingIngredient?.stock} className="w-full p-2.5 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none text-xs md:text-sm" />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Stock Mínimo</label>
+                                    <input name="minStock" type="number" step="any" required placeholder="0.00" defaultValue={editingIngredient?.minStock !== undefined ? editingIngredient.minStock : 10} className="w-full p-2.5 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none text-xs md:text-sm" />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Unidad</label>
+                                    <input name="unit" required placeholder="Unid, m, etc." defaultValue={editingIngredient?.unit} className="w-full p-2.5 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none text-xs md:text-sm" />
+                                </div>
+                            </div>
                             <div className="space-y-1">
                                 <div className="flex flex-wrap justify-between items-center gap-2 ml-1 mb-1">
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Costo Unitario ({formCurrency === 'USD' ? '$' : 'Bs'})</label>
@@ -1802,12 +3528,78 @@ export default function App() {
                                     </div>
                                 )}
                             </div>
-                            <div className="flex gap-3 mt-6"><GlassButton onClick={() => setShowIngredientForm(false)} variant="secondary" className="flex-1">Cancelar</GlassButton><GlassButton type="submit" variant="primary" className="flex-1">Guardar Insumo</GlassButton></div></form></GlassCard></div>)}
-            {showProductForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto slide-up"><h3 className="font-bold mb-4 text-slate-800">{editingProduct?.id ? 'Editar Producto' : 'Nuevo Producto'}</h3><form onSubmit={handleSaveProduct} className="space-y-4"><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre del Producto</label><input required name="name" defaultValue={editingProduct?.name} placeholder="Nombre" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div><div className="flex gap-4"><div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Precio de Venta ($)</label><input required name="price" id="priceInput" type="number" step="0.01" defaultValue={editingProduct?.price} placeholder="0.00" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div><div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Categoría</label><input required name="category" defaultValue={editingProduct?.category} placeholder="Ej. Hamburguesas" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div></div><div className="bg-slate-50 p-4 rounded-2xl border border-slate-100"><label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Identidad Visual (Icono)</label><div className="flex flex-col md:flex-row gap-4 items-center"><div className="w-20 h-20 bg-white rounded-2xl border border-slate-200 shadow-sm flex items-center justify-center text-4xl overflow-hidden shrink-0">{productIconPreview || editingProduct?.image ? (String(productIconPreview || editingProduct?.image).startsWith('data:image') || String(productIconPreview || editingProduct?.image).startsWith('http') ? <img src={productIconPreview || editingProduct?.image} alt="" className="w-full h-full object-contain" /> : productIconPreview || editingProduct?.image) : <Utensils size={32} className="text-slate-300" />}</div><div className="flex-1 space-y-3 w-full"><div><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Usar Emoji</label><input name="image" defaultValue={productIconPreview ? "" : (editingProduct?.image && !String(editingProduct.image).startsWith('data:image') ? editingProduct.image : "")} placeholder="Ej. 🍔 (Opcional)" className="w-full p-2 border border-slate-200 rounded-lg focus:border-yellow-500 outline-none" onChange={() => setProductIconPreview(null)} /></div><div className="relative group"><input type="file" accept=".png,.ico,.jpg,.jpeg" className="hidden" id="productImageUpload" onChange={(e) => { const file = e.target.files[0]; if (file) { compressImageForFirestore(file).then(setProductIconPreview).catch(() => showNotification("Error al procesar imagen", "error")); } }} /><label htmlFor="productImageUpload" className="flex items-center justify-center gap-2 p-2 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:border-yellow-400 hover:bg-yellow-50 transition-all text-xs font-bold text-slate-500 uppercase"><Upload size={14} /> Subir Imagen (.png, .ico)</label></div></div></div></div><div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner"><label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Receta (Ingredientes)</label><div className="space-y-2 mt-3">{editingProduct?.recipe?.length === 0 ? <p className="text-xs text-slate-400 text-center py-2">No hay ingredientes añadidos.</p> : editingProduct?.recipe?.map((r, i) => <div key={i} className="flex justify-between items-center text-sm bg-white p-3 rounded-xl shadow-sm border border-slate-100"><span>{ingredients.find(ing => normalizeId(ing.id) === normalizeId(r.ingredientId))?.name || `ID:${r.ingredientId}`}</span><div className="flex items-center gap-3"><span className="font-black text-yellow-600">x{r.qty}</span><button type="button" onClick={() => setEditingProduct(p => ({ ...p, recipe: p.recipe.filter(x => x.ingredientId !== r.ingredientId) }))} className="p-1 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><X size={16} /></button></div></div>)}</div><div className="flex gap-2 mt-4"><div className="flex-1 relative"><input list="ingredients-list" value={tempIngredientId ? (ingredients.find(i => i.id === tempIngredientId)?.name || "") : ""} onChange={(e) => { const val = e.target.value; const found = ingredients.find(i => i.name === val); if (found) setTempIngredientId(found.id); else setTempIngredientId(""); }} placeholder="Buscar Insumo..." className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-yellow-500 bg-white text-sm" /><datalist id="ingredients-list">{ingredients.map(i => <option key={i.id} value={i.name} />)}</datalist></div><input type="number" step="any" placeholder="Cant" value={tempIngredientQty} onChange={(e) => setTempIngredientQty(e.target.value)} className="w-24 p-3 border border-slate-200 rounded-xl outline-none focus:border-yellow-500 text-center text-sm" /><button type="button" onClick={() => { if (tempIngredientId && tempIngredientQty && !isNaN(parseFloat(tempIngredientQty))) { setEditingProduct(p => ({ ...p, recipe: [...(p.recipe || []), { ingredientId: tempIngredientId, qty: parseFloat(tempIngredientQty) }] })); setTempIngredientId(""); setTempIngredientQty("1"); } }} className="bg-slate-800 text-white p-3 rounded-xl hover:bg-slate-700 shadow-lg shadow-slate-200 transition-all active:scale-95"><Plus size={20} /></button></div><div className="mt-4 pt-4 border-t border-slate-200"><div className="flex justify-between items-center mb-3"><span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Costo Receta:</span><PriceDisplay amount={calculateRecipeCost(editingProduct?.recipe)} exchangeRate={exchangeRate} size="normal" align="right" /></div><div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm"><Calculator size={20} className="text-slate-400" /><div className="flex-1 flex flex-col"><span className="text-[10px] font-bold text-slate-400 uppercase">Margen %</span><input type="number" value={profitMargin} onChange={(e) => setProfitMargin(parseFloat(e.target.value) || 0)} className="w-full bg-transparent font-bold text-slate-700 outline-none" /></div><div className="text-right border-l border-slate-100 pl-3"><p className="text-[9px] text-slate-400 uppercase font-bold">Sugerido</p><div className="font-black text-yellow-600 text-sm whitespace-nowrap">{formatCurrency(calculateRecipeCost(editingProduct?.recipe) * (1 + (profitMargin / 100)))}</div></div><button type="button" onClick={() => { const suggested = calculateRecipeCost(editingProduct?.recipe) * (1 + (profitMargin / 100)); const priceInput = document.getElementById('priceInput'); if (priceInput) priceInput.value = suggested.toFixed(2); }} className="text-xs bg-yellow-100 text-yellow-700 px-3 py-2 rounded-lg font-bold hover:bg-yellow-200 transition-colors">Fijar</button></div></div></div><div className="flex gap-3 mt-8 pt-4 border-t"><GlassButton onClick={() => setShowProductForm(false)} variant="secondary" className="flex-1">Cancelar</GlassButton><GlassButton type="submit" variant="primary" className="flex-1">Guardar Menú</GlassButton></div></form></GlassCard></div>)}
-            {showExpenseForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto"><h3 className="font-bold mb-4 text-rose-600">Registrar Gasto Extra</h3><form onSubmit={handleSaveExpense} className="space-y-4"><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Descripción del Gasto</label><input required name="description" placeholder="ej. Luz, Alquiler" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div><div className="flex gap-4"><div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Monto ($)</label><input required name="amount" type="number" step="0.01" placeholder="0.00" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div><div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Categoría</label><input required name="category" placeholder="Seleccionar..." list="cats" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none bg-white" /><datalist id="cats"><option value="Servicios" /><option value="Nómina" /><option value="Mantenimiento" /></datalist></div></div><div className="flex gap-3 mt-6 pt-4 border-t"><GlassButton onClick={() => setShowExpenseForm(false)} variant="secondary" className="flex-1">Cancelar</GlassButton><GlassButton type="submit" variant="expense" className="flex-1">Registrar Gasto</GlassButton></div></form></GlassCard></div>)}
+                            <div className="flex gap-3 mt-6"><GlassButton onClick={() => setShowIngredientForm(false)} variant="secondary" className="flex-1">Cancelar</GlassButton><GlassButton type="submit" variant="primary" className="flex-1">Guardar Material</GlassButton></div></form></GlassCard></div>)}
+            {showProductForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto slide-up"><h3 className="font-bold mb-4 text-slate-800">{editingProduct?.id ? 'Editar Producto' : 'Nuevo Producto'}</h3><form onSubmit={handleSaveProduct} className="space-y-4"><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre del Producto</label><input required name="name" defaultValue={editingProduct?.name} placeholder="Nombre" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div><div className="flex gap-4"><div className="flex-1 space-y-1"><div className="flex justify-between items-center ml-1 mb-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Precio de Venta ({productCurrency === 'USD' ? '$' : 'Bs'})</label><div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0"><button type="button" onClick={() => setProductCurrency('USD')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${productCurrency === 'USD' ? 'bg-white text-yellow-700 shadow-sm' : 'text-slate-400'}`}>$ USD</button><button type="button" onClick={() => setProductCurrency('VES')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${productCurrency === 'VES' ? 'bg-white text-yellow-700 shadow-sm' : 'text-slate-400'}`}>Bs VES</button></div></div><input required name="price" id="priceInput" type="number" step="0.01" value={productCurrency === 'USD' ? (tempProductPrice || '') : (exchangeRate > 0 ? Number((tempProductPrice * exchangeRate).toFixed(2)) : '')} onChange={(e) => { const val = parseFloat(e.target.value) || 0; if (productCurrency === 'USD') setTempProductPrice(val); else setTempProductPrice(exchangeRate > 0 ? Number((val / exchangeRate).toFixed(6)) : 0); }} placeholder="0.00" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none font-mono text-sm" /><span className="text-[9px] text-slate-400 font-bold uppercase italic block mt-1">{productCurrency === 'USD' ? `≈ Bs ${(tempProductPrice * (exchangeRate || 0)).toFixed(2)}` : `≈ $ ${tempProductPrice.toFixed(2)}`}</span></div><div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Categoría</label><input required name="category" defaultValue={editingProduct?.category} placeholder="Ej. Tazas" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div></div><div className="bg-slate-50 p-4 rounded-2xl border border-slate-100"><label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Identidad Visual (Icono)</label><div className="flex flex-col md:flex-row gap-4 items-center"><div className="w-20 h-20 bg-white rounded-2xl border border-slate-200 shadow-sm flex items-center justify-center text-4xl overflow-hidden shrink-0">{productIconPreview || editingProduct?.image ? (String(productIconPreview || editingProduct?.image).startsWith('data:image') || String(productIconPreview || editingProduct?.image).startsWith('http') ? <img src={productIconPreview || editingProduct?.image} alt="" className="w-full h-full object-contain" /> : productIconPreview || editingProduct?.image) : <Utensils size={32} className="text-slate-300" />}</div><div className="flex-1 space-y-3 w-full"><div><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Usar Emoji</label><input name="image" defaultValue={productIconPreview ? "" : (editingProduct?.image && !String(editingProduct.image).startsWith('data:image') ? editingProduct.image : "")} placeholder="Ej. ☕ (Opcional)" className="w-full p-2 border border-slate-200 rounded-lg focus:border-yellow-500 outline-none" onChange={() => setProductIconPreview(null)} /></div><div className="relative group"><input type="file" accept=".png,.ico,.jpg,.jpeg" className="hidden" id="productImageUpload" onChange={(e) => { const file = e.target.files[0]; if (file) { compressImageForFirestore(file).then(setProductIconPreview).catch(() => showNotification("Error al procesar imagen", "error")); } }} /><label htmlFor="productImageUpload" className="flex items-center justify-center gap-2 p-2 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:border-yellow-400 hover:bg-yellow-50 transition-all text-xs font-bold text-slate-500 uppercase"><Upload size={14} /> Subir Imagen (.png, .ico)</label></div></div></div></div><div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner"><label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Componentes (Materiales)</label><div className="space-y-2 mt-3">{editingProduct?.recipe?.length === 0 ? <p className="text-xs text-slate-400 text-center py-2">No hay materiales añadidos.</p> : editingProduct?.recipe?.map((r, i) => <div key={i} className="flex justify-between items-center text-sm bg-white p-3 rounded-xl shadow-sm border border-slate-100"><span>{ingredients.find(ing => normalizeId(ing.id) === normalizeId(r.ingredientId))?.name || `ID:${r.ingredientId}`}</span><div className="flex items-center gap-3"><span className="font-black text-yellow-600">x{r.qty}</span><button type="button" onClick={() => setEditingProduct(p => ({ ...p, recipe: p.recipe.filter(x => x.ingredientId !== r.ingredientId) }))} className="p-1 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><X size={16} /></button></div></div>)}</div><div className="flex gap-2 mt-4"><div className="flex-1 relative"><input list="ingredients-list" value={tempIngredientId ? (ingredients.find(i => i.id === tempIngredientId)?.name || "") : ""} onChange={(e) => { const val = e.target.value; const found = ingredients.find(i => i.name === val); if (found) setTempIngredientId(found.id); else setTempIngredientId(""); }} placeholder="Buscar Material..." className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-yellow-500 bg-white text-sm" /><datalist id="ingredients-list">{ingredients.map(i => <option key={i.id} value={i.name} />)}</datalist></div><input type="number" step="any" placeholder="Cant" value={tempIngredientQty} onChange={(e) => setTempIngredientQty(e.target.value)} className="w-24 p-3 border border-slate-200 rounded-xl outline-none focus:border-yellow-500 text-center text-sm" /><button type="button" onClick={() => { if (tempIngredientId && tempIngredientQty && !isNaN(parseFloat(tempIngredientQty))) { setEditingProduct(p => ({ ...p, recipe: [...(p.recipe || []), { ingredientId: tempIngredientId, qty: parseFloat(tempIngredientQty) }] })); setTempIngredientId(""); setTempIngredientQty("1"); } }} className="bg-slate-800 text-white p-3 rounded-xl hover:bg-slate-700 shadow-lg shadow-slate-200 transition-all active:scale-95"><Plus size={20} /></button></div><div className="mt-4 pt-4 border-t border-slate-200"><div className="flex justify-between items-center mb-3"><span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Costo de Producción:</span><PriceDisplay amount={calculateRecipeCost(editingProduct?.recipe)} exchangeRate={exchangeRate} size="normal" align="right" /></div><div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm"><Calculator size={20} className="text-slate-400" /><div className="flex-1 flex flex-col"><span className="text-[10px] font-bold text-slate-400 uppercase">Margen %</span><input type="number" value={profitMargin} onChange={(e) => setProfitMargin(parseFloat(e.target.value) || 0)} className="w-full bg-transparent font-bold text-slate-700 outline-none" /></div><div className="text-right border-l border-slate-100 pl-3"><p className="text-[9px] text-slate-400 uppercase font-bold">Sugerido</p><div className="font-black text-yellow-600 text-sm whitespace-nowrap">
+                                                {productCurrency === 'VES' 
+                                                    ? `Bs ${(calculateRecipeCost(editingProduct?.recipe) * (1 + (profitMargin / 100)) * exchangeRate).toFixed(2)}` 
+                                                    : formatCurrency(calculateRecipeCost(editingProduct?.recipe) * (1 + (profitMargin / 100)))}
+                                            </div></div><button type="button" onClick={() => { const suggested = calculateRecipeCost(editingProduct?.recipe) * (1 + (profitMargin / 100)); setTempProductPrice(suggested); }} className="text-xs bg-yellow-100 text-yellow-700 px-3 py-2 rounded-lg font-bold hover:bg-yellow-200 transition-colors">Fijar</button></div></div></div><div className="flex gap-3 mt-8 pt-4 border-t"><GlassButton onClick={() => setShowProductForm(false)} variant="secondary" className="flex-1">Cancelar</GlassButton><GlassButton type="submit" variant="primary" className="flex-1">Guardar Producto</GlassButton></div></form></GlassCard></div>)}
+            {showExpenseForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto"><h3 className="font-bold mb-4 text-rose-600">{editingExpense ? 'Editar' : 'Registrar'} Gasto Extra</h3><form onSubmit={handleSaveExpense} className="space-y-4"><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Descripción del Gasto</label><input required name="description" placeholder="ej. Luz, Alquiler" defaultValue={editingExpense ? editingExpense.description : ""} className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div><div className="flex gap-4"><div className="flex-1 space-y-1"><div className="flex justify-between items-center ml-1 mb-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Monto ({expenseCurrency === 'USD' ? '$' : 'Bs'})</label><div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0"><button type="button" onClick={() => setExpenseCurrency('USD')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${expenseCurrency === 'USD' ? 'bg-white text-yellow-700 shadow-sm' : 'text-slate-400'}`}>$ USD</button><button type="button" onClick={() => setExpenseCurrency('VES')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${expenseCurrency === 'VES' ? 'bg-white text-yellow-700 shadow-sm' : 'text-slate-400'}`}>Bs VES</button></div></div><input required name="amount" type="number" step="0.01" value={expenseCurrency === 'USD' ? (tempExpenseAmount || '') : (exchangeRate > 0 ? Number((tempExpenseAmount * exchangeRate).toFixed(2)) : '')} onChange={(e) => { const val = parseFloat(e.target.value) || 0; if (expenseCurrency === 'USD') setTempExpenseAmount(val); else setTempExpenseAmount(exchangeRate > 0 ? Number((val / exchangeRate).toFixed(6)) : 0); }} placeholder="0.00" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none font-mono text-sm" /><span className="text-[9px] text-slate-400 font-bold uppercase italic block mt-1">{expenseCurrency === 'USD' ? `≈ Bs ${(tempExpenseAmount * (exchangeRate || 0)).toFixed(2)}` : `≈ $ ${tempExpenseAmount.toFixed(2)}`}</span></div><div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Categoría</label><input required name="category" placeholder="Seleccionar..." list="cats" defaultValue={editingExpense ? editingExpense.category : ""} className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none bg-white" /><datalist id="cats"><option value="Servicios" /><option value="Nómina" /><option value="Mantenimiento" /></datalist></div></div><div className="flex gap-3 mt-6 pt-4 border-t"><GlassButton onClick={() => { setShowExpenseForm(false); setEditingExpense(null); }} variant="secondary" className="flex-1">Cancelar</GlassButton><GlassButton type="submit" variant="expense" className="flex-1">{editingExpense ? 'Guardar Cambios' : 'Registrar Gasto'}</GlassButton></div></form></GlassCard></div>)}
             {confirmation.show && (<div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm"><GlassCard className="p-6 max-w-sm w-full text-center slide-up"><AlertTriangle size={48} className="mx-auto text-amber-500 mb-4" /><h3 className="font-bold text-lg mb-2">{confirmation.message}</h3><div className="flex gap-3 justify-center"><GlassButton variant="secondary" onClick={() => setConfirmation({ show: false })}>Cancelar</GlassButton><GlassButton variant="danger" onClick={confirmation.onConfirm}>Confirmar</GlassButton></div></GlassCard></div>)}
             {aiModal.show && (<div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md"><GlassCard className="w-full max-w-2xl p-0 overflow-hidden flex flex-col max-h-[80vh] slide-up"><div className="p-4 bg-gradient-to-br from-yellow-400 to-yellow-600 text-slate-900 flex justify-between items-center shadow-lg"><h3 className="font-bold flex items-center gap-2 uppercase tracking-wider text-xs md:text-sm"><Sparkles size={18} /> {aiModal.title}</h3><button onClick={() => setAiModal(p => ({ ...p, show: false }))} className="p-1 hover:bg-slate-900/10 rounded-full"><X className="text-slate-900" /></button></div><div className="p-6 overflow-y-auto bg-slate-50 flex-1">{aiModal.loading ? <div className="flex flex-col items-center justify-center py-10 space-y-4"><Loader2 size={40} className="animate-spin text-yellow-500" /><p className="text-slate-500 animate-pulse">Consultando a J.L. Assistant...</p></div> : <div className="prose prose-slate max-w-none text-sm whitespace-pre-wrap">{String(aiModal.content)}</div>}</div>{!aiModal.loading && <div className="p-4 border-t border-slate-200 bg-white text-right shadow-[0_-4px_12px_rgba(0,0,0,0.05)]"><GlassButton onClick={() => setAiModal(p => ({ ...p, show: false }))} variant="primary" className="w-full md:w-auto">Entendido</GlassButton></div>}</GlassCard></div>)}
             
+            
+            {showMermaForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-sm p-6 slide-up"><h3 className="font-bold mb-4 text-red-600 flex items-center gap-2"><AlertTriangle size={20}/> Reportar Merma</h3><form onSubmit={handleReportMerma} className="space-y-4"><div><label className="text-[10px] font-bold text-slate-400 uppercase">Material Dañado</label><select required value={mermaIngredientId} onChange={e => setMermaIngredientId(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl focus:border-red-500 outline-none"><option value="">Seleccione...</option>{filterAndSort(ingredients).map(i => <option key={i.id} value={i.id}>{i.name} (Stock: {i.stock} {i.unit})</option>)}</select></div><div><label className="text-[10px] font-bold text-slate-400 uppercase">Cantidad a descontar</label><input required type="number" step="any" min="0.01" value={mermaQty} onChange={e => setMermaQty(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl focus:border-red-500 outline-none"/></div><div><label className="text-[10px] font-bold text-slate-400 uppercase">Motivo o Detalle</label><input required placeholder="Ej: Taza manchada, Tela quemada" value={mermaReason} onChange={e => setMermaReason(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl focus:border-red-500 outline-none"/></div><div className="flex gap-3 mt-6"><GlassButton onClick={() => setShowMermaForm(false)} variant="secondary" className="flex-1">Cancelar</GlassButton><GlassButton type="submit" variant="primary" className="flex-1 !bg-red-600 !text-white hover:!bg-red-700">Registrar</GlassButton></div></form></GlassCard></div>)}
+
+            {showCustomerForm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                    <GlassCard className="w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto">
+                        <h3 className="font-bold mb-4 text-slate-800 flex items-center gap-2">
+                            <Users className="text-yellow-600" /> {editingCustomer?.id ? 'Editar' : 'Nuevo'} Cliente
+                        </h3>
+                        <form onSubmit={handleSaveCustomer} className="space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre / Razón Social</label>
+                                <input 
+                                    name="name" 
+                                    required 
+                                    placeholder="Ej. Alejandro Gómez" 
+                                    defaultValue={editingCustomer?.name} 
+                                    className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none text-xs md:text-sm" 
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Teléfono</label>
+                                <input 
+                                    name="phone" 
+                                    placeholder="Ej. +58 412 1234567" 
+                                    defaultValue={editingCustomer?.phone} 
+                                    className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none text-xs md:text-sm" 
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Correo Electrónico</label>
+                                <input 
+                                    name="email" 
+                                    type="email" 
+                                    placeholder="Ej. alejandro@gmail.com" 
+                                    defaultValue={editingCustomer?.email} 
+                                    className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none text-xs md:text-sm" 
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Dirección / Notas</label>
+                                <textarea 
+                                    name="address" 
+                                    placeholder="Dirección fiscal, detalles de entrega, etc." 
+                                    defaultValue={editingCustomer?.address} 
+                                    className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none text-xs md:text-sm resize-none" 
+                                    rows="3"
+                                />
+                            </div>
+                            <div className="flex gap-3 mt-6 pt-4 border-t">
+                                <GlassButton type="button" onClick={() => { setShowCustomerForm(false); setEditingCustomer(null); }} variant="secondary" className="flex-1">
+                                    Cancelar
+                                </GlassButton>
+                                <GlassButton type="submit" variant="primary" className="flex-1">
+                                    Guardar Cliente
+                                </GlassButton>
+                            </div>
+                        </form>
+                    </GlassCard>
+                </div>
+            )}
+
             {showCalculator && (showIngredientForm || showProductForm) && (
                 <FloatingCalculator 
                     onClose={() => setShowCalculator(false)}
@@ -1818,8 +3610,8 @@ export default function App() {
                             setIsIvaApplied(false);
                             showNotification("Resultado aplicado al costo", "success");
                         } else if (showProductForm) {
-                            const priceInput = document.getElementById('priceInput');
-                            if (priceInput) priceInput.value = result.toFixed(2);
+                            if (productCurrency === 'USD') setTempProductPrice(result);
+                            else setTempProductPrice(exchangeRate > 0 ? Number((result / exchangeRate).toFixed(6)) : 0);
                             showNotification("Resultado aplicado al precio de venta", "success");
                         }
                     }}
