@@ -220,7 +220,7 @@ const useIdleTimer = (timeout = 1800000, onIdle) => {
 };
 
 // --- HOOK DE SINCRONIZACIÓN DE DATOS ---
-const useDataSync = (user, appId, isPublicCatalogMode = false, activeTab = '', startDate = '', endDate = '', currentDateView = null, viewMode = 'daily') => {
+const useDataSync = (user, appId, isPublicCatalogMode = false) => {
     const [data, setData] = useState({
         ingredients: [],
         products: [],
@@ -271,21 +271,6 @@ const useDataSync = (user, appId, isPublicCatalogMode = false, activeTab = '', s
 
         const unsubs = [];
         
-        // 1. Colecciones base/operacionales (siempre activas si el usuario está logueado)
-        if (user) {
-            unsubs.push(
-                subscribe(publicPath('ingredients'), 'ingredients'),
-                subscribe(publicPath('products'), 'products'),
-                subscribe(publicPath('pending_orders'), 'pending_orders'),
-                subscribe(publicPath('users'), 'appUsers'),
-                subscribe(publicPath('customers'), 'customers')
-            );
-        } else if (isPublicCatalogMode) {
-            unsubs.push(
-                subscribe(publicPath('products'), 'products')
-            );
-        }
-
         // Suscribir al config general (siempre activo)
         unsubs.push(
             onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'general'), (docSnap) => {
@@ -293,116 +278,36 @@ const useDataSync = (user, appId, isPublicCatalogMode = false, activeTab = '', s
             })
         );
 
-        // 2. Colecciones históricas (Carga condicional y filtrada)
         if (user) {
-            // Verificar qué colecciones se necesitan según la pestaña activa
-            const needsSales = ['dashboard', 'history', 'reports', 'balance'].includes(activeTab);
-            const needsStockHistory = ['dashboard', 'inventory_history', 'reports', 'balance'].includes(activeTab);
-            const needsExpenses = ['dashboard', 'reports', 'balance'].includes(activeTab);
-            const needsBitacora = ['bitacora'].includes(activeTab);
+            // Suscripciones globales para permitir modo offline y velocidad instantánea (0ms al cambiar pestañas)
+            unsubs.push(
+                subscribe(publicPath('ingredients'), 'ingredients'),
+                subscribe(publicPath('products'), 'products'),
+                subscribe(publicPath('pending_orders'), 'pending_orders'),
+                subscribe(publicPath('users'), 'appUsers'),
+                subscribe(publicPath('customers'), 'customers')
+            );
 
-            // Calcular rango de fechas para las consultas
-            let minDateQuery = null;
-            let maxDateQuery = null;
+            // Colecciones históricas cargadas de forma global pero limitadas a los últimos 180 días (6 meses)
+            // para evitar descargas masivas de años anteriores en dispositivos nuevos.
+            const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+            const minDateLimit = sixMonthsAgo.toISOString();
 
-            if (activeTab === 'dashboard') {
-                // Para el dashboard, cargamos por defecto los últimos 30 días para cubrir estadísticas y órdenes recientes
-                const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-                minDateQuery = thirtyDaysAgo.toISOString();
-            } else if (activeTab) {
-                // Para pestañas de historial/reportes, calcular según los filtros activos
-                let startStr = '';
-                let endStr = '';
+            const qSales = query(publicPath('sales'), where('date', '>=', minDateLimit), orderBy('date', 'desc'));
+            const qStock = query(publicPath('stock_history'), where('date', '>=', minDateLimit), orderBy('date', 'desc'));
+            const qExpenses = query(publicPath('other_expenses'), where('date', '>=', minDateLimit), orderBy('date', 'desc'));
+            const qBitacora = query(publicPath('bitacora'), where('date', '>=', minDateLimit), orderBy('date', 'desc'));
 
-                if (viewMode === 'range') {
-                    startStr = startDate;
-                    endStr = endDate;
-                } else {
-                    const target = getZonedDate(currentDateView || new Date());
-                    const yyyy = target.getFullYear();
-                    const mm = String(target.getMonth() + 1).padStart(2, '0');
-                    if (viewMode === 'daily') {
-                        const dd = String(target.getDate()).padStart(2, '0');
-                        startStr = `${yyyy}-${mm}-${dd}`;
-                        endStr = `${yyyy}-${mm}-${dd}`;
-                    } else if (viewMode === 'monthly') {
-                        startStr = `${yyyy}-${mm}-01`;
-                        const lastDay = new Date(yyyy, target.getMonth() + 1, 0).getDate();
-                        endStr = `${yyyy}-${mm}-${String(lastDay).padStart(2, '0')}`;
-                    }
-                }
-
-                if (startStr) {
-                    const offsetStart = getOffsetDateString(startStr, -1);
-                    minDateQuery = `${offsetStart}T00:00:00.000Z`;
-                }
-                if (endStr) {
-                    const offsetEnd = getOffsetDateString(endStr, +1);
-                    maxDateQuery = `${offsetEnd}T23:59:59.999Z`;
-                }
-
-                // Si no hay rango de fecha definido, usar los últimos 30 días por defecto
-                if (!minDateQuery && !maxDateQuery) {
-                    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-                    minDateQuery = thirtyDaysAgo.toISOString();
-                }
-            }
-
-            // Suscribir a Ventas
-            if (needsSales) {
-                let qSales = query(publicPath('sales'), orderBy('date', 'desc'));
-                if (minDateQuery) qSales = query(qSales, where('date', '>=', minDateQuery));
-                if (maxDateQuery) qSales = query(qSales, where('date', '<=', maxDateQuery));
-                
-                if (activeTab === 'dashboard') {
-                    qSales = query(qSales, limit(150));
-                }
-                unsubs.push(subscribe(qSales, 'salesHistory'));
-            } else {
-                setData(prev => ({ ...prev, salesHistory: [] }));
-            }
-
-            // Suscribir a Kardex (stock_history)
-            if (needsStockHistory) {
-                let qStock = query(publicPath('stock_history'), orderBy('date', 'desc'));
-                if (minDateQuery) qStock = query(qStock, where('date', '>=', minDateQuery));
-                if (maxDateQuery) qStock = query(qStock, where('date', '<=', maxDateQuery));
-                
-                if (activeTab === 'dashboard') {
-                    qStock = query(qStock, limit(100));
-                }
-                unsubs.push(subscribe(qStock, 'stockHistory'));
-            } else {
-                setData(prev => ({ ...prev, stockHistory: [] }));
-            }
-
-            // Suscribir a Gastos (other_expenses)
-            if (needsExpenses) {
-                let qExpenses = query(publicPath('other_expenses'), orderBy('date', 'desc'));
-                if (minDateQuery) qExpenses = query(qExpenses, where('date', '>=', minDateQuery));
-                if (maxDateQuery) qExpenses = query(qExpenses, where('date', '<=', maxDateQuery));
-                
-                if (activeTab === 'dashboard') {
-                    qExpenses = query(qExpenses, limit(100));
-                }
-                unsubs.push(subscribe(qExpenses, 'otherExpenses'));
-            } else {
-                setData(prev => ({ ...prev, otherExpenses: [] }));
-            }
-
-            // Suscribir a Bitácora
-            if (needsBitacora) {
-                let qBitacora = query(publicPath('bitacora'), orderBy('date', 'desc'));
-                if (minDateQuery) qBitacora = query(qBitacora, where('date', '>=', minDateQuery));
-                if (maxDateQuery) qBitacora = query(qBitacora, where('date', '<=', maxDateQuery));
-                
-                if (!startDate && !endDate) {
-                    qBitacora = query(qBitacora, limit(150));
-                }
-                unsubs.push(subscribe(qBitacora, 'bitacoraLogs'));
-            } else {
-                setData(prev => ({ ...prev, bitacoraLogs: [] }));
-            }
+            unsubs.push(
+                subscribe(qSales, 'salesHistory'),
+                subscribe(qStock, 'stockHistory'),
+                subscribe(qExpenses, 'otherExpenses'),
+                subscribe(qBitacora, 'bitacoraLogs')
+            );
+        } else if (isPublicCatalogMode) {
+            unsubs.push(
+                subscribe(publicPath('products'), 'products')
+            );
         }
 
         const updatePresence = async () => {
@@ -417,14 +322,14 @@ const useDataSync = (user, appId, isPublicCatalogMode = false, activeTab = '', s
         const presenceInterval = setInterval(updatePresence, 60000);
         updatePresence();
 
-        setTimeout(() => setLoading(false), 800);
+        setTimeout(() => setLoading(false), 500);
 
         return () => {
             unsubs.forEach(unsub => unsub && unsub());
             clearInterval(presenceInterval);
             setStatus(prev => ({ ...prev, connected: false }));
         };
-    }, [user, appId, isPublicCatalogMode, activeTab, startDate, endDate, currentDateView, viewMode]);
+    }, [user, appId, isPublicCatalogMode]);
 
     return { data, status, loading };
 };
@@ -1233,7 +1138,7 @@ export default function App() {
         }
     });
 
-    const { data, status: connectionStatus, loading: dataLoading } = useDataSync(user, currentAppId, isPublicCatalogMode, activeTab, startDate, endDate, currentDateView, viewMode);
+    const { data, status: connectionStatus, loading: dataLoading } = useDataSync(user, currentAppId, isPublicCatalogMode);
     const { ingredients, products, salesHistory, stockHistory, otherExpenses, pendingOrders, appUsers, bitacoraLogs, config, customers = [] } = data;
     const exchangeRate = config?.exchangeRate || 0;
 
@@ -2449,6 +2354,7 @@ export default function App() {
                 </div>
 
                 <div className="px-6 py-2">
+
                     <div className={`text-xs px-2 py-1 rounded flex items-center gap-2 border ${connectionStatus.error ? 'bg-red-50 text-red-600 border-red-200' : 'bg-slate-50 text-teal-600 border-slate-200'}`}>
                         {connectionStatus.connected ? <Wifi size={12} /> : <WifiOff size={12} />}
                         <span className="truncate">{connectionStatus.error ? 'Error de Conexión' : user.email}</span>
