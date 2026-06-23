@@ -3,7 +3,7 @@ import {
     LayoutDashboard, Package, TrendingUp, Plus, Minus, Trash2,
     Save, Search, AlertCircle, Menu, X, DollarSign, UtensilsCrossed, ChefHat,
     Info, Edit, RefreshCw, Settings, AlertTriangle, Calendar, Clock, Sparkles,
-    Bot, Loader2, Zap, FileText, Download, Megaphone, ClipboardList, Eye,
+    Bot, Loader2, Zap, FileText, Download, Megaphone, ClipboardList, Eye, EyeOff,
     MessageSquare, Calculator, History, ArrowRightLeft, Utensils, Palette, ChevronDown,
     ChevronUp, Wallet, PieChart, ArrowUpCircle, ArrowDownCircle, Lightbulb,
     ShieldCheck, Hash, CreditCard, Receipt, Clock3, Filter, SortAsc, SortDesc,
@@ -129,11 +129,11 @@ const generatePDF = async (title, columns, data, filename = 'reporte.pdf', foote
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    doc.setFillColor(234, 179, 8); // Yellow 600
+    doc.setFillColor(13, 148, 136); // Yellow 600
     doc.rect(0, 0, 210, 20, 'F');
     doc.setTextColor(30, 41, 59); // Slate 800
     doc.setFontSize(16);
-    doc.text("J.L. Inversiones", 14, 13);
+    doc.text("Sweet Ink", 14, 13);
 
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(14);
@@ -326,14 +326,14 @@ const GlassCard = ({ children, className = "", onClick }) => (
 const GlassButton = ({ children, onClick, variant = "primary", className = "", disabled = false, title = "", type = "button", form }) => {
     const baseStyle = "px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg select-none touch-manipulation text-xs md:text-sm";
     const variants = {
-        primary: "bg-gradient-to-br from-yellow-400 to-yellow-600 text-slate-900 border-none shadow-xl shadow-yellow-500/20 active:shadow-none hover:from-yellow-400 hover:to-yellow-500",
+        primary: "bg-gradient-to-br from-teal-400 to-teal-600 text-slate-900 border-none shadow-xl shadow-teal-500/20 active:shadow-none hover:from-teal-400 hover:to-teal-500",
         secondary: "bg-white/50 text-slate-700 hover:bg-white/80 border border-white/40 backdrop-blur-md",
         danger: "bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-xl shadow-rose-500/20",
         success: "bg-gradient-to-br from-emerald-400 to-teal-600 text-white shadow-xl shadow-emerald-500/20",
         info: "bg-gradient-to-br from-slate-600 to-slate-800 text-white shadow-xl shadow-slate-500/20",
-        kitchen: "bg-gradient-to-br from-amber-400 to-yellow-500 text-slate-800 border-none shadow-xl shadow-amber-500/10 active:shadow-none",
+        kitchen: "bg-gradient-to-br from-amber-400 to-teal-500 text-slate-800 border-none shadow-xl shadow-amber-500/10 active:shadow-none",
         expense: "bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-xl shadow-red-500/20 border border-white/20",
-        gemini: "bg-gradient-to-br from-yellow-400 via-yellow-500 to-slate-700 text-white animate-gradient-xy shadow-xl shadow-yellow-500/30 border border-white/10",
+        gemini: "bg-gradient-to-br from-teal-400 via-teal-500 to-slate-700 text-white animate-gradient-xy shadow-xl shadow-teal-500/30 border border-white/10",
     };
     return <button type={type} onClick={onClick} disabled={disabled} title={title} className={`${baseStyle} ${variants[variant] || variants.primary} ${className}`} form={form}>{children}</button>;
 };
@@ -408,7 +408,7 @@ const PeriodNavigator = ({ currentDate, setCurrentDate, viewMode, setViewMode })
         <div className="flex flex-col md:flex-row gap-4 bg-white/50 p-3 md:p-4 rounded-2xl border border-white/40 shadow-sm mb-6 items-center justify-between">
             <div className="flex bg-slate-200/50 rounded-xl p-1 w-full md:w-auto">
                 {[{ id: 'daily', label: 'Día' }, { id: 'monthly', label: 'Mes' }, { id: 'range', label: 'Rango' }].map(m => (
-                    <button key={m.id} onClick={() => setViewMode(m.id)} className={`flex-1 md:flex-none px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${viewMode === m.id ? 'bg-white text-yellow-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{m.label}</button>
+                    <button key={m.id} onClick={() => setViewMode(m.id)} className={`flex-1 md:flex-none px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${viewMode === m.id ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{m.label}</button>
                 ))}
             </div>
             {viewMode !== 'range' && (
@@ -424,11 +424,11 @@ const PeriodNavigator = ({ currentDate, setCurrentDate, viewMode, setViewMode })
 
 const DateRangeToolbar = ({ startDate, setStartDate, endDate, setEndDate, onDownloadPdf, title = "Filtrar por Fecha" }) => (
     <div className="flex flex-col md:flex-row gap-3 bg-white/50 p-3 rounded-2xl border border-white/40 shadow-sm mb-4 items-center">
-        <div className="flex items-center gap-2 text-xs md:text-sm text-slate-600 whitespace-nowrap"><Calendar size={14} className="text-yellow-600" /> <span className="hidden md:inline font-medium">{title}:</span></div>
+        <div className="flex items-center gap-2 text-xs md:text-sm text-slate-600 whitespace-nowrap"><Calendar size={14} className="text-teal-600" /> <span className="hidden md:inline font-medium">{title}:</span></div>
         <div className="flex gap-2 w-full md:w-auto">
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-white/80 border border-slate-200 rounded-lg px-2 py-1.5 md:py-2 text-xs w-full focus:outline-none focus:border-yellow-500" />
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-white/80 border border-slate-200 rounded-lg px-2 py-1.5 md:py-2 text-xs w-full focus:outline-none focus:border-teal-500" />
             <span className="text-slate-400 py-2">-</span>
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-white/80 border border-slate-200 rounded-lg px-2 py-1.5 md:py-2 text-xs w-full focus:outline-none focus:border-yellow-500" />
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-white/80 border border-slate-200 rounded-lg px-2 py-1.5 md:py-2 text-xs w-full focus:outline-none focus:border-teal-500" />
         </div>
         <div className="flex gap-2 w-full md:w-auto">
             {onDownloadPdf && (<GlassButton variant="secondary" onClick={onDownloadPdf} className="flex-1 md:w-auto text-xs py-1.5 md:py-2 h-full"><Download size={14} /> <span className="inline">PDF</span></GlassButton>)}
@@ -439,7 +439,7 @@ const DateRangeToolbar = ({ startDate, setStartDate, endDate, setEndDate, onDown
 
 const AdvancedToolbar = ({ searchQuery, setSearchQuery, sortConfig, setSortConfig, sortOptions = [], placeholder = "Buscar..." }) => (
     <div className="flex flex-col md:flex-row gap-3 bg-white/50 p-3 rounded-2xl border border-white/40 shadow-sm mb-4">
-        <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input type="text" placeholder={placeholder} className="pl-9 pr-4 py-2 md:py-2 rounded-xl border border-slate-200 w-full focus:outline-none focus:ring-2 focus:ring-yellow-500/50 bg-white/80 text-xs md:text-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+        <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input type="text" placeholder={placeholder} className="pl-9 pr-4 py-2 md:py-2 rounded-xl border border-slate-200 w-full focus:outline-none focus:ring-2 focus:ring-teal-500/50 bg-white/80 text-xs md:text-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
         {sortOptions.length > 0 && (<div className="flex items-center gap-2 bg-white/80 px-3 py-1 rounded-xl border border-slate-200 overflow-x-auto"><span className="text-slate-400 hidden md:block"><Filter size={16} /></span><select className="bg-transparent py-2 text-xs md:text-sm text-slate-700 focus:outline-none cursor-pointer w-full md:w-auto" value={sortConfig.key} onChange={(e) => setSortConfig({ ...sortConfig, key: e.target.value })}>{sortOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select><button onClick={() => setSortConfig({ ...sortConfig, direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })} className="p-2 hover:bg-slate-100 rounded text-slate-500" title={sortConfig.direction === 'asc' ? "Ascendente" : "Descendente"}>{sortConfig.direction === 'asc' ? <SortAsc size={16} /> : <SortDesc size={16} />}</button></div>)}
     </div>
 );
@@ -458,16 +458,16 @@ const ProductCard = ({ product, ingredients, addToCart, exchangeRate, getProduct
     };
 
     return (
-        <GlassCard onClick={() => setIsExpanded(!isExpanded)} className={`group relative overflow-hidden transition-all duration-300 hover:shadow-yellow-500/20 cursor-pointer select-none touch-manipulation ${isOutOfStock ? 'opacity-60 grayscale' : ''} ${isExpanded ? 'ring-2 ring-yellow-400 scale-[1.02] z-10' : 'active:scale-95'}`}>
+        <GlassCard onClick={() => setIsExpanded(!isExpanded)} className={`group relative overflow-hidden transition-all duration-300 hover:shadow-teal-500/20 cursor-pointer select-none touch-manipulation ${isOutOfStock ? 'opacity-60 grayscale' : ''} ${isExpanded ? 'ring-2 ring-teal-400 scale-[1.02] z-10' : 'active:scale-95'}`}>
             <div className="absolute top-0 right-0 p-2 z-10"><Badge type={isOutOfStock ? "danger" : "success"}>{isOutOfStock ? "Agotado" : `${maxStock} disp`}</Badge></div>
             <div className="p-3 md:p-4 flex flex-col items-center text-center h-full">
                 <div className="mb-3 flex items-center justify-center min-h-[48px] md:min-h-[64px]">
                     {renderIcon()}
                 </div>
                 <h3 className="font-bold text-slate-800 leading-tight mb-2 line-clamp-1 text-sm md:text-base">{product.name}</h3>
-                <div className={`w-full text-left bg-yellow-50/60 rounded-xl mb-3 overflow-hidden border border-yellow-100/50 ${isExpanded ? 'p-3' : 'p-2 h-0 opacity-0 hidden'}`}>{isExpanded && (<div><p className="text-[10px] font-bold text-yellow-600 uppercase tracking-wider mb-2">Ingredientes:</p><ul className="text-xs text-slate-600 space-y-1">{product.recipe?.map((r, idx) => {
+                <div className={`w-full text-left bg-teal-50/60 rounded-xl mb-3 overflow-hidden border border-teal-100/50 ${isExpanded ? 'p-3' : 'p-2 h-0 opacity-0 hidden'}`}>{isExpanded && (<div><p className="text-[10px] font-bold text-teal-600 uppercase tracking-wider mb-2">Ingredientes:</p><ul className="text-xs text-slate-600 space-y-1">{product.recipe?.map((r, idx) => {
                     const ing = ingredients.find(i => normalizeId(i.id) === normalizeId(r.ingredientId));
-                    return ing ? <li key={idx} className="flex justify-between border-b border-yellow-200/30 pb-1"><span>{ing.name}</span><span className="font-mono font-bold text-yellow-600">x{r.qty}</span></li> : <li key={idx} className="text-red-400">Ingrediente no encontrado ({r.ingredientId})</li>;
+                    return ing ? <li key={idx} className="flex justify-between border-b border-teal-200/30 pb-1"><span>{ing.name}</span><span className="font-mono font-bold text-teal-600">x{r.qty}</span></li> : <li key={idx} className="text-red-400">Ingrediente no encontrado ({r.ingredientId})</li>;
                     })}</ul></div>)}</div>
                 <div className="mb-2 text-slate-300">{isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</div>
                 <div className="mb-4"><PriceDisplay amount={product.price} exchangeRate={exchangeRate} size="large" align="center" /></div>
@@ -487,6 +487,7 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
 
     const filteredProducts = useMemo(() => {
         return products.filter(p => {
+            if (p.hidden === true) return false;
             const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                                   (p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase()));
             const matchesCategory = selectedCategory === "Todos" || p.category === selectedCategory;
@@ -499,17 +500,17 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
             {/* Header */}
             <header className="bg-slate-800/80 backdrop-blur-md border-b border-slate-700/50 sticky top-0 z-50 px-4 py-4 md:px-8 flex justify-between items-center shadow-lg">
                 <div className="flex items-center gap-3">
-                    <div className="bg-gradient-to-tr from-yellow-400 to-yellow-600 p-2 rounded-xl shadow-lg shadow-yellow-500/20">
+                    <div className="bg-gradient-to-tr from-teal-400 to-teal-600 p-2 rounded-xl shadow-lg shadow-teal-500/20">
                         <Palette size={20} className="text-slate-900" />
                     </div>
                     <div>
                         <h1 className="text-lg md:text-xl font-black text-white tracking-tight">Catálogo de Productos</h1>
-                        <p className="text-[10px] md:text-xs text-slate-400">J.L. Inversiones</p>
+                        <p className="text-[10px] md:text-xs text-slate-400">Sweet Ink</p>
                     </div>
                 </div>
                 <button 
                     onClick={onGoToLogin}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 shadow-lg shadow-yellow-500/10 active:scale-95 animate-in fade-in"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 shadow-lg shadow-teal-500/10 active:scale-95 animate-in fade-in"
                 >
                     {user ? <LayoutDashboard size={14} /> : <LogIn size={14} />} {user ? "Administración" : "Personal"}
                 </button>
@@ -526,7 +527,7 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
                             placeholder="Buscar producto..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-yellow-500 text-sm"
+                            className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-teal-500 text-sm"
                         />
                     </div>
                 </div>
@@ -539,7 +540,7 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
                             onClick={() => setSelectedCategory(cat)} 
                             className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold transition-all ${
                                 selectedCategory === cat 
-                                    ? 'bg-yellow-500 text-slate-900 shadow-lg shadow-yellow-500/10' 
+                                    ? 'bg-teal-500 text-slate-900 shadow-lg shadow-teal-500/10' 
                                     : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700/50'
                             }`}
                         >
@@ -561,7 +562,7 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
                             return (
                                 <div 
                                     key={product.id} 
-                                    className="bg-slate-800/60 border border-slate-700/50 rounded-3xl p-5 flex flex-col gap-4 hover:border-yellow-500/50 hover:shadow-xl hover:shadow-yellow-500/5 transition-all duration-300 group"
+                                    className="bg-slate-800/60 border border-slate-700/50 rounded-3xl p-5 flex flex-col gap-4 hover:border-teal-500/50 hover:shadow-xl hover:shadow-teal-500/5 transition-all duration-300 group"
                                 >
                                     {/* Image/Emoji area */}
                                     <div className="aspect-square bg-slate-900 rounded-2xl flex items-center justify-center text-5xl overflow-hidden shadow-inner border border-slate-800 relative">
@@ -576,11 +577,11 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
                                     <div className="flex-1 flex flex-col justify-between gap-2">
                                         <div>
                                             <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{product.category || 'Otros'}</span>
-                                            <h3 className="font-bold text-sm text-white group-hover:text-yellow-400 transition-colors line-clamp-2 mt-1">{product.name}</h3>
+                                            <h3 className="font-bold text-sm text-white group-hover:text-teal-400 transition-colors line-clamp-2 mt-1">{product.name}</h3>
                                         </div>
                                         <div className="mt-2 pt-3 border-t border-slate-700/50">
                                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Precio</span>
-                                            <div className="text-lg font-black text-yellow-500 tracking-tight mt-0.5">
+                                            <div className="text-lg font-black text-teal-500 tracking-tight mt-0.5">
                                                 {new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'VES' }).format(priceBs)}
                                             </div>
                                         </div>
@@ -619,24 +620,24 @@ const LoginScreen = ({ onLogin, onViewPublicCatalog }) => {
                     <div className="w-24 h-24 mx-auto mb-4 overflow-hidden rounded-3xl shadow-2xl border-2 border-white/20">
                         <img 
                             src="/JLlogo.png" 
-                            alt="Logo J.L. Inversiones" 
+                            alt="Logo Sweet Ink" 
                             className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500" 
                         />
                     </div>
-                    <h1 className="text-3xl font-black text-white tracking-tight">J.L. Inversiones</h1>
+                    <h1 className="text-3xl font-black text-white tracking-tight">Sweet Ink</h1>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {error && (<div className="p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-xs flex items-center gap-2"><AlertCircle size={16} /> {error}</div>)}
-                    <div className="space-y-1"><label className="text-xs font-bold text-slate-400 uppercase ml-1">Correo</label><input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-3 pl-10 text-white focus:outline-none focus:border-yellow-500" placeholder="admin@jl-inversiones.com" /></div>
-                    <div className="space-y-1"><label className="text-xs font-bold text-slate-400 uppercase ml-1">Contraseña</label><input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-3 pl-10 text-white focus:outline-none focus:border-yellow-500" placeholder="••••••••" /></div>
-                    <button type="submit" disabled={loading} className="w-full text-slate-900 font-bold py-3 rounded-xl shadow-lg transition-all disabled:opacity-50 flex justify-center items-center gap-2 bg-gradient-to-r from-yellow-400 to-yellow-600 hover:shadow-yellow-500/30">{loading ? <Loader2 size={20} className="animate-spin" /> : 'Iniciar Sesión'}</button>
+                    <div className="space-y-1"><label className="text-xs font-bold text-slate-400 uppercase ml-1">Correo</label><input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-3 pl-10 text-white focus:outline-none focus:border-teal-500" placeholder="admin@jl-inversiones.com" /></div>
+                    <div className="space-y-1"><label className="text-xs font-bold text-slate-400 uppercase ml-1">Contraseña</label><input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-3 pl-10 text-white focus:outline-none focus:border-teal-500" placeholder="••••••••" /></div>
+                    <button type="submit" disabled={loading} className="w-full text-slate-900 font-bold py-3 rounded-xl shadow-lg transition-all disabled:opacity-50 flex justify-center items-center gap-2 bg-gradient-to-r from-teal-400 to-teal-600 hover:shadow-teal-500/30">{loading ? <Loader2 size={20} className="animate-spin" /> : 'Iniciar Sesión'}</button>
                     <div className="text-center mt-4">
                         <p className="text-xs text-slate-400">Acceso restringido a personal autorisado.</p>
                         {onViewPublicCatalog && (
                             <button 
                                 type="button" 
                                 onClick={onViewPublicCatalog} 
-                                className="mt-4 text-xs font-black text-yellow-500 hover:text-yellow-400 hover:underline uppercase tracking-wider block mx-auto transition-all duration-300"
+                                className="mt-4 text-xs font-black text-teal-500 hover:text-teal-400 hover:underline uppercase tracking-wider block mx-auto transition-all duration-300"
                             >
                                 Ver Catálogo de Productos
                             </button>
@@ -783,7 +784,7 @@ const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, curr
 
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2">
-                    <Users className="text-yellow-600" /> Personal
+                    <Users className="text-teal-600" /> Personal
                 </h3>
                 <GlassButton onClick={() => setIsCreating(!isCreating)} variant={isCreating ? "secondary" : "primary"}>
                     {isCreating ? <X size={16} /> : <UserPlus size={16} />} <span className="hidden md:inline">{isCreating ? "Cancelar" : "Nuevo Usuario"}</span>
@@ -791,7 +792,7 @@ const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, curr
             </div>
 
             {isCreating && (
-                <GlassCard className="p-6 border-l-4 border-yellow-500 bg-yellow-50/50 animate-in slide-in-from-top-4 mb-6">
+                <GlassCard className="p-6 border-l-4 border-teal-500 bg-teal-50/50 animate-in slide-in-from-top-4 mb-6">
                     <form onSubmit={handleCreate} className="space-y-4">
                         <div className="flex justify-between items-center">
                             <h4 className="font-bold text-slate-700 flex items-center gap-2"><UserPlus size={18} /> Nuevo Acceso</h4>
@@ -799,21 +800,21 @@ const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, curr
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-bold text-slate-500 ml-1">Nombre Completo</label>
-                                <input required type="text" placeholder="Ej. Juan Pérez" value={newName} onChange={e => setNewName(e.target.value)} className="w-full p-3 md:p-2.5 border border-slate-300 rounded-xl focus:border-yellow-500 outline-none" />
+                                <input required type="text" placeholder="Ej. Juan Pérez" value={newName} onChange={e => setNewName(e.target.value)} className="w-full p-3 md:p-2.5 border border-slate-300 rounded-xl focus:border-teal-500 outline-none" />
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-slate-500 ml-1">Rol</label>
-                                <select value={newRole} onChange={e => setNewRole(e.target.value)} className="w-full p-3 md:p-2.5 border border-slate-300 rounded-xl bg-white focus:border-yellow-500 outline-none">
+                                <select value={newRole} onChange={e => setNewRole(e.target.value)} className="w-full p-3 md:p-2.5 border border-slate-300 rounded-xl bg-white focus:border-teal-500 outline-none">
                                     <option>Gerente</option><option>Encargado</option><option>Cajero</option><option>Diseñador</option><option>Empleado</option>
                                 </select>
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-slate-500 ml-1">Correo Electrónico</label>
-                                <input required type="email" placeholder="juan@jl-inversiones.com" value={newEmail} onChange={e => setNewEmail(e.target.value)} className="w-full p-3 md:p-2.5 border border-slate-300 rounded-xl focus:border-yellow-500 outline-none" />
+                                <input required type="email" placeholder="juan@jl-inversiones.com" value={newEmail} onChange={e => setNewEmail(e.target.value)} className="w-full p-3 md:p-2.5 border border-slate-300 rounded-xl focus:border-teal-500 outline-none" />
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-slate-500 ml-1">Contraseña Inicial</label>
-                                <input required type="password" placeholder="Mínimo 6 caracteres" value={newPass} onChange={e => setNewPass(e.target.value)} className="w-full p-3 md:p-2.5 border border-slate-300 rounded-xl focus:border-yellow-500 outline-none" />
+                                <input required type="password" placeholder="Mínimo 6 caracteres" value={newPass} onChange={e => setNewPass(e.target.value)} className="w-full p-3 md:p-2.5 border border-slate-300 rounded-xl focus:border-teal-500 outline-none" />
                             </div>
                         </div>
                         <div className="flex justify-end pt-2">
@@ -941,12 +942,12 @@ const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, curr
                     const online = isOnline(u.lastActive);
                     return (
                         <div key={u.id || Math.random()} className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                            <div className={`h-2 w-full ${u.role === 'Gerente' ? 'bg-yellow-500' : (u.role === 'Diseñador' ? 'bg-amber-400' : 'bg-slate-300')}`}></div>
+                            <div className={`h-2 w-full ${u.role === 'Gerente' ? 'bg-teal-500' : (u.role === 'Diseñador' ? 'bg-amber-400' : 'bg-slate-300')}`}></div>
                             <div className="p-5">
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className="relative">
-                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg text-slate-800 shadow-lg ${u.role === 'Gerente' ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' : 'bg-gradient-to-br from-slate-400 to-slate-500'}`}>
+                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg text-slate-800 shadow-lg ${u.role === 'Gerente' ? 'bg-gradient-to-br from-teal-400 to-teal-600' : 'bg-gradient-to-br from-slate-400 to-slate-500'}`}>
                                                 {typeof u.name === 'string' ? u.name.charAt(0).toUpperCase() : <User size={24} />}
                                             </div>
                                             <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 border-2 border-white rounded-full ${online ? 'bg-emerald-500' : 'bg-slate-300'}`} title={online ? "En línea" : "Desconectado"}></div>
@@ -2199,7 +2200,7 @@ export default function App() {
     };
 
     // --- RENDERIZADO PRINCIPAL ---
-    if (authLoading || ((user || isPublicCatalogMode) && dataLoading)) { return (<div className="h-screen flex items-center justify-center bg-slate-900 text-white"><Loader2 size={48} className="animate-spin text-yellow-500" /><p className="ml-3 text-slate-400">Sincronizando con la nube...</p></div>); }
+    if (authLoading || ((user || isPublicCatalogMode) && dataLoading)) { return (<div className="h-screen flex items-center justify-center bg-slate-900 text-white"><Loader2 size={48} className="animate-spin text-teal-500" /><p className="ml-3 text-slate-400">Sincronizando con la nube...</p></div>); }
 
     if (isPublicCatalogMode) {
         return (
@@ -2236,16 +2237,16 @@ export default function App() {
         <div className="flex h-[100dvh] bg-slate-100 font-sans text-slate-800 overflow-hidden text-xs md:text-sm lg:text-base">
             <aside className={`fixed z-40 inset-y-0 left-0 w-64 bg-slate-900 text-white transform transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl flex flex-col`}>
                 <div className="p-6 flex items-center gap-3 border-b border-slate-700/50">
-                    <div className="bg-gradient-to-tr from-yellow-400 to-yellow-600 p-2 rounded-lg shadow-lg shadow-yellow-500/20"><CartIcon size={24} className="text-slate-900" /></div>
+                    <div className="bg-gradient-to-tr from-teal-400 to-teal-600 p-2 rounded-lg shadow-lg shadow-teal-500/20"><CartIcon size={24} className="text-slate-900" /></div>
                     <div>
-                        <h1 className="text-xl font-black tracking-tight text-white">J.L. Inversiones</h1>
+                        <h1 className="text-xl font-black tracking-tight text-white">Sweet Ink</h1>
                         <FixedClock />
                     </div>
                     <button className="md:hidden ml-auto p-2" onClick={() => setIsMobileMenuOpen(false)}><X /></button>
                 </div>
 
                 <div className="px-6 py-2">
-                    <div className={`text-xs px-2 py-1 rounded flex items-center gap-2 border ${connectionStatus.error ? 'bg-red-900/50 text-red-200 border-red-800' : 'bg-slate-800 text-yellow-500 border-slate-700'}`}>
+                    <div className={`text-xs px-2 py-1 rounded flex items-center gap-2 border ${connectionStatus.error ? 'bg-red-900/50 text-red-200 border-red-800' : 'bg-slate-800 text-teal-500 border-slate-700'}`}>
                         {connectionStatus.connected ? <Wifi size={12} /> : <WifiOff size={12} />}
                         <span className="truncate">{connectionStatus.error ? 'Error de Conexión' : user.email}</span>
                     </div>
@@ -2265,9 +2266,9 @@ export default function App() {
                             <div className="space-y-1">
                                 <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider px-3 mb-1">Operaciones</div>
                                 {items.map(item => (
-                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-yellow-500 text-slate-900 shadow-xl shadow-yellow-500/10' : 'text-slate-400 hover:bg-slate-800'}`}>
+                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-teal-500 text-slate-900 shadow-xl shadow-teal-500/10' : 'text-slate-400 hover:bg-slate-800'}`}>
                                         {item.icon} <span className="truncate">{item.label}</span>
-                                        {item.count > 0 && <span className="ml-auto bg-slate-800 text-yellow-500 text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count}</span>}
+                                        {item.count > 0 && <span className="ml-auto bg-slate-800 text-teal-500 text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count}</span>}
                                     </button>
                                 ))}
                             </div>
@@ -2285,9 +2286,9 @@ export default function App() {
                             <div className="space-y-1">
                                 <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider px-3 mb-1">Catálogo</div>
                                 {items.map(item => (
-                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-yellow-500 text-slate-900 shadow-xl shadow-yellow-500/10' : 'text-slate-400 hover:bg-slate-800'}`}>
+                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-teal-500 text-slate-900 shadow-xl shadow-teal-500/10' : 'text-slate-400 hover:bg-slate-800'}`}>
                                         {item.icon} <span className="truncate">{item.label}</span>
-                                        {item.count > 0 && <span className="ml-auto bg-slate-800 text-yellow-500 text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count}</span>}
+                                        {item.count > 0 && <span className="ml-auto bg-slate-800 text-teal-500 text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count}</span>}
                                     </button>
                                 ))}
                             </div>
@@ -2306,9 +2307,9 @@ export default function App() {
                             <div className="space-y-1">
                                 <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider px-3 mb-1">Administración</div>
                                 {items.map(item => (
-                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-yellow-500 text-slate-900 shadow-xl shadow-yellow-500/10' : 'text-slate-400 hover:bg-slate-800'}`}>
+                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-teal-500 text-slate-900 shadow-xl shadow-teal-500/10' : 'text-slate-400 hover:bg-slate-800'}`}>
                                         {item.icon} <span className="truncate">{item.label}</span>
-                                        {item.count > 0 && <span className="ml-auto bg-slate-800 text-yellow-500 text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count}</span>}
+                                        {item.count > 0 && <span className="ml-auto bg-slate-800 text-teal-500 text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count}</span>}
                                     </button>
                                 ))}
                             </div>
@@ -2327,14 +2328,14 @@ export default function App() {
                         <button 
                             type="button"
                             onClick={() => setCurrencyMode('USD')}
-                            className={`px-3 py-1.5 rounded-xl font-black text-[10px] transition-all uppercase tracking-wider ${currencyMode === 'USD' ? 'bg-yellow-500 text-slate-900 shadow-md shadow-yellow-500/10' : 'text-slate-400 hover:text-slate-700'}`}
+                            className={`px-3 py-1.5 rounded-xl font-black text-[10px] transition-all uppercase tracking-wider ${currencyMode === 'USD' ? 'bg-teal-500 text-slate-900 shadow-md shadow-teal-500/10' : 'text-slate-400 hover:text-slate-700'}`}
                         >
                             $ USD
                         </button>
                         <button 
                             type="button"
                             onClick={() => setCurrencyMode('VES')}
-                            className={`px-3 py-1.5 rounded-xl font-black text-[10px] transition-all uppercase tracking-wider ${currencyMode === 'VES' ? 'bg-yellow-500 text-slate-900 shadow-md shadow-yellow-500/10' : 'text-slate-400 hover:text-slate-700'}`}
+                            className={`px-3 py-1.5 rounded-xl font-black text-[10px] transition-all uppercase tracking-wider ${currencyMode === 'VES' ? 'bg-teal-500 text-slate-900 shadow-md shadow-teal-500/10' : 'text-slate-400 hover:text-slate-700'}`}
                         >
                             Bs VES
                         </button>
@@ -2348,7 +2349,7 @@ export default function App() {
                         <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 md:p-6 rounded-2xl border border-white/40 shadow-sm">
                             <div>
                                 <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-                                    <LayoutDashboard className="text-yellow-500" /> Dashboard General
+                                    <LayoutDashboard className="text-teal-500" /> Dashboard General
                                 </h2>
                                 <p className="text-slate-500 text-xs mt-1">Resumen del estado actual del negocio en tiempo real</p>
                             </div>
@@ -2375,13 +2376,13 @@ export default function App() {
                                 <p className="text-[10px] text-slate-400 mt-3 font-medium">Ventas acumuladas hoy ({todaySales.length} transacciones)</p>
                             </GlassCard>
 
-                            <GlassCard className="p-6 border-l-4 border-yellow-500 transition-all hover:scale-[1.01]">
+                            <GlassCard className="p-6 border-l-4 border-teal-500 transition-all hover:scale-[1.01]">
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Órdenes del Día</p>
                                         <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono">{dailyOrdersCount}</h3>
                                     </div>
-                                    <div className="p-3 bg-yellow-50 rounded-xl text-yellow-600">
+                                    <div className="p-3 bg-teal-50 rounded-xl text-teal-600">
                                         <Zap size={24} />
                                     </div>
                                 </div>
@@ -2410,7 +2411,7 @@ export default function App() {
                             <GlassCard className="p-6 flex flex-col">
                                 <div className="mb-4">
                                     <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                        <TrendingUp size={18} className="text-yellow-500" /> Flujo de Ventas (Hoy)
+                                        <TrendingUp size={18} className="text-teal-500" /> Flujo de Ventas (Hoy)
                                     </h3>
                                     <p className="text-xs text-slate-400">Distribución de ingresos por hora en el día actual</p>
                                 </div>
@@ -2425,8 +2426,8 @@ export default function App() {
                                             <AreaChart data={hourlySalesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                                 <defs>
                                                     <linearGradient id="colorMonto" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="#eab308" stopOpacity={0.4}/>
-                                                        <stop offset="95%" stopColor="#eab308" stopOpacity={0}/>
+                                                        <stop offset="5%" stopColor="#0d9488" stopOpacity={0.4}/>
+                                                        <stop offset="95%" stopColor="#0d9488" stopOpacity={0}/>
                                                     </linearGradient>
                                                 </defs>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -2437,7 +2438,7 @@ export default function App() {
                                                     labelClassName="font-bold text-slate-700"
                                                     contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }} 
                                                 />
-                                                <Area type="monotone" dataKey="Monto" stroke="#eab308" strokeWidth={2.5} fillOpacity={1} fill="url(#colorMonto)" />
+                                                <Area type="monotone" dataKey="Monto" stroke="#0d9488" strokeWidth={2.5} fillOpacity={1} fill="url(#colorMonto)" />
                                             </AreaChart>
                                         </ResponsiveContainer>
                                     )}
@@ -2448,7 +2449,7 @@ export default function App() {
                             <GlassCard className="p-6 flex flex-col">
                                 <div className="mb-4">
                                     <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                        <BarChart size={18} className="text-yellow-500" /> Balance Semanal (Gastos vs Ingresos)
+                                        <BarChart size={18} className="text-teal-500" /> Balance Semanal (Gastos vs Ingresos)
                                     </h3>
                                     <p className="text-xs text-slate-400">Comparativa histórica de ingresos y egresos de los últimos 7 días</p>
                                 </div>
@@ -2476,7 +2477,7 @@ export default function App() {
                             {/* Top productos más vendidos */}
                             <GlassCard className="p-6 flex flex-col h-[380px]">
                                 <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-                                    <Sparkles size={18} className="text-yellow-500" /> Top Productos Más Vendidos
+                                    <Sparkles size={18} className="text-teal-500" /> Top Productos Más Vendidos
                                 </h3>
                                 <div className="overflow-y-auto flex-1 custom-scrollbar pr-1 space-y-3">
                                     {topSellingProducts.length === 0 ? (
@@ -2558,14 +2559,14 @@ export default function App() {
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-4">
                                 <div>
                                     <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                        <History size={18} className="text-yellow-500" /> Historial de Pedidos Recientes
+                                        <History size={18} className="text-teal-500" /> Historial de Pedidos Recientes
                                     </h3>
                                     <p className="text-xs text-slate-400">Últimas 10 transacciones (pendientes y cobradas) en tiempo real</p>
                                 </div>
                                 <div className="flex gap-2">
                                     <button 
                                         onClick={() => setActiveTab('pos')} 
-                                        className="px-3 py-1.5 bg-yellow-500 text-slate-900 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-yellow-500/10 hover:bg-yellow-400 transition-colors"
+                                        className="px-3 py-1.5 bg-teal-500 text-slate-900 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-teal-500/10 hover:bg-teal-400 transition-colors"
                                     >
                                         <Plus size={14} /> Nueva Venta
                                     </button>
@@ -2628,7 +2629,7 @@ export default function App() {
                                                             ) : (
                                                                 <button 
                                                                     onClick={() => setActiveTab('pending')} 
-                                                                    className="p-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors"
+                                                                    className="p-1.5 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 transition-colors"
                                                                     title="Gestionar Pedido Pendiente"
                                                                 >
                                                                     <Zap size={14} />
@@ -2647,14 +2648,14 @@ export default function App() {
                 )}
 
                 {/* --- POS --- */}
-                {activeTab === 'pos' && (<div className="flex flex-col lg:flex-row gap-6 h-full pb-20 lg:pb-0"><div className="lg:w-2/3 space-y-4 fade-in"><header className="flex flex-col gap-2 mt-10 md:mt-0"><h2 className="text-2xl md:text-3xl font-black text-slate-800">{editingOrderId ? `Editando Venta` : 'Punto de Venta'}</h2><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'name', label: 'Nombre' }, { value: 'price', label: 'Precio' }, { value: 'category', label: 'Categoría' }]} placeholder="Buscar producto..." /></header><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', ...new Set(products.map(p => p.category))].map(cat => (<button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${selectedCategory === cat ? 'bg-yellow-500 text-slate-900' : 'bg-white text-slate-600 shadow-sm'}`}>{cat}</button>))}</div><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 items-start pb-24 md:pb-0">{filterAndSort(products, ['name', 'category']).filter(p => selectedCategory === 'Todos' || p.category === selectedCategory).map(product => (<ProductCard key={product.id} product={product} ingredients={ingredients} addToCart={addToCart} exchangeRate={exchangeRate} getProductMaxStock={getProductMaxStock} />))}</div></div><div className={`fixed inset-x-0 bottom-0 z-30 lg:relative lg:w-1/3 lg:h-auto lg:block transition-transform duration-300 ${isCartOpenMobile ? 'translate-y-0' : 'translate-y-[calc(100%-85px)]'} lg:translate-y-0`}><GlassCard className="h-[80vh] lg:h-[calc(100vh-4rem)] flex flex-col rounded-b-none lg:rounded-2xl border-b-0 shadow-[0_-10px_40px_rgba(0,0,0,0.2)]"><div onClick={() => window.innerWidth < 1024 && setIsCartOpenMobile(!isCartOpenMobile)} className={`p-4 border-b border-slate-100 flex justify-between items-center rounded-t-2xl cursor-pointer lg:cursor-default ${editingOrderId ? 'bg-yellow-100' : 'bg-white'}`}><div className="flex items-center gap-2"><h3 className="font-bold text-lg flex items-center gap-2"><CartIcon size={20} /> Orden</h3><Badge>{cart.reduce((a, c) => a + c.qty, 0)} items</Badge></div><div className="lg:hidden text-slate-400 flex items-center gap-2"><span className="font-bold text-yellow-600"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} size="small" /></span>{isCartOpenMobile ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</div></div><div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white/50">{cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-slate-400"><Palette size={48} className="opacity-20 mb-4" /><p>Vacío</p></div> : cart.map(item => (<div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm border border-slate-100"><div className="flex items-center gap-3">{item.image && (String(item.image).startsWith('data:image') || String(item.image).startsWith('http')) ? <img src={item.image} alt="" className="w-8 h-8 object-contain rounded" /> : <span className="text-xl">{item.image || '🎨'}</span>}<div className="flex-1"> <p className="font-bold text-sm leading-none">{item.name}</p><PriceDisplay amount={item.price} exchangeRate={exchangeRate} size="small" /><input type="text" placeholder="Talla, Color, Detalles..." value={item.variantDetails || ''} onChange={(e) => setCart(prev => prev.map(p => p.id === item.id ? {...p, variantDetails: e.target.value} : p))} className="text-xs p-1 mt-1 bg-slate-50 border border-slate-200 rounded outline-none focus:border-yellow-500 w-full"/></div></div><div className="flex items-center gap-2"><button onClick={() => setCart(prev => prev.map(p => p.id === item.id ? { ...p, qty: p.qty - 1 } : p).filter(p => p.qty > 0))} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Minus size={14} /></button><span className="font-bold w-6 text-center text-sm">{item.qty}</span><button onClick={() => addToCart(item)} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Plus size={14} /></button></div></div>))}</div><div className="p-4 bg-white border-t border-slate-100 space-y-3 pb-8 lg:pb-4"><div className="flex justify-between font-black text-xl"><span>Total</span><div className="text-right"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} align="right" size="large" /></div></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Entrega (Prometida)</label><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Entrega (Prometida)</label><input type="date" value={orderDeliveryDate} onChange={(e) => setOrderDeliveryDate(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none shadow-inner text-slate-500" /></div></div><input type="url" value={orderDesignLink} onChange={(e) => setOrderDesignLink(e.target.value)} placeholder="Enlace del Diseño (Drive, Canva, etc)" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none shadow-inner" /><input type="text" value={saleDescription} onChange={(e) => setSaleDescription(e.target.value)} placeholder="Cliente / Nota..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none shadow-inner" /><div className="grid grid-cols-3 gap-2">{orderDesignLink && <a href={orderDesignLink} target="_blank" rel="noreferrer" className="col-span-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 hover:bg-indigo-100 transition-colors"><Link size={14}/> Ver Diseño Original</a>}
+                {activeTab === 'pos' && (<div className="flex flex-col lg:flex-row gap-6 h-full pb-20 lg:pb-0"><div className="lg:w-2/3 space-y-4 fade-in"><header className="flex flex-col gap-2 mt-10 md:mt-0"><h2 className="text-2xl md:text-3xl font-black text-slate-800">{editingOrderId ? `Editando Venta` : 'Punto de Venta'}</h2><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'name', label: 'Nombre' }, { value: 'price', label: 'Precio' }, { value: 'category', label: 'Categoría' }]} placeholder="Buscar producto..." /></header><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', ...new Set(products.map(p => p.category))].map(cat => (<button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${selectedCategory === cat ? 'bg-teal-500 text-slate-900' : 'bg-white text-slate-600 shadow-sm'}`}>{cat}</button>))}</div><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 items-start pb-24 md:pb-0">{filterAndSort(products, ['name', 'category']).filter(p => selectedCategory === 'Todos' || p.category === selectedCategory).map(product => (<ProductCard key={product.id} product={product} ingredients={ingredients} addToCart={addToCart} exchangeRate={exchangeRate} getProductMaxStock={getProductMaxStock} />))}</div></div><div className={`fixed inset-x-0 bottom-0 z-30 lg:relative lg:w-1/3 lg:h-auto lg:block transition-transform duration-300 ${isCartOpenMobile ? 'translate-y-0' : 'translate-y-[calc(100%-85px)]'} lg:translate-y-0`}><GlassCard className="h-[80vh] lg:h-[calc(100vh-4rem)] flex flex-col rounded-b-none lg:rounded-2xl border-b-0 shadow-[0_-10px_40px_rgba(0,0,0,0.2)]"><div onClick={() => window.innerWidth < 1024 && setIsCartOpenMobile(!isCartOpenMobile)} className={`p-4 border-b border-slate-100 flex justify-between items-center rounded-t-2xl cursor-pointer lg:cursor-default ${editingOrderId ? 'bg-teal-100' : 'bg-white'}`}><div className="flex items-center gap-2"><h3 className="font-bold text-lg flex items-center gap-2"><CartIcon size={20} /> Orden</h3><Badge>{cart.reduce((a, c) => a + c.qty, 0)} items</Badge></div><div className="lg:hidden text-slate-400 flex items-center gap-2"><span className="font-bold text-teal-600"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} size="small" /></span>{isCartOpenMobile ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</div></div><div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white/50">{cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-slate-400"><Palette size={48} className="opacity-20 mb-4" /><p>Vacío</p></div> : cart.map(item => (<div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm border border-slate-100"><div className="flex items-center gap-3">{item.image && (String(item.image).startsWith('data:image') || String(item.image).startsWith('http')) ? <img src={item.image} alt="" className="w-8 h-8 object-contain rounded" /> : <span className="text-xl">{item.image || '🎨'}</span>}<div className="flex-1"> <p className="font-bold text-sm leading-none">{item.name}</p><PriceDisplay amount={item.price} exchangeRate={exchangeRate} size="small" /><input type="text" placeholder="Talla, Color, Detalles..." value={item.variantDetails || ''} onChange={(e) => setCart(prev => prev.map(p => p.id === item.id ? {...p, variantDetails: e.target.value} : p))} className="text-xs p-1 mt-1 bg-slate-50 border border-slate-200 rounded outline-none focus:border-teal-500 w-full"/></div></div><div className="flex items-center gap-2"><button onClick={() => setCart(prev => prev.map(p => p.id === item.id ? { ...p, qty: p.qty - 1 } : p).filter(p => p.qty > 0))} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Minus size={14} /></button><span className="font-bold w-6 text-center text-sm">{item.qty}</span><button onClick={() => addToCart(item)} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Plus size={14} /></button></div></div>))}</div><div className="p-4 bg-white border-t border-slate-100 space-y-3 pb-8 lg:pb-4"><div className="flex justify-between font-black text-xl"><span>Total</span><div className="text-right"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} align="right" size="large" /></div></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Entrega (Prometida)</label><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Entrega (Prometida)</label><input type="date" value={orderDeliveryDate} onChange={(e) => setOrderDeliveryDate(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner text-slate-500" /></div></div><input type="url" value={orderDesignLink} onChange={(e) => setOrderDesignLink(e.target.value)} placeholder="Enlace del Diseño (Drive, Canva, etc)" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner" /><input type="text" value={saleDescription} onChange={(e) => setSaleDescription(e.target.value)} placeholder="Cliente / Nota..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner" /><div className="grid grid-cols-3 gap-2">{orderDesignLink && <a href={orderDesignLink} target="_blank" rel="noreferrer" className="col-span-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 hover:bg-indigo-100 transition-colors"><Link size={14}/> Ver Diseño Original</a>}
                                 <GlassButton variant="secondary" onClick={() => { setCart([]); setEditingOrderId(null); setIsCartOpenMobile(false); }} disabled={!hasPermission('pos', 'edit')} title="Vaciar carrito"><Trash2 size={16} /></GlassButton>
                                 <GlassButton onClick={handleSaveToPending} disabled={cart.length === 0 || !hasPermission('pos', 'edit')} variant="kitchen" title="Enviar a pendientes">{editingOrderId ? 'Actualizar' : 'Pendientes'}</GlassButton>
                                 <GlassButton onClick={handleDirectCharge} disabled={cart.length === 0 || !hasPermission('pos', 'edit')} variant="primary" title="Cobrar inmediatamente">Cobrar</GlassButton>
                                 </div></div></GlassCard></div></div>)}
 
                 {/* --- PENDIENTES --- */}
-                {activeTab === 'pending' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><header className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 md:p-6 rounded-2xl border border-white/40 shadow-sm"><div><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Clock3 className="text-yellow-600" /> Pendientes</h2></div><div className="w-full md:w-auto"><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} /></div></header><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-20">{filterAndSort(pendingOrders, ['description', 'id']).map(order => (<GlassCard key={order.id} className="border-l-4 border-yellow-500 p-0 flex flex-col"><div className="p-4 bg-yellow-50 flex justify-between"><div><h3 className="font-bold text-lg">{order.description}</h3><p className="text-xs text-slate-500">{formatDateApp(order.date, 'time')} {order.deliveryDate && <span className="text-red-500 font-bold ml-2">Entrega: {order.deliveryDate}</span>}</p></div><Badge type="warning">Pendiente</Badge></div><div className="p-4 flex-1 space-y-1">{order.items.map((i, idx) => <div key={idx} className="flex justify-between text-sm"><span className="text-slate-600"><b>{i.qty}</b> {i.name} {i.variantDetails ? <span className="text-xs text-indigo-500">({i.variantDetails})</span> : ""}</span></div>)}</div><div className="p-4 bg-white border-t flex flex-col gap-3"><div className="flex justify-between items-end">
+                {activeTab === 'pending' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><header className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 md:p-6 rounded-2xl border border-white/40 shadow-sm"><div><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Clock3 className="text-teal-600" /> Pendientes</h2></div><div className="w-full md:w-auto"><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} /></div></header><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-20">{filterAndSort(pendingOrders, ['description', 'id']).map(order => (<GlassCard key={order.id} className="border-l-4 border-teal-500 p-0 flex flex-col"><div className="p-4 bg-teal-50 flex justify-between"><div><h3 className="font-bold text-lg">{order.description}</h3><p className="text-xs text-slate-500">{formatDateApp(order.date, 'time')} {order.deliveryDate && <span className="text-red-500 font-bold ml-2">Entrega: {order.deliveryDate}</span>}</p></div><Badge type="warning">Pendiente</Badge></div><div className="p-4 flex-1 space-y-1">{order.items.map((i, idx) => <div key={idx} className="flex justify-between text-sm"><span className="text-slate-600"><b>{i.qty}</b> {i.name} {i.variantDetails ? <span className="text-xs text-indigo-500">({i.variantDetails})</span> : ""}</span></div>)}</div><div className="p-4 bg-white border-t flex flex-col gap-3"><div className="flex justify-between items-end">
                                             <span className="text-xs text-slate-400">Total</span>
                                             <PriceDisplay amount={order.total} exchangeRate={exchangeRate} align="right" />
                                         </div>
@@ -2666,7 +2667,7 @@ export default function App() {
                                                     <button onClick={() => handleCancelPendingOrder(order)} className="py-3 md:py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation hover:bg-red-100 transition-colors">
                                                         <Trash2 size={14} /> Cancelar
                                                     </button>
-                                                    <button onClick={() => handleCobrar(order)} className="py-3 md:py-2 bg-gradient-to-br from-yellow-400 to-yellow-600 text-slate-900 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation shadow-lg shadow-yellow-500/20 active:shadow-none transition-all">
+                                                    <button onClick={() => handleCobrar(order)} className="py-3 md:py-2 bg-gradient-to-br from-teal-400 to-teal-600 text-slate-900 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation shadow-lg shadow-teal-500/20 active:shadow-none transition-all">
                                                         <Zap size={14} /> Cobrar
                                                     </button>
                                                 </div>
@@ -2676,47 +2677,110 @@ export default function App() {
                                         </div></GlassCard>))}</div></div>)}
 
                 {/* --- MENÚ / PRODUCTOS --- */}
-                {activeTab === 'products' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 rounded-2xl border border-white/40 shadow-sm"><div><h2 className="text-2xl font-black text-slate-800">Catálogo</h2><p className="text-slate-500">Gestión de productos</p></div><div className="flex w-full md:w-auto gap-2"><GlassButton onClick={handleDownloadMenu} variant="secondary" className="flex-1 md:flex-none"><Download size={16} /> PDF</GlassButton>
+                {activeTab === 'products' && (
+                    <div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 rounded-2xl border border-white/40 shadow-sm">
+                            <div>
+                                <h2 className="text-2xl font-black text-slate-800">Catálogo</h2>
+                                <p className="text-slate-500">Gestión de productos</p>
+                            </div>
+                            <div className="flex w-full md:w-auto gap-2">
+                                <GlassButton onClick={handleDownloadMenu} variant="secondary" className="flex-1 md:flex-none">
+                                    <Download size={16} /> PDF
+                                </GlassButton>
                                 {hasPermission('products', 'edit') && (
-                                    <GlassButton onClick={() => { setEditingProduct({ recipe: [] }); setProductIconPreview(null); setShowProductForm(true); }} className="flex-1 md:flex-none"><Plus size={18} /> Nuevo</GlassButton>
+                                    <GlassButton onClick={() => { setEditingProduct({ recipe: [] }); setProductIconPreview(null); setShowProductForm(true); }} className="flex-1 md:flex-none">
+                                        <Plus size={18} /> Nuevo
+                                    </GlassButton>
                                 )}
-                            </div></div><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'name', label: 'Nombre' }, { value: 'price', label: 'Precio' }, { value: 'category', label: 'Categoría' }]} /><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', ...new Set(products.map(p => p.category))].map(cat => (<button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${selectedCategory === cat ? 'bg-yellow-500 text-slate-900' : 'bg-white text-slate-600 shadow-sm'}`}>{cat}</button>))}</div><div className="space-y-4 pb-20">{filterAndSort(products, ['name', 'category']).filter(p => selectedCategory === 'Todos' || p.category === selectedCategory).map(prod => (<GlassCard key={prod.id} className="p-4 flex flex-col md:flex-row items-center gap-4 md:gap-6"><div className="flex items-center gap-4 w-full md:w-auto"><div className="w-16 h-16 flex items-center justify-center shrink-0">
-                    {!prod.image || prod.image === "" ? <Utensils size={32} className="text-slate-300" /> : (String(prod.image).startsWith('data:image') || String(prod.image).startsWith('http') ? <img src={prod.image} alt="" className="w-14 h-14 object-contain rounded-lg shadow-sm" /> : <span className="text-4xl">{prod.image}</span>)}
-                </div><div className="md:hidden flex-1"><h4 className="font-bold text-sm uppercase tracking-tight leading-tight">{prod.name}</h4><PriceDisplay amount={prod.price} exchangeRate={exchangeRate} size="small" /></div></div><div className="flex-1 text-center md:text-left hidden md:block"><h4 className="font-bold text-lg">{prod.name}</h4><div className="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">{prod.recipe?.map((r, i) => <span key={i} className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">{ingredients.find(ing => normalizeId(ing.id) === normalizeId(r.ingredientId))?.name || `ID:${r.ingredientId}`} x{r.qty}</span>)}</div></div>
-                        <div className="text-right w-full md:w-auto">
-                            <div className="hidden md:block">
-                                <PriceDisplay amount={prod.price} exchangeRate={exchangeRate} size="large" align="right" />
                             </div>
-                            <div className="flex gap-2 justify-between md:justify-end mt-1 w-full">
-                                <button onClick={() => callGeminiAI(`Optimiza componentes: ${prod.name}`, "Optimización")} className="p-3 md:p-2 text-teal-500 hover:bg-teal-50 rounded-xl flex-1 md:flex-none flex justify-center border border-slate-100 md:border-transparent transition-colors" title="AI">
-                                    <Lightbulb size={18} />
+                        </div>
+                        <AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'name', label: 'Nombre' }, { value: 'price', label: 'Precio' }, { value: 'category', label: 'Categoría' }]} />
+                        <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">
+                            {['Todos', ...new Set(products.map(p => p.category))].map(cat => (
+                                <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${selectedCategory === cat ? 'bg-teal-500 text-slate-900' : 'bg-white text-slate-600 shadow-sm'}`}>
+                                    {cat}
                                 </button>
-                                {hasPermission('products', 'edit') ? (
-                                    <>
-                                        <button onClick={() => { setEditingProduct(prod); setProductIconPreview(null); setShowProductForm(true); }} className="p-3 md:p-2 text-indigo-500 hover:bg-indigo-50 rounded-xl flex-1 md:flex-none flex justify-center border border-slate-100 md:border-transparent transition-colors">
-                                            <Edit size={18} />
-                                        </button>
-                                        <button onClick={() => handleDeleteProduct(prod)} className="p-3 md:p-2 text-red-500 hover:bg-red-50 rounded-xl flex-1 md:flex-none flex justify-center border border-slate-100 md:border-transparent transition-colors">
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </>
-                                ) : (
-                                    <span className="text-xs text-slate-400 italic flex items-center px-2">Lectura</span>
-                                )}
-                            </div>
-                        </div></GlassCard>))}</div></div>)}
+                            ))}
+                        </div>
+                        <div className="space-y-4 pb-20">
+                            {filterAndSort(products, ['name', 'category']).filter(p => selectedCategory === 'Todos' || p.category === selectedCategory).map(prod => (
+                                <GlassCard key={prod.id} className="p-4 flex flex-col md:flex-row items-center gap-4 md:gap-6">
+                                    <div className="flex items-center gap-4 w-full md:w-auto">
+                                        <div className="w-16 h-16 flex items-center justify-center shrink-0">
+                                            {!prod.image || prod.image === "" ? <Utensils size={32} className="text-slate-300" /> : (String(prod.image).startsWith('data:image') || String(prod.image).startsWith('http') ? <img src={prod.image} alt="" className="w-14 h-14 object-contain rounded-lg shadow-sm" /> : <span className="text-4xl">{prod.image}</span>)}
+                                        </div>
+                                        <div className="md:hidden flex-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <h4 className="font-bold text-sm uppercase tracking-tight leading-tight">{prod.name}</h4>
+                                                {prod.hidden && <Badge type="danger">Oculto</Badge>}
+                                            </div>
+                                            <PriceDisplay amount={prod.price} exchangeRate={exchangeRate} size="small" />
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 text-center md:text-left hidden md:block">
+                                        <div className="flex items-center gap-2 justify-center md:justify-start">
+                                            <h4 className="font-bold text-lg">{prod.name}</h4>
+                                            {prod.hidden && <Badge type="danger">Oculto</Badge>}
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">
+                                            {prod.recipe?.map((r, i) => (
+                                                <span key={i} className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">
+                                                    {ingredients.find(ing => normalizeId(ing.id) === normalizeId(r.ingredientId))?.name || `ID:${r.ingredientId}`} x{r.qty}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="text-right w-full md:w-auto">
+                                        <div className="hidden md:block">
+                                            <PriceDisplay amount={prod.price} exchangeRate={exchangeRate} size="large" align="right" />
+                                        </div>
+                                        <div className="flex gap-2 justify-between md:justify-end mt-1 w-full">
+                                            <button onClick={() => callGeminiAI(`Optimiza componentes: ${prod.name}`, "Optimización")} className="p-3 md:p-2 text-teal-500 hover:bg-teal-50 rounded-xl flex-1 md:flex-none flex justify-center border border-slate-100 md:border-transparent transition-colors" title="AI">
+                                                <Lightbulb size={18} />
+                                            </button>
+                                            {hasPermission('products', 'edit') ? (
+                                                <>
+                                                    <button 
+                                                        onClick={() => {
+                                                            const updatedProd = { ...prod, hidden: !prod.hidden };
+                                                            saveToDB('products', updatedProd, prod.id);
+                                                            logActivity('Catálogo', `${updatedProd.hidden ? 'Ocultado' : 'Mostrado'} en catálogo público: ${prod.name}`);
+                                                        }} 
+                                                        className={`p-3 md:p-2 rounded-xl flex-1 md:flex-none flex justify-center border border-slate-100 md:border-transparent transition-colors ${prod.hidden ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-100' : 'text-teal-600 hover:text-teal-700 hover:bg-teal-50'}`}
+                                                        title={prod.hidden ? "Mostrar en catálogo público" : "Ocultar en catálogo público"}
+                                                    >
+                                                        {prod.hidden ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                    </button>
+                                                    <button onClick={() => { setEditingProduct(prod); setProductIconPreview(null); setShowProductForm(true); }} className="p-3 md:p-2 text-indigo-500 hover:bg-indigo-50 rounded-xl flex-1 md:flex-none flex justify-center border border-slate-100 md:border-transparent transition-colors">
+                                                        <Edit size={18} />
+                                                    </button>
+                                                    <button onClick={() => handleDeleteProduct(prod)} className="p-3 md:p-2 text-red-500 hover:bg-red-50 rounded-xl flex-1 md:flex-none flex justify-center border border-slate-100 md:border-transparent transition-colors">
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <span className="text-xs text-slate-400 italic flex items-center px-2">Lectura</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </GlassCard>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* --- HISTORIAL (VENTAS) --- */}
-                {activeTab === 'history' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4"><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><ClipboardList className="text-yellow-500" /> Historial de Ventas</h2><GlassButton variant="gemini" onClick={() => callGeminiAI(`Analiza ventas: ${JSON.stringify(salesHistory.slice(0, 10))}`, "Tendencias")}>Analizar AI</GlassButton></div><div className="bg-white/60 border border-yellow-200 p-4 rounded-xl text-sm flex items-center gap-3 text-slate-700 shadow-sm"><Info size={24} className="text-yellow-500 shrink-0" /><p>Mostrando las ventas de las fechas seleccionadas. Si borraste el filtro, verás <b>todas</b> las ventas registradas.</p></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} onDownloadPdf={() => handleDownloadReport(filterAndSort(salesHistory, [], true))} title="Filtrar Ventas" /><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }, { value: 'total', label: 'Total' }]} /><GlassCard className="overflow-hidden"><div className="overflow-x-auto "><table className="w-full text-left text-sm min-w-[600px]"><thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4">Fecha exacta</th><th className="p-4">Cliente</th><th className="p-4 text-center">Items</th><th className="p-4 text-right">Total</th><th className="p-4 text-center">Acciones</th></tr></thead><tbody className="divide-y divide-slate-100">{filterAndSort(salesHistory, ['description'], true).map(sale => (<tr key={sale.id} onClick={() => { setSelectedSale(sale); setObservationText(sale.observation || ""); }} className="hover:bg-slate-50 cursor-pointer active:bg-slate-100"><td className="p-4">{formatDateApp(sale.date, 'full')}</td><td className="p-4 font-bold">{sale.description}</td><td className="p-4 text-center">{sale.items.reduce((a, b) => a + b.qty, 0)}</td><td className="p-4 text-right"><PriceDisplay amount={sale.total} exchangeRate={exchangeRate} align="right" size="small" /></td><td className="p-4 text-center"><button className="p-2 bg-white border rounded hover:bg-slate-100"><Eye size={16} /></button></td></tr>))}</tbody></table>{filterAndSort(salesHistory, ['description'], true).length === 0 && <div className="p-8 text-center text-slate-400">No hay ventas registradas en este rango de fechas.</div>}</div></GlassCard></div>)}
+                {activeTab === 'history' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4"><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><ClipboardList className="text-teal-500" /> Historial de Ventas</h2><GlassButton variant="gemini" onClick={() => callGeminiAI(`Analiza ventas: ${JSON.stringify(salesHistory.slice(0, 10))}`, "Tendencias")}>Analizar AI</GlassButton></div><div className="bg-white/60 border border-teal-200 p-4 rounded-xl text-sm flex items-center gap-3 text-slate-700 shadow-sm"><Info size={24} className="text-teal-500 shrink-0" /><p>Mostrando las ventas de las fechas seleccionadas. Si borraste el filtro, verás <b>todas</b> las ventas registradas.</p></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} onDownloadPdf={() => handleDownloadReport(filterAndSort(salesHistory, [], true))} title="Filtrar Ventas" /><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }, { value: 'total', label: 'Total' }]} /><GlassCard className="overflow-hidden"><div className="overflow-x-auto "><table className="w-full text-left text-sm min-w-[600px]"><thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4">Fecha exacta</th><th className="p-4">Cliente</th><th className="p-4 text-center">Items</th><th className="p-4 text-right">Total</th><th className="p-4 text-center">Acciones</th></tr></thead><tbody className="divide-y divide-slate-100">{filterAndSort(salesHistory, ['description'], true).map(sale => (<tr key={sale.id} onClick={() => { setSelectedSale(sale); setObservationText(sale.observation || ""); }} className="hover:bg-slate-50 cursor-pointer active:bg-slate-100"><td className="p-4">{formatDateApp(sale.date, 'full')}</td><td className="p-4 font-bold">{sale.description}</td><td className="p-4 text-center">{sale.items.reduce((a, b) => a + b.qty, 0)}</td><td className="p-4 text-right"><PriceDisplay amount={sale.total} exchangeRate={exchangeRate} align="right" size="small" /></td><td className="p-4 text-center"><button className="p-2 bg-white border rounded hover:bg-slate-100"><Eye size={16} /></button></td></tr>))}</tbody></table>{filterAndSort(salesHistory, ['description'], true).length === 0 && <div className="p-8 text-center text-slate-400">No hay ventas registradas en este rango de fechas.</div>}</div></GlassCard></div>)}
 
                 {/* --- BITÁCORA --- */}
-                {activeTab === 'bitacora' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4"><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><FileSearch className="text-yellow-600" /> Registro de Actividades</h2></div><div className="bg-white/60 border border-yellow-200 p-4 rounded-xl text-sm flex items-center gap-3 text-slate-800 shadow-sm"><Activity size={24} className="text-yellow-500 shrink-0" /><p>Aquí queda registrado <b>absolutamente todo</b> lo que ocurre en el sistema. Quién lo hizo, a qué hora y el detalle exacto.</p></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} title="Filtrar Bitácora" /><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} placeholder="Buscar por usuario o detalle..." /><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', 'Venta', 'Inventario', 'Catálogo', 'Sistema', 'Gasto', 'Pedido', 'Cancelación'].map(cat => (<button key={cat} onClick={() => setBitacoraFilter(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${bitacoraFilter === cat ? 'bg-slate-800 text-white' : 'bg-white text-slate-600'}`}>{cat}</button>))}</div><GlassCard className="overflow-hidden"><div className="overflow-x-auto "><table className="w-full text-left text-sm min-w-[800px]"><thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4 w-40">Fecha y Hora</th><th className="p-4 w-32">Usuario</th><th className="p-4 w-32">Módulo</th><th className="p-4">Detalle de la acción</th></tr></thead><tbody className="divide-y divide-slate-100">{filterAndSort(bitacoraLogs, ['userName', 'details'], true).filter(log => bitacoraFilter === 'Todos' || log.action === bitacoraFilter).map(log => (<tr key={log.id} className="hover:bg-slate-50"><td className="p-4 text-xs font-mono text-slate-500 whitespace-nowrap">{formatDateApp(log.date, 'full')}</td><td className="p-4 font-bold text-slate-700">{log.userName}</td><td className="p-4"><Badge type={log.action === 'Sistema' ? 'danger' : (log.action === 'Venta' ? 'success' : 'info')}>{log.action}</Badge></td><td className="p-4 text-slate-600">{log.details}</td></tr>))}</tbody></table>{filterAndSort(bitacoraLogs, ['userName', 'details'], true).filter(log => bitacoraFilter === 'Todos' || log.action === bitacoraFilter).length === 0 && <div className="p-8 text-center text-slate-400">No se encontraron registros de actividad.</div>}</div></GlassCard></div>)}
+                {activeTab === 'bitacora' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4"><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><FileSearch className="text-teal-600" /> Registro de Actividades</h2></div><div className="bg-white/60 border border-teal-200 p-4 rounded-xl text-sm flex items-center gap-3 text-slate-800 shadow-sm"><Activity size={24} className="text-teal-500 shrink-0" /><p>Aquí queda registrado <b>absolutamente todo</b> lo que ocurre en el sistema. Quién lo hizo, a qué hora y el detalle exacto.</p></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} title="Filtrar Bitácora" /><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} placeholder="Buscar por usuario o detalle..." /><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', 'Venta', 'Inventario', 'Catálogo', 'Sistema', 'Gasto', 'Pedido', 'Cancelación'].map(cat => (<button key={cat} onClick={() => setBitacoraFilter(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${bitacoraFilter === cat ? 'bg-slate-800 text-white' : 'bg-white text-slate-600'}`}>{cat}</button>))}</div><GlassCard className="overflow-hidden"><div className="overflow-x-auto "><table className="w-full text-left text-sm min-w-[800px]"><thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4 w-40">Fecha y Hora</th><th className="p-4 w-32">Usuario</th><th className="p-4 w-32">Módulo</th><th className="p-4">Detalle de la acción</th></tr></thead><tbody className="divide-y divide-slate-100">{filterAndSort(bitacoraLogs, ['userName', 'details'], true).filter(log => bitacoraFilter === 'Todos' || log.action === bitacoraFilter).map(log => (<tr key={log.id} className="hover:bg-slate-50"><td className="p-4 text-xs font-mono text-slate-500 whitespace-nowrap">{formatDateApp(log.date, 'full')}</td><td className="p-4 font-bold text-slate-700">{log.userName}</td><td className="p-4"><Badge type={log.action === 'Sistema' ? 'danger' : (log.action === 'Venta' ? 'success' : 'info')}>{log.action}</Badge></td><td className="p-4 text-slate-600">{log.details}</td></tr>))}</tbody></table>{filterAndSort(bitacoraLogs, ['userName', 'details'], true).filter(log => bitacoraFilter === 'Todos' || log.action === bitacoraFilter).length === 0 && <div className="p-8 text-center text-slate-400">No se encontraron registros de actividad.</div>}</div></GlassCard></div>)}
 
                 {/* --- INVENTARIO --- */}
                 {activeTab === 'inventory' && (
                     <div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <GlassCard className="p-6 bg-gradient-to-br from-yellow-400 to-yellow-600 text-slate-900 border-none shadow-xl shadow-yellow-500/20">
+                            <GlassCard className="p-6 bg-gradient-to-br from-teal-400 to-teal-600 text-slate-900 border-none shadow-xl shadow-teal-500/20">
                                 <p className="text-sm opacity-80 font-bold">Valor Neto Inventario</p>
                                 <h3 className="text-3xl font-black mt-1">{formatCurrency(inventoryValue)}</h3>
                                 <p className="text-xs font-mono opacity-70 mt-1">{formatBs(inventoryValue)}</p>
@@ -2767,7 +2831,7 @@ export default function App() {
                                                         {hasPermission('inventory', 'edit') ? (
                                                             <div className="flex items-center justify-center gap-2">
                                                                 <button onClick={() => { if (isAssociated) { alert("El item ya está agregado."); } else { setConfirmation({ show: true, message: "¿Quieres agregar este producto al catálogo?", onConfirm: () => { setConfirmation({ show: false }); setActiveTab('products'); const suggestedPrice = (ing.cost || 0) * 1.30; setEditingProduct({ name: ing.name, price: Number(suggestedPrice.toFixed(2)), category: '', recipe: [{ ingredientId: ing.id, qty: 1 }] }); setProductIconPreview(null); setProfitMargin(30); setShowProductForm(true); } }); } }} className={`p-3 md:p-2 rounded ${isAssociated ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:bg-slate-100 hover:text-emerald-600'}`} title="Añadir al catálogo"><Utensils size={16} /></button>
-                                                                <button onClick={() => { setEditingIngredient(ing); setIvaPercent(ing.ivaPercent || 0); setTempCost(ing.cost || 0); setFormCurrency('USD'); setIsIvaApplied(false); setBaseCostBeforeIva(0); setShowIngredientForm(true); }} className="p-3 md:p-2 hover:bg-slate-100 rounded text-slate-500 hover:text-yellow-600" title="Editar"><Edit size={16} /></button>
+                                                                <button onClick={() => { setEditingIngredient(ing); setIvaPercent(ing.ivaPercent || 0); setTempCost(ing.cost || 0); setFormCurrency('USD'); setIsIvaApplied(false); setBaseCostBeforeIva(0); setShowIngredientForm(true); }} className="p-3 md:p-2 hover:bg-slate-100 rounded text-slate-500 hover:text-teal-600" title="Editar"><Edit size={16} /></button>
                                                                 <button onClick={() => setConfirmation({
                                                                     show: true,
                                                                     message: `¿Eliminar "${ing.name}" del inventario?`,
@@ -2859,7 +2923,7 @@ export default function App() {
                 )}
 
                 {/* --- KARDEX (Entrada/Salida) --- */}
-                {activeTab === 'inventory_history' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex justify-between items-center"><h2 className="text-2xl font-black">Entrada/Salida</h2></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} onDownloadPdf={() => generatePDF('Kardex', ['Fecha', 'Material', 'Tipo', 'Cant'], filterAndSort(stockHistory, [], true).map(l => [formatDateApp(l.date, 'date'), l.ingredientName, l.type, l.qtyChange]), 'kardex.pdf')} title="Filtrar Movimientos" /><GlassCard className="overflow-hidden"><div className="overflow-x-auto "><table className="w-full text-left text-sm min-w-[800px]"><thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4">Fecha</th><th className="p-4">Item</th><th className="p-4 text-center">Mov</th><th className="p-4 text-right">Cant</th><th className="p-4 text-right">Saldo</th></tr></thead><tbody className="divide-y divide-slate-100">{filterAndSort(stockHistory, ['ingredientName', 'reason'], true).slice(0, 100).map(log => (<React.Fragment key={log.id}><tr onClick={() => { setExpandedKardexId(expandedKardexId === log.id ? null : log.id); setTempKardexObs(log.observation || ""); }} className={`cursor-pointer transition-colors ${expandedKardexId === log.id ? 'bg-yellow-50' : 'hover:bg-slate-50'} active:bg-slate-100`}><td className="p-4 text-slate-500">{formatDateApp(log.date, 'full')}</td><td className="p-4 font-bold">{log.ingredientName}</td><td className="p-4 text-center"><Badge type={log.type === 'ADD' ? 'success' : 'danger'}>{log.type === 'ADD' ? 'Entrada' : 'Salida'}</Badge></td><td className="p-4 text-right font-mono font-bold">{log.qtyChange}</td><td className="p-4 text-right text-slate-500">{log.newStock}</td></tr>{expandedKardexId === log.id && (<tr className="bg-yellow-50/50"><td colSpan="5" className="p-4"><div className="flex flex-col md:flex-row gap-4"><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Razón</p><p className="text-sm bg-white p-2 rounded border border-yellow-100">{log.reason}</p></div><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Valor Movimiento</p><PriceDisplay amount={log.totalValue || 0} exchangeRate={exchangeRate} size="small" /></div><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Nota</p><div className="flex gap-2"><input className="flex-1 p-2 text-sm border rounded" value={tempKardexObs} onChange={e => setTempKardexObs(e.target.value)} /><button onClick={() => handleSaveKardexObservation(log.id)} className="bg-yellow-600 text-white p-2 rounded"><Save size={14} /></button></div></div></div></td></tr>)}</React.Fragment>))}</tbody></table></div></GlassCard></div>)}
+                {activeTab === 'inventory_history' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex justify-between items-center"><h2 className="text-2xl font-black">Entrada/Salida</h2></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} onDownloadPdf={() => generatePDF('Kardex', ['Fecha', 'Material', 'Tipo', 'Cant'], filterAndSort(stockHistory, [], true).map(l => [formatDateApp(l.date, 'date'), l.ingredientName, l.type, l.qtyChange]), 'kardex.pdf')} title="Filtrar Movimientos" /><GlassCard className="overflow-hidden"><div className="overflow-x-auto "><table className="w-full text-left text-sm min-w-[800px]"><thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4">Fecha</th><th className="p-4">Item</th><th className="p-4 text-center">Mov</th><th className="p-4 text-right">Cant</th><th className="p-4 text-right">Saldo</th></tr></thead><tbody className="divide-y divide-slate-100">{filterAndSort(stockHistory, ['ingredientName', 'reason'], true).slice(0, 100).map(log => (<React.Fragment key={log.id}><tr onClick={() => { setExpandedKardexId(expandedKardexId === log.id ? null : log.id); setTempKardexObs(log.observation || ""); }} className={`cursor-pointer transition-colors ${expandedKardexId === log.id ? 'bg-teal-50' : 'hover:bg-slate-50'} active:bg-slate-100`}><td className="p-4 text-slate-500">{formatDateApp(log.date, 'full')}</td><td className="p-4 font-bold">{log.ingredientName}</td><td className="p-4 text-center"><Badge type={log.type === 'ADD' ? 'success' : 'danger'}>{log.type === 'ADD' ? 'Entrada' : 'Salida'}</Badge></td><td className="p-4 text-right font-mono font-bold">{log.qtyChange}</td><td className="p-4 text-right text-slate-500">{log.newStock}</td></tr>{expandedKardexId === log.id && (<tr className="bg-teal-50/50"><td colSpan="5" className="p-4"><div className="flex flex-col md:flex-row gap-4"><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Razón</p><p className="text-sm bg-white p-2 rounded border border-teal-100">{log.reason}</p></div><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Valor Movimiento</p><PriceDisplay amount={log.totalValue || 0} exchangeRate={exchangeRate} size="small" /></div><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Nota</p><div className="flex gap-2"><input className="flex-1 p-2 text-sm border rounded" value={tempKardexObs} onChange={e => setTempKardexObs(e.target.value)} /><button onClick={() => handleSaveKardexObservation(log.id)} className="bg-teal-600 text-white p-2 rounded"><Save size={14} /></button></div></div></div></td></tr>)}</React.Fragment>))}</tbody></table></div></GlassCard></div>)}
 
                 {/* --- BALANCE --- */}
                 {activeTab === 'balance' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0">
@@ -2889,8 +2953,8 @@ export default function App() {
                             <PriceDisplay amount={financialData.lossCost} exchangeRate={exchangeRate} size="large" />
                             <p className="text-xs text-slate-400 mt-2">Costo de material perdido</p>
                         </GlassCard>
-                        <GlassCard className="p-6 border-l-4 border-yellow-500 bg-yellow-50/50">
-                            <p className="text-sm text-yellow-800 font-bold mb-1">Ganancia Ajustada</p>
+                        <GlassCard className="p-6 border-l-4 border-teal-500 bg-teal-50/50">
+                            <p className="text-sm text-teal-800 font-bold mb-1">Ganancia Ajustada</p>
                             <PriceDisplay amount={financialData.grossProfit - financialData.lossCost} exchangeRate={exchangeRate} size="large" />
                             <p className="text-xs text-slate-400 mt-2">Ventas - Costos - Mermas</p>
                         </GlassCard>
@@ -3097,7 +3161,7 @@ export default function App() {
                         <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 rounded-2xl border border-white/40 shadow-sm">
                             <div>
                                 <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-                                    <Users className="text-yellow-600" /> Clientes
+                                    <Users className="text-teal-600" /> Clientes
                                 </h2>
                                 <p className="text-slate-500 text-xs mt-1">Gestión de clientes y datos de contacto en tiempo real</p>
                             </div>
@@ -3205,7 +3269,7 @@ export default function App() {
                         };
                         return (<>
                             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                                <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><TrendingUp className="text-yellow-600" /> Reportes</h2>
+                                <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><TrendingUp className="text-teal-600" /> Reportes</h2>
                                 <GlassButton variant="gemini" onClick={() => callGeminiAI(`Analiza estas ventas y dame recomendaciones: ${JSON.stringify(salesHistory.slice(0, 15))}`, "Análisis de Ventas")}>Analizar AI</GlassButton>
                             </div>
                             <PeriodNavigator currentDate={currentDateView} setCurrentDate={setCurrentDateView} viewMode={viewMode} setViewMode={setViewMode} />
@@ -3214,11 +3278,11 @@ export default function App() {
                                 <GlassCard className="p-4 border-l-4 border-slate-400"><p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase">Transacciones</p><p className="text-xl md:text-2xl font-black text-slate-800 mt-1">{periodSales.length}</p></GlassCard>
                                 <GlassCard className="p-4 border-l-4 border-blue-400"><p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase">Unidades Vendidas</p><p className="text-xl md:text-2xl font-black text-slate-800 mt-1">{totalItemsSold}</p></GlassCard>
                                 <GlassCard className="p-4 border-l-4 border-emerald-400"><p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase">Ingreso Total</p><PriceDisplay amount={totalRevenue} exchangeRate={exchangeRate} size="normal" /></GlassCard>
-                                <GlassCard className="p-4 border-l-4 border-yellow-400"><p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase">Ticket Promedio</p><PriceDisplay amount={periodSales.length > 0 ? totalRevenue / periodSales.length : 0} exchangeRate={exchangeRate} size="normal" /></GlassCard>
+                                <GlassCard className="p-4 border-l-4 border-teal-400"><p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase">Ticket Promedio</p><PriceDisplay amount={periodSales.length > 0 ? totalRevenue / periodSales.length : 0} exchangeRate={exchangeRate} size="normal" /></GlassCard>
                             </div>
                             <div className="flex flex-col md:flex-row justify-between items-center gap-2">
                                 <div className="flex flex-col gap-1">
-                                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><PieChart size={16} className="text-yellow-600" /> Rendimiento por Producto</h3>
+                                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"><PieChart size={16} className="text-teal-600" /> Rendimiento por Producto</h3>
                                     <p className="text-[10px] text-slate-400">Ordenado por {reportSortOptions.find(o => o.value === sortConfig.key)?.label || 'Nombre'}</p>
                                 </div>
                                 <div className="flex flex-wrap gap-2 items-center">
@@ -3323,8 +3387,8 @@ export default function App() {
                                 </div>
                             </GlassCard>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <GlassCard className="p-6"><h3 className="font-bold mb-4 flex gap-2"><TrendingUp className="text-yellow-600" /> Ventas Recientes</h3><div style={{height: '240px'}}><ResponsiveContainer width="100%" height={240}><AreaChart data={(() => { const s = viewMode === 'range' ? filterAndSort(salesHistory, [], true) : filterAndSort(salesHistory, [], false, true); return s.slice(0, 7).map(ss => ({ name: formatDateApp(ss.date, 'short-date'), total: ss.total })); })()}><Area type="monotone" dataKey="total" stroke="#fbbf24" fill="#fef3c7" /></AreaChart></ResponsiveContainer></div></GlassCard>
-                                <GlassCard className="p-6 flex flex-col justify-center items-center text-center"><Bot size={48} className="text-yellow-500 mb-4" /><h3 className="font-bold text-lg">Asistente Inteligente</h3><p className="text-slate-500 text-sm mb-4">Genera estrategias de venta o análisis de catálogo.</p><GlassButton variant="gemini" onClick={() => callGeminiAI("Dame estrategias de venta", "Marketing AI")}>Consultar AI</GlassButton></GlassCard>
+                                <GlassCard className="p-6"><h3 className="font-bold mb-4 flex gap-2"><TrendingUp className="text-teal-600" /> Ventas Recientes</h3><div style={{height: '240px'}}><ResponsiveContainer width="100%" height={240}><AreaChart data={(() => { const s = viewMode === 'range' ? filterAndSort(salesHistory, [], true) : filterAndSort(salesHistory, [], false, true); return s.slice(0, 7).map(ss => ({ name: formatDateApp(ss.date, 'short-date'), total: ss.total })); })()}><Area type="monotone" dataKey="total" stroke="#fbbf24" fill="#fef3c7" /></AreaChart></ResponsiveContainer></div></GlassCard>
+                                <GlassCard className="p-6 flex flex-col justify-center items-center text-center"><Bot size={48} className="text-teal-500 mb-4" /><h3 className="font-bold text-lg">Asistente Inteligente</h3><p className="text-slate-500 text-sm mb-4">Genera estrategias de venta o análisis de catálogo.</p><GlassButton variant="gemini" onClick={() => callGeminiAI("Dame estrategias de venta", "Marketing AI")}>Consultar AI</GlassButton></GlassCard>
                             </div>
 
                             {/* --- HISTORIAL DE LA MERMA --- */}
@@ -3474,26 +3538,26 @@ export default function App() {
                     </GlassCard>
                 </div>
             )}
-            {showIngredientForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto"><h3 className="font-bold mb-4 text-slate-800">{editingIngredient ? 'Editar' : 'Nuevo'} Material</h3><form onSubmit={handleSaveIngredient} className="space-y-4"><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre del Material</label><input name="name" required placeholder="Ej. Taza de Cerámica Blanca 11oz" defaultValue={editingIngredient?.name} className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div><div className="grid grid-cols-3 gap-3">
+            {showIngredientForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto"><h3 className="font-bold mb-4 text-slate-800">{editingIngredient ? 'Editar' : 'Nuevo'} Material</h3><form onSubmit={handleSaveIngredient} className="space-y-4"><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre del Material</label><input name="name" required placeholder="Ej. Taza de Cerámica Blanca 11oz" defaultValue={editingIngredient?.name} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none" /></div><div className="grid grid-cols-3 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Stock</label>
-                                    <input name="stock" type="number" step="any" required placeholder="0.00" defaultValue={editingIngredient?.stock} className="w-full p-2.5 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none text-xs md:text-sm" />
+                                    <input name="stock" type="number" step="any" required placeholder="0.00" defaultValue={editingIngredient?.stock} className="w-full p-2.5 border border-slate-200 rounded-xl focus:border-teal-500 outline-none text-xs md:text-sm" />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Stock Mínimo</label>
-                                    <input name="minStock" type="number" step="any" required placeholder="0.00" defaultValue={editingIngredient?.minStock !== undefined ? editingIngredient.minStock : 10} className="w-full p-2.5 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none text-xs md:text-sm" />
+                                    <input name="minStock" type="number" step="any" required placeholder="0.00" defaultValue={editingIngredient?.minStock !== undefined ? editingIngredient.minStock : 10} className="w-full p-2.5 border border-slate-200 rounded-xl focus:border-teal-500 outline-none text-xs md:text-sm" />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Unidad</label>
-                                    <input name="unit" required placeholder="Unid, m, etc." defaultValue={editingIngredient?.unit} className="w-full p-2.5 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none text-xs md:text-sm" />
+                                    <input name="unit" required placeholder="Unid, m, etc." defaultValue={editingIngredient?.unit} className="w-full p-2.5 border border-slate-200 rounded-xl focus:border-teal-500 outline-none text-xs md:text-sm" />
                                 </div>
                             </div>
                             <div className="space-y-1">
                                 <div className="flex flex-wrap justify-between items-center gap-2 ml-1 mb-1">
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Costo Unitario ({formCurrency === 'USD' ? '$' : 'Bs'})</label>
                                     <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0">
-                                        <button type="button" onClick={() => setFormCurrency('USD')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${formCurrency === 'USD' ? 'bg-white text-yellow-700 shadow-sm' : 'text-slate-400'}`}>$ USD</button>
-                                        <button type="button" onClick={() => setFormCurrency('VES')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${formCurrency === 'VES' ? 'bg-white text-yellow-700 shadow-sm' : 'text-slate-400'}`}>Bs VES</button>
+                                        <button type="button" onClick={() => setFormCurrency('USD')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${formCurrency === 'USD' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-400'}`}>$ USD</button>
+                                        <button type="button" onClick={() => setFormCurrency('VES')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${formCurrency === 'VES' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-400'}`}>Bs VES</button>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
@@ -3510,11 +3574,11 @@ export default function App() {
                                             else setTempCost(exchangeRate > 0 ? Number((val / exchangeRate).toFixed(6)) : 0);
                                             setIsIvaApplied(false);
                                         }} 
-                                        className="flex-1 min-w-0 p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none font-mono text-sm" 
+                                        className="flex-1 min-w-0 p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none font-mono text-sm" 
                                     />
                                     <div className="flex flex-col w-16 md:w-24 shrink-0 focus-within:z-10">
                                         <label className="text-[9px] font-bold text-slate-400 uppercase ml-1">IVA %</label>
-                                        <input type="number" step="any" placeholder="0" value={ivaPercent} onChange={(e) => { setIvaPercent(parseFloat(e.target.value) || 0); setIsIvaApplied(false); }} className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none text-sm" />
+                                        <input type="number" step="any" placeholder="0" value={ivaPercent} onChange={(e) => { setIvaPercent(parseFloat(e.target.value) || 0); setIsIvaApplied(false); }} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none text-sm" />
                                     </div>
                                 </div>
                                 <div className="flex justify-between items-center mt-1 px-1">
@@ -3523,27 +3587,27 @@ export default function App() {
                                     </span>
                                 </div>
                                 {ivaPercent > 0 && (
-                                    <div className="flex flex-wrap justify-between items-center gap-2 mt-2 p-2 bg-yellow-50 rounded-lg border border-yellow-100 animate-in fade-in slide-in-from-top-1">
-                                        <span className="text-[10px] md:text-xs text-yellow-700 font-bold break-all">
+                                    <div className="flex flex-wrap justify-between items-center gap-2 mt-2 p-2 bg-teal-50 rounded-lg border border-teal-100 animate-in fade-in slide-in-from-top-1">
+                                        <span className="text-[10px] md:text-xs text-teal-700 font-bold break-all">
                                             {isIvaApplied ? `IVA APLICADO: ${ivaPercent}%` : `TOTAL CON IVA: $${(tempCost * (1 + ivaPercent/100)).toFixed(2)}`}
                                         </span>
                                         {isIvaApplied ? (
                                             <button type="button" onClick={() => { setTempCost(baseCostBeforeIva); setIsIvaApplied(false); }} className="text-[9px] md:text-[10px] bg-slate-600 text-white px-2 py-1.5 rounded font-bold hover:bg-slate-700 transition-colors shadow-sm uppercase tracking-tighter whitespace-nowrap">Deshacer</button>
                                         ) : (
-                                            <button type="button" onClick={() => { setBaseCostBeforeIva(tempCost); setTempCost(Number((tempCost * (1 + ivaPercent/100)).toFixed(2))); setIsIvaApplied(true); }} className="text-[9px] md:text-[10px] bg-yellow-600 text-white px-2 py-1.5 rounded font-bold hover:bg-yellow-700 transition-colors shadow-sm uppercase tracking-tighter whitespace-nowrap">Aplicar</button>
+                                            <button type="button" onClick={() => { setBaseCostBeforeIva(tempCost); setTempCost(Number((tempCost * (1 + ivaPercent/100)).toFixed(2))); setIsIvaApplied(true); }} className="text-[9px] md:text-[10px] bg-teal-600 text-white px-2 py-1.5 rounded font-bold hover:bg-teal-700 transition-colors shadow-sm uppercase tracking-tighter whitespace-nowrap">Aplicar</button>
                                         )}
                                     </div>
                                 )}
                             </div>
                             <div className="flex gap-3 mt-6"><GlassButton onClick={() => setShowIngredientForm(false)} variant="secondary" className="flex-1">Cancelar</GlassButton><GlassButton type="submit" variant="primary" className="flex-1">Guardar Material</GlassButton></div></form></GlassCard></div>)}
-            {showProductForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto slide-up"><h3 className="font-bold mb-4 text-slate-800">{editingProduct?.id ? 'Editar Producto' : 'Nuevo Producto'}</h3><form onSubmit={handleSaveProduct} className="space-y-4"><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre del Producto</label><input required name="name" defaultValue={editingProduct?.name} placeholder="Nombre" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div><div className="flex gap-4"><div className="flex-1 space-y-1"><div className="flex justify-between items-center ml-1 mb-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Precio de Venta ({productCurrency === 'USD' ? '$' : 'Bs'})</label><div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0"><button type="button" onClick={() => setProductCurrency('USD')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${productCurrency === 'USD' ? 'bg-white text-yellow-700 shadow-sm' : 'text-slate-400'}`}>$ USD</button><button type="button" onClick={() => setProductCurrency('VES')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${productCurrency === 'VES' ? 'bg-white text-yellow-700 shadow-sm' : 'text-slate-400'}`}>Bs VES</button></div></div><input required name="price" id="priceInput" type="number" step="0.01" value={productCurrency === 'USD' ? (tempProductPrice || '') : (exchangeRate > 0 ? Number((tempProductPrice * exchangeRate).toFixed(2)) : '')} onChange={(e) => { const val = parseFloat(e.target.value) || 0; if (productCurrency === 'USD') setTempProductPrice(val); else setTempProductPrice(exchangeRate > 0 ? Number((val / exchangeRate).toFixed(6)) : 0); }} placeholder="0.00" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none font-mono text-sm" /><span className="text-[9px] text-slate-400 font-bold uppercase italic block mt-1">{productCurrency === 'USD' ? `≈ Bs ${(tempProductPrice * (exchangeRate || 0)).toFixed(2)}` : `≈ $ ${tempProductPrice.toFixed(2)}`}</span></div><div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Categoría</label><input required name="category" defaultValue={editingProduct?.category} placeholder="Ej. Tazas" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div></div><div className="bg-slate-50 p-4 rounded-2xl border border-slate-100"><label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Identidad Visual (Icono)</label><div className="flex flex-col md:flex-row gap-4 items-center"><div className="w-20 h-20 bg-white rounded-2xl border border-slate-200 shadow-sm flex items-center justify-center text-4xl overflow-hidden shrink-0">{productIconPreview || editingProduct?.image ? (String(productIconPreview || editingProduct?.image).startsWith('data:image') || String(productIconPreview || editingProduct?.image).startsWith('http') ? <img src={productIconPreview || editingProduct?.image} alt="" className="w-full h-full object-contain" /> : productIconPreview || editingProduct?.image) : <Utensils size={32} className="text-slate-300" />}</div><div className="flex-1 space-y-3 w-full"><div><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Usar Emoji</label><input name="image" defaultValue={productIconPreview ? "" : (editingProduct?.image && !String(editingProduct.image).startsWith('data:image') ? editingProduct.image : "")} placeholder="Ej. ☕ (Opcional)" className="w-full p-2 border border-slate-200 rounded-lg focus:border-yellow-500 outline-none" onChange={() => setProductIconPreview(null)} /></div><div className="relative group"><input type="file" accept=".png,.ico,.jpg,.jpeg" className="hidden" id="productImageUpload" onChange={(e) => { const file = e.target.files[0]; if (file) { compressImageForFirestore(file).then(setProductIconPreview).catch(() => showNotification("Error al procesar imagen", "error")); } }} /><label htmlFor="productImageUpload" className="flex items-center justify-center gap-2 p-2 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:border-yellow-400 hover:bg-yellow-50 transition-all text-xs font-bold text-slate-500 uppercase"><Upload size={14} /> Subir Imagen (.png, .ico)</label></div></div></div></div><div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner"><label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Componentes (Materiales)</label><div className="space-y-2 mt-3">{editingProduct?.recipe?.length === 0 ? <p className="text-xs text-slate-400 text-center py-2">No hay materiales añadidos.</p> : editingProduct?.recipe?.map((r, i) => <div key={i} className="flex justify-between items-center text-sm bg-white p-3 rounded-xl shadow-sm border border-slate-100"><span>{ingredients.find(ing => normalizeId(ing.id) === normalizeId(r.ingredientId))?.name || `ID:${r.ingredientId}`}</span><div className="flex items-center gap-3"><span className="font-black text-yellow-600">x{r.qty}</span><button type="button" onClick={() => setEditingProduct(p => ({ ...p, recipe: p.recipe.filter(x => x.ingredientId !== r.ingredientId) }))} className="p-1 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><X size={16} /></button></div></div>)}</div><div className="flex gap-2 mt-4"><div className="flex-1 relative"><input list="ingredients-list" value={tempIngredientId ? (ingredients.find(i => i.id === tempIngredientId)?.name || "") : ""} onChange={(e) => { const val = e.target.value; const found = ingredients.find(i => i.name === val); if (found) setTempIngredientId(found.id); else setTempIngredientId(""); }} placeholder="Buscar Material..." className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-yellow-500 bg-white text-sm" /><datalist id="ingredients-list">{ingredients.map(i => <option key={i.id} value={i.name} />)}</datalist></div><input type="number" step="any" placeholder="Cant" value={tempIngredientQty} onChange={(e) => setTempIngredientQty(e.target.value)} className="w-24 p-3 border border-slate-200 rounded-xl outline-none focus:border-yellow-500 text-center text-sm" /><button type="button" onClick={() => { if (tempIngredientId && tempIngredientQty && !isNaN(parseFloat(tempIngredientQty))) { setEditingProduct(p => ({ ...p, recipe: [...(p.recipe || []), { ingredientId: tempIngredientId, qty: parseFloat(tempIngredientQty) }] })); setTempIngredientId(""); setTempIngredientQty("1"); } }} className="bg-slate-800 text-white p-3 rounded-xl hover:bg-slate-700 shadow-lg shadow-slate-200 transition-all active:scale-95"><Plus size={20} /></button></div><div className="mt-4 pt-4 border-t border-slate-200"><div className="flex justify-between items-center mb-3"><span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Costo de Producción:</span><PriceDisplay amount={calculateRecipeCost(editingProduct?.recipe)} exchangeRate={exchangeRate} size="normal" align="right" /></div><div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm"><Calculator size={20} className="text-slate-400" /><div className="flex-1 flex flex-col"><span className="text-[10px] font-bold text-slate-400 uppercase">Margen %</span><input type="number" value={profitMargin} onChange={(e) => setProfitMargin(parseFloat(e.target.value) || 0)} className="w-full bg-transparent font-bold text-slate-700 outline-none" /></div><div className="text-right border-l border-slate-100 pl-3"><p className="text-[9px] text-slate-400 uppercase font-bold">Sugerido</p><div className="font-black text-yellow-600 text-sm whitespace-nowrap">
+            {showProductForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto slide-up"><h3 className="font-bold mb-4 text-slate-800">{editingProduct?.id ? 'Editar Producto' : 'Nuevo Producto'}</h3><form onSubmit={handleSaveProduct} className="space-y-4"><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre del Producto</label><input required name="name" defaultValue={editingProduct?.name} placeholder="Nombre" className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none" /></div><div className="flex gap-4"><div className="flex-1 space-y-1"><div className="flex justify-between items-center ml-1 mb-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Precio de Venta ({productCurrency === 'USD' ? '$' : 'Bs'})</label><div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0"><button type="button" onClick={() => setProductCurrency('USD')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${productCurrency === 'USD' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-400'}`}>$ USD</button><button type="button" onClick={() => setProductCurrency('VES')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${productCurrency === 'VES' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-400'}`}>Bs VES</button></div></div><input required name="price" id="priceInput" type="number" step="0.01" value={productCurrency === 'USD' ? (tempProductPrice || '') : (exchangeRate > 0 ? Number((tempProductPrice * exchangeRate).toFixed(2)) : '')} onChange={(e) => { const val = parseFloat(e.target.value) || 0; if (productCurrency === 'USD') setTempProductPrice(val); else setTempProductPrice(exchangeRate > 0 ? Number((val / exchangeRate).toFixed(6)) : 0); }} placeholder="0.00" className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none font-mono text-sm" /><span className="text-[9px] text-slate-400 font-bold uppercase italic block mt-1">{productCurrency === 'USD' ? `≈ Bs ${(tempProductPrice * (exchangeRate || 0)).toFixed(2)}` : `≈ $ ${tempProductPrice.toFixed(2)}`}</span></div><div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Categoría</label><input required name="category" defaultValue={editingProduct?.category} placeholder="Ej. Tazas" className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none" /></div></div><div className="bg-slate-50 p-4 rounded-2xl border border-slate-100"><label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Identidad Visual (Icono)</label><div className="flex flex-col md:flex-row gap-4 items-center"><div className="w-20 h-20 bg-white rounded-2xl border border-slate-200 shadow-sm flex items-center justify-center text-4xl overflow-hidden shrink-0">{productIconPreview || editingProduct?.image ? (String(productIconPreview || editingProduct?.image).startsWith('data:image') || String(productIconPreview || editingProduct?.image).startsWith('http') ? <img src={productIconPreview || editingProduct?.image} alt="" className="w-full h-full object-contain" /> : productIconPreview || editingProduct?.image) : <Utensils size={32} className="text-slate-300" />}</div><div className="flex-1 space-y-3 w-full"><div><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Usar Emoji</label><input name="image" defaultValue={productIconPreview ? "" : (editingProduct?.image && !String(editingProduct.image).startsWith('data:image') ? editingProduct.image : "")} placeholder="Ej. ☕ (Opcional)" className="w-full p-2 border border-slate-200 rounded-lg focus:border-teal-500 outline-none" onChange={() => setProductIconPreview(null)} /></div><div className="relative group"><input type="file" accept=".png,.ico,.jpg,.jpeg" className="hidden" id="productImageUpload" onChange={(e) => { const file = e.target.files[0]; if (file) { compressImageForFirestore(file).then(setProductIconPreview).catch(() => showNotification("Error al procesar imagen", "error")); } }} /><label htmlFor="productImageUpload" className="flex items-center justify-center gap-2 p-2 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:border-teal-400 hover:bg-teal-50 transition-all text-xs font-bold text-slate-500 uppercase"><Upload size={14} /> Subir Imagen (.png, .ico)</label></div></div></div></div><div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner"><label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Componentes (Materiales)</label><div className="space-y-2 mt-3">{editingProduct?.recipe?.length === 0 ? <p className="text-xs text-slate-400 text-center py-2">No hay materiales añadidos.</p> : editingProduct?.recipe?.map((r, i) => <div key={i} className="flex justify-between items-center text-sm bg-white p-3 rounded-xl shadow-sm border border-slate-100"><span>{ingredients.find(ing => normalizeId(ing.id) === normalizeId(r.ingredientId))?.name || `ID:${r.ingredientId}`}</span><div className="flex items-center gap-3"><span className="font-black text-teal-600">x{r.qty}</span><button type="button" onClick={() => setEditingProduct(p => ({ ...p, recipe: p.recipe.filter(x => x.ingredientId !== r.ingredientId) }))} className="p-1 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><X size={16} /></button></div></div>)}</div><div className="flex gap-2 mt-4"><div className="flex-1 relative"><input list="ingredients-list" value={tempIngredientId ? (ingredients.find(i => i.id === tempIngredientId)?.name || "") : ""} onChange={(e) => { const val = e.target.value; const found = ingredients.find(i => i.name === val); if (found) setTempIngredientId(found.id); else setTempIngredientId(""); }} placeholder="Buscar Material..." className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-teal-500 bg-white text-sm" /><datalist id="ingredients-list">{ingredients.map(i => <option key={i.id} value={i.name} />)}</datalist></div><input type="number" step="any" placeholder="Cant" value={tempIngredientQty} onChange={(e) => setTempIngredientQty(e.target.value)} className="w-24 p-3 border border-slate-200 rounded-xl outline-none focus:border-teal-500 text-center text-sm" /><button type="button" onClick={() => { if (tempIngredientId && tempIngredientQty && !isNaN(parseFloat(tempIngredientQty))) { setEditingProduct(p => ({ ...p, recipe: [...(p.recipe || []), { ingredientId: tempIngredientId, qty: parseFloat(tempIngredientQty) }] })); setTempIngredientId(""); setTempIngredientQty("1"); } }} className="bg-slate-800 text-white p-3 rounded-xl hover:bg-slate-700 shadow-lg shadow-slate-200 transition-all active:scale-95"><Plus size={20} /></button></div><div className="mt-4 pt-4 border-t border-slate-200"><div className="flex justify-between items-center mb-3"><span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Costo de Producción:</span><PriceDisplay amount={calculateRecipeCost(editingProduct?.recipe)} exchangeRate={exchangeRate} size="normal" align="right" /></div><div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm"><Calculator size={20} className="text-slate-400" /><div className="flex-1 flex flex-col"><span className="text-[10px] font-bold text-slate-400 uppercase">Margen %</span><input type="number" value={profitMargin} onChange={(e) => setProfitMargin(parseFloat(e.target.value) || 0)} className="w-full bg-transparent font-bold text-slate-700 outline-none" /></div><div className="text-right border-l border-slate-100 pl-3"><p className="text-[9px] text-slate-400 uppercase font-bold">Sugerido</p><div className="font-black text-teal-600 text-sm whitespace-nowrap">
                                                 {productCurrency === 'VES' 
                                                     ? `Bs ${(calculateRecipeCost(editingProduct?.recipe) * (1 + (profitMargin / 100)) * exchangeRate).toFixed(2)}` 
                                                     : formatCurrency(calculateRecipeCost(editingProduct?.recipe) * (1 + (profitMargin / 100)))}
-                                            </div></div><button type="button" onClick={() => { const suggested = calculateRecipeCost(editingProduct?.recipe) * (1 + (profitMargin / 100)); setTempProductPrice(suggested); }} className="text-xs bg-yellow-100 text-yellow-700 px-3 py-2 rounded-lg font-bold hover:bg-yellow-200 transition-colors">Fijar</button></div></div></div><div className="flex gap-3 mt-8 pt-4 border-t"><GlassButton onClick={() => setShowProductForm(false)} variant="secondary" className="flex-1">Cancelar</GlassButton><GlassButton type="submit" variant="primary" className="flex-1">Guardar Producto</GlassButton></div></form></GlassCard></div>)}
-            {showExpenseForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto"><h3 className="font-bold mb-4 text-rose-600">{editingExpense ? 'Editar' : 'Registrar'} Gasto Extra</h3><form onSubmit={handleSaveExpense} className="space-y-4"><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Descripción del Gasto</label><input required name="description" placeholder="ej. Luz, Alquiler" defaultValue={editingExpense ? editingExpense.description : ""} className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none" /></div><div className="flex gap-4"><div className="flex-1 space-y-1"><div className="flex justify-between items-center ml-1 mb-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Monto ({expenseCurrency === 'USD' ? '$' : 'Bs'})</label><div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0"><button type="button" onClick={() => setExpenseCurrency('USD')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${expenseCurrency === 'USD' ? 'bg-white text-yellow-700 shadow-sm' : 'text-slate-400'}`}>$ USD</button><button type="button" onClick={() => setExpenseCurrency('VES')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${expenseCurrency === 'VES' ? 'bg-white text-yellow-700 shadow-sm' : 'text-slate-400'}`}>Bs VES</button></div></div><input required name="amount" type="number" step="0.01" value={expenseCurrency === 'USD' ? (tempExpenseAmount || '') : (exchangeRate > 0 ? Number((tempExpenseAmount * exchangeRate).toFixed(2)) : '')} onChange={(e) => { const val = parseFloat(e.target.value) || 0; if (expenseCurrency === 'USD') setTempExpenseAmount(val); else setTempExpenseAmount(exchangeRate > 0 ? Number((val / exchangeRate).toFixed(6)) : 0); }} placeholder="0.00" className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none font-mono text-sm" /><span className="text-[9px] text-slate-400 font-bold uppercase italic block mt-1">{expenseCurrency === 'USD' ? `≈ Bs ${(tempExpenseAmount * (exchangeRate || 0)).toFixed(2)}` : `≈ $ ${tempExpenseAmount.toFixed(2)}`}</span></div><div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Categoría</label><input required name="category" placeholder="Seleccionar..." list="cats" defaultValue={editingExpense ? editingExpense.category : ""} className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none bg-white" /><datalist id="cats"><option value="Servicios" /><option value="Nómina" /><option value="Mantenimiento" /></datalist></div></div><div className="flex gap-3 mt-6 pt-4 border-t"><GlassButton onClick={() => { setShowExpenseForm(false); setEditingExpense(null); }} variant="secondary" className="flex-1">Cancelar</GlassButton><GlassButton type="submit" variant="expense" className="flex-1">{editingExpense ? 'Guardar Cambios' : 'Registrar Gasto'}</GlassButton></div></form></GlassCard></div>)}
+                                            </div></div><button type="button" onClick={() => { const suggested = calculateRecipeCost(editingProduct?.recipe) * (1 + (profitMargin / 100)); setTempProductPrice(suggested); }} className="text-xs bg-teal-100 text-teal-700 px-3 py-2 rounded-lg font-bold hover:bg-teal-200 transition-colors">Fijar</button></div></div></div><div className="flex gap-3 mt-8 pt-4 border-t"><GlassButton onClick={() => setShowProductForm(false)} variant="secondary" className="flex-1">Cancelar</GlassButton><GlassButton type="submit" variant="primary" className="flex-1">Guardar Producto</GlassButton></div></form></GlassCard></div>)}
+            {showExpenseForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto"><h3 className="font-bold mb-4 text-rose-600">{editingExpense ? 'Editar' : 'Registrar'} Gasto Extra</h3><form onSubmit={handleSaveExpense} className="space-y-4"><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Descripción del Gasto</label><input required name="description" placeholder="ej. Luz, Alquiler" defaultValue={editingExpense ? editingExpense.description : ""} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none" /></div><div className="flex gap-4"><div className="flex-1 space-y-1"><div className="flex justify-between items-center ml-1 mb-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Monto ({expenseCurrency === 'USD' ? '$' : 'Bs'})</label><div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0"><button type="button" onClick={() => setExpenseCurrency('USD')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${expenseCurrency === 'USD' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-400'}`}>$ USD</button><button type="button" onClick={() => setExpenseCurrency('VES')} className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${expenseCurrency === 'VES' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-400'}`}>Bs VES</button></div></div><input required name="amount" type="number" step="0.01" value={expenseCurrency === 'USD' ? (tempExpenseAmount || '') : (exchangeRate > 0 ? Number((tempExpenseAmount * exchangeRate).toFixed(2)) : '')} onChange={(e) => { const val = parseFloat(e.target.value) || 0; if (expenseCurrency === 'USD') setTempExpenseAmount(val); else setTempExpenseAmount(exchangeRate > 0 ? Number((val / exchangeRate).toFixed(6)) : 0); }} placeholder="0.00" className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none font-mono text-sm" /><span className="text-[9px] text-slate-400 font-bold uppercase italic block mt-1">{expenseCurrency === 'USD' ? `≈ Bs ${(tempExpenseAmount * (exchangeRate || 0)).toFixed(2)}` : `≈ $ ${tempExpenseAmount.toFixed(2)}`}</span></div><div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Categoría</label><input required name="category" placeholder="Seleccionar..." list="cats" defaultValue={editingExpense ? editingExpense.category : ""} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none bg-white" /><datalist id="cats"><option value="Servicios" /><option value="Nómina" /><option value="Mantenimiento" /></datalist></div></div><div className="flex gap-3 mt-6 pt-4 border-t"><GlassButton onClick={() => { setShowExpenseForm(false); setEditingExpense(null); }} variant="secondary" className="flex-1">Cancelar</GlassButton><GlassButton type="submit" variant="expense" className="flex-1">{editingExpense ? 'Guardar Cambios' : 'Registrar Gasto'}</GlassButton></div></form></GlassCard></div>)}
             {confirmation.show && (<div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm"><GlassCard className="p-6 max-w-sm w-full text-center slide-up"><AlertTriangle size={48} className="mx-auto text-amber-500 mb-4" /><h3 className="font-bold text-lg mb-2">{confirmation.message}</h3><div className="flex gap-3 justify-center"><GlassButton variant="secondary" onClick={() => setConfirmation({ show: false })}>Cancelar</GlassButton><GlassButton variant="danger" onClick={confirmation.onConfirm}>Confirmar</GlassButton></div></GlassCard></div>)}
-            {aiModal.show && (<div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md"><GlassCard className="w-full max-w-2xl p-0 overflow-hidden flex flex-col max-h-[80vh] slide-up"><div className="p-4 bg-gradient-to-br from-yellow-400 to-yellow-600 text-slate-900 flex justify-between items-center shadow-lg"><h3 className="font-bold flex items-center gap-2 uppercase tracking-wider text-xs md:text-sm"><Sparkles size={18} /> {aiModal.title}</h3><button onClick={() => setAiModal(p => ({ ...p, show: false }))} className="p-1 hover:bg-slate-900/10 rounded-full"><X className="text-slate-900" /></button></div><div className="p-6 overflow-y-auto bg-slate-50 flex-1">{aiModal.loading ? <div className="flex flex-col items-center justify-center py-10 space-y-4"><Loader2 size={40} className="animate-spin text-yellow-500" /><p className="text-slate-500 animate-pulse">Consultando a J.L. Assistant...</p></div> : <div className="prose prose-slate max-w-none text-sm whitespace-pre-wrap">{String(aiModal.content)}</div>}</div>{!aiModal.loading && <div className="p-4 border-t border-slate-200 bg-white text-right shadow-[0_-4px_12px_rgba(0,0,0,0.05)]"><GlassButton onClick={() => setAiModal(p => ({ ...p, show: false }))} variant="primary" className="w-full md:w-auto">Entendido</GlassButton></div>}</GlassCard></div>)}
+            {aiModal.show && (<div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md"><GlassCard className="w-full max-w-2xl p-0 overflow-hidden flex flex-col max-h-[80vh] slide-up"><div className="p-4 bg-gradient-to-br from-teal-400 to-teal-600 text-slate-900 flex justify-between items-center shadow-lg"><h3 className="font-bold flex items-center gap-2 uppercase tracking-wider text-xs md:text-sm"><Sparkles size={18} /> {aiModal.title}</h3><button onClick={() => setAiModal(p => ({ ...p, show: false }))} className="p-1 hover:bg-slate-900/10 rounded-full"><X className="text-slate-900" /></button></div><div className="p-6 overflow-y-auto bg-slate-50 flex-1">{aiModal.loading ? <div className="flex flex-col items-center justify-center py-10 space-y-4"><Loader2 size={40} className="animate-spin text-teal-500" /><p className="text-slate-500 animate-pulse">Consultando a J.L. Assistant...</p></div> : <div className="prose prose-slate max-w-none text-sm whitespace-pre-wrap">{String(aiModal.content)}</div>}</div>{!aiModal.loading && <div className="p-4 border-t border-slate-200 bg-white text-right shadow-[0_-4px_12px_rgba(0,0,0,0.05)]"><GlassButton onClick={() => setAiModal(p => ({ ...p, show: false }))} variant="primary" className="w-full md:w-auto">Entendido</GlassButton></div>}</GlassCard></div>)}
             
             
             {showMermaForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-sm p-6 slide-up"><h3 className="font-bold mb-4 text-red-600 flex items-center gap-2"><AlertTriangle size={20}/> Reportar Merma</h3><form onSubmit={handleReportMerma} className="space-y-4"><div><label className="text-[10px] font-bold text-slate-400 uppercase">Material Dañado</label><select required value={mermaIngredientId} onChange={e => setMermaIngredientId(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl focus:border-red-500 outline-none"><option value="">Seleccione...</option>{filterAndSort(ingredients).map(i => <option key={i.id} value={i.id}>{i.name} (Stock: {i.stock} {i.unit})</option>)}</select></div><div><label className="text-[10px] font-bold text-slate-400 uppercase">Cantidad a descontar</label><input required type="number" step="any" min="0.01" value={mermaQty} onChange={e => setMermaQty(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl focus:border-red-500 outline-none"/></div><div><label className="text-[10px] font-bold text-slate-400 uppercase">Motivo o Detalle</label><input required placeholder="Ej: Taza manchada, Tela quemada" value={mermaReason} onChange={e => setMermaReason(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl focus:border-red-500 outline-none"/></div><div className="flex gap-3 mt-6"><GlassButton onClick={() => setShowMermaForm(false)} variant="secondary" className="flex-1">Cancelar</GlassButton><GlassButton type="submit" variant="primary" className="flex-1 !bg-red-600 !text-white hover:!bg-red-700">Registrar</GlassButton></div></form></GlassCard></div>)}
@@ -3552,7 +3616,7 @@ export default function App() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
                     <GlassCard className="w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto">
                         <h3 className="font-bold mb-4 text-slate-800 flex items-center gap-2">
-                            <Users className="text-yellow-600" /> {editingCustomer?.id ? 'Editar' : 'Nuevo'} Cliente
+                            <Users className="text-teal-600" /> {editingCustomer?.id ? 'Editar' : 'Nuevo'} Cliente
                         </h3>
                         <form onSubmit={handleSaveCustomer} className="space-y-4">
                             <div className="space-y-1">
@@ -3562,7 +3626,7 @@ export default function App() {
                                     required 
                                     placeholder="Ej. Alejandro Gómez" 
                                     defaultValue={editingCustomer?.name} 
-                                    className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none text-xs md:text-sm" 
+                                    className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none text-xs md:text-sm" 
                                 />
                             </div>
                             <div className="space-y-1">
@@ -3571,7 +3635,7 @@ export default function App() {
                                     name="phone" 
                                     placeholder="Ej. +58 412 1234567" 
                                     defaultValue={editingCustomer?.phone} 
-                                    className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none text-xs md:text-sm" 
+                                    className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none text-xs md:text-sm" 
                                 />
                             </div>
                             <div className="space-y-1">
@@ -3581,7 +3645,7 @@ export default function App() {
                                     type="email" 
                                     placeholder="Ej. alejandro@gmail.com" 
                                     defaultValue={editingCustomer?.email} 
-                                    className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none text-xs md:text-sm" 
+                                    className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none text-xs md:text-sm" 
                                 />
                             </div>
                             <div className="space-y-1">
@@ -3590,7 +3654,7 @@ export default function App() {
                                     name="address" 
                                     placeholder="Dirección fiscal, detalles de entrega, etc." 
                                     defaultValue={editingCustomer?.address} 
-                                    className="w-full p-3 border border-slate-200 rounded-xl focus:border-yellow-500 outline-none text-xs md:text-sm resize-none" 
+                                    className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none text-xs md:text-sm resize-none" 
                                     rows="3"
                                 />
                             </div>
@@ -3631,7 +3695,7 @@ export default function App() {
                     className="fixed bottom-24 right-6 z-[60] w-14 h-14 bg-slate-900/90 backdrop-blur-md rounded-full shadow-2xl border border-white/20 flex flex-col items-center justify-center hover:scale-105 active:scale-95 transition-transform animate-in slide-in-from-bottom" 
                     title="Abrir Calculadora"
                 >
-                    <Calculator size={24} className="text-yellow-500" />
+                    <Calculator size={24} className="text-teal-500" />
                 </button>
             )}
 
