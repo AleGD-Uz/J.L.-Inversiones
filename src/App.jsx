@@ -897,7 +897,7 @@ const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, curr
                                             { id: 'products', label: 'Menu' },
                                             { id: 'inventory', label: 'Inventory' },
                                             { id: 'inventory_history', label: 'Kardex' },
-                                            { id: 'customers', label: 'Clientes' },
+                                            { id: 'customers', label: 'Contactos' },
                                             { id: 'balance', label: 'Balance' },
                                             { id: 'reports', label: 'Reportes' },
                                             { id: 'bitacora', label: 'Bitácora' },
@@ -1089,7 +1089,7 @@ export default function App() {
         { id: 'products', label: 'Menu' },
         { id: 'inventory', label: 'Inventory' },
         { id: 'inventory_history', label: 'Kardex' },
-        { id: 'customers', label: 'Clientes' },
+        { id: 'customers', label: 'Contactos' },
         { id: 'balance', label: 'Balance' },
         { id: 'reports', label: 'Reportes' },
         { id: 'bitacora', label: 'Bitácora' },
@@ -1370,6 +1370,7 @@ export default function App() {
     const [editingExpense, setEditingExpense] = useState(null);
     const [editingCustomer, setEditingCustomer] = useState(null);
     const [showCustomerForm, setShowCustomerForm] = useState(false);
+    const [contactTab, setContactTab] = useState('clientes'); // 'clientes' o 'proveedores'
 
     const [expenseCurrency, setExpenseCurrency] = useState('USD');
     const [tempExpenseAmount, setTempExpenseAmount] = useState(0);
@@ -1820,33 +1821,37 @@ export default function App() {
         e.preventDefault();
         const fd = new FormData(e.target);
         const isNew = !editingCustomer?.id;
+        const typeValue = fd.get('type') || editingCustomer?.type || 'customer';
         const d = {
             id: editingCustomer?.id || generateSecureId(),
             name: fd.get('name'),
             phone: fd.get('phone'),
             email: fd.get('email'),
-            address: fd.get('address')
+            address: fd.get('address'),
+            type: typeValue
         };
+        const labelType = typeValue === 'provider' ? 'Proveedor' : 'Cliente';
         saveToDB('customers', d, d.id);
-        logActivity('Clientes', `Cliente ${isNew ? 'creado' : 'editado'}: ${d.name}`);
+        logActivity('Contactos', `${labelType} ${isNew ? 'creado' : 'editado'}: ${d.name}`);
         setShowCustomerForm(false);
         setEditingCustomer(null);
-        showNotification(`Cliente ${isNew ? 'creado' : 'editado'} exitosamente`);
+        showNotification(`${labelType} ${isNew ? 'creado' : 'editado'} exitosamente`);
     };
 
     const handleDeleteCustomer = (customer) => {
+        const labelType = customer.type === 'provider' ? 'Proveedor' : 'Cliente';
         setConfirmation({
             show: true,
             message: `¿Estás seguro de eliminar a ${customer.name}?`,
             onConfirm: async () => {
                 try {
                     await deleteFromDB('customers', customer.id);
-                    logActivity('Clientes', `Cliente eliminado: ${customer.name}`);
-                    showNotification("Cliente eliminado correctamente");
+                    logActivity('Contactos', `${labelType} eliminado: ${customer.name}`);
+                    showNotification(`${labelType} eliminado correctamente`);
                     setConfirmation({ show: false });
                 } catch (e) {
-                    console.error("Error al eliminar cliente:", e);
-                    showNotification("Error al eliminar cliente", "error");
+                    console.error("Error al eliminar:", e);
+                    showNotification("Error al eliminar", "error");
                 }
             }
         });
@@ -2277,7 +2282,7 @@ export default function App() {
                             { id: 'pos', label: 'Punto de Venta', icon: <CartIcon size={20} /> },
                             { id: 'pending', label: 'Pedidos', icon: <Clock3 size={20} />, count: pendingOrders.length },
                             { id: 'history', label: 'Historial', icon: <ClipboardList size={20} /> },
-                            { id: 'customers', label: 'Clientes', icon: <Users size={20} /> },
+                            { id: 'customers', label: 'Contactos', icon: <Users size={20} /> },
                         ].filter(item => hasPermission(item.id, 'view'));
                         if (items.length === 0) return null;
                         return (
@@ -2666,7 +2671,7 @@ export default function App() {
                 )}
 
                 {/* --- POS --- */}
-                {activeTab === 'pos' && (<div className="flex flex-col lg:flex-row gap-6 h-full pb-20 lg:pb-0"><div className="lg:w-[73%] space-y-4 fade-in"><header className="flex flex-col gap-2 mt-10 md:mt-0"><h2 className="text-2xl md:text-3xl font-black text-slate-800">{editingOrderId ? `Editando Venta` : 'Punto de Venta'}</h2><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'name', label: 'Nombre' }, { value: 'price', label: 'Precio' }, { value: 'category', label: 'Categoría' }]} placeholder="Buscar producto..." /></header><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', ...new Set(products.map(p => p.category))].map(cat => (<button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${selectedCategory === cat ? 'bg-teal-500 text-slate-900' : 'bg-white text-slate-600 shadow-sm'}`}>{cat}</button>))}</div><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 items-start pb-24 md:pb-0">{filterAndSort(products, ['name', 'category']).filter(p => selectedCategory === 'Todos' || p.category === selectedCategory).map(product => (<ProductCard key={product.id} product={product} ingredients={ingredients} addToCart={addToCart} exchangeRate={exchangeRate} getProductMaxStock={getProductMaxStock} />))}</div></div><aside className={`fixed inset-x-0 bottom-0 z-30 lg:relative lg:w-[27%] lg:h-auto lg:block transition-transform duration-300 ${isCartOpenMobile ? 'translate-y-0' : 'translate-y-[calc(100%-85px)]'} lg:translate-y-0 overflow-hidden`}><GlassCard className="h-[80vh] lg:h-[calc(100vh-4rem)] flex flex-col rounded-b-none lg:rounded-2xl border-b-0 shadow-[0_-10px_40px_rgba(0,0,0,0.2)]"><div onClick={() => window.innerWidth < 1024 && setIsCartOpenMobile(!isCartOpenMobile)} className={`p-4 border-b border-slate-100 flex justify-between items-center rounded-t-2xl cursor-pointer lg:cursor-default ${editingOrderId ? 'bg-teal-100' : 'bg-white'}`}><div className="flex items-center gap-2"><h3 className="font-bold text-lg flex items-center gap-2"><CartIcon size={20} /> Orden</h3><Badge>{cart.reduce((a, c) => a + c.qty, 0)} items</Badge></div><div className="lg:hidden text-slate-400 flex items-center gap-2"><span className="font-bold text-teal-600"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} size="small" /></span>{isCartOpenMobile ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</div></div><div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white/50">{cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-slate-400"><Palette size={48} className="opacity-20 mb-4" /><p>Vacío</p></div> : cart.map(item => (<div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm border border-slate-100"><div className="flex items-center gap-3">{item.image && (String(item.image).startsWith('data:image') || String(item.image).startsWith('http')) ? <img src={item.image} alt="" className="w-8 h-8 object-contain rounded" /> : <span className="text-xl">{item.image || '🎨'}</span>}<div className="flex-1"> <p className="font-bold text-sm leading-none">{item.name}</p><PriceDisplay amount={item.price} exchangeRate={exchangeRate} size="small" /><input type="text" placeholder="Talla, Color, Detalles..." value={item.variantDetails || ''} onChange={(e) => setCart(prev => prev.map(p => p.id === item.id ? {...p, variantDetails: e.target.value} : p))} className="text-xs p-1 mt-1 bg-slate-50 border border-slate-200 rounded outline-none focus:border-teal-500 w-full"/></div></div><div className="flex items-center gap-2"><button onClick={() => setCart(prev => prev.map(p => p.id === item.id ? { ...p, qty: p.qty - 1 } : p).filter(p => p.qty > 0))} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Minus size={14} /></button><span className="font-bold w-6 text-center text-sm">{item.qty}</span><button onClick={() => addToCart(item)} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Plus size={14} /></button></div></div>))}</div><div className="p-4 bg-white border-t border-slate-100 space-y-3 pb-8 lg:pb-4"><div className="flex justify-between font-black text-xl"><span>Total</span><div className="text-right"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} align="right" size="large" /></div></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Entrega (Prometida)</label><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Entrega (Prometida)</label><input type="date" value={orderDeliveryDate} onChange={(e) => setOrderDeliveryDate(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner text-slate-500" /></div></div><input type="url" value={orderDesignLink} onChange={(e) => setOrderDesignLink(e.target.value)} placeholder="Enlace del Diseño (Drive, Canva, etc)" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner" /><input type="text" value={saleDescription} onChange={(e) => setSaleDescription(e.target.value)} placeholder="Cliente / Nota..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner" /><div className="grid grid-cols-3 gap-2">{orderDesignLink && <a href={orderDesignLink} target="_blank" rel="noreferrer" className="col-span-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 hover:bg-indigo-100 transition-colors"><Link size={14}/> Ver Diseño Original</a>}
+                {activeTab === 'pos' && (<div className="flex flex-col lg:flex-row gap-6 h-full pb-20 lg:pb-0"><div className="lg:w-[73%] space-y-4 fade-in"><header className="flex flex-col gap-2 mt-10 md:mt-0"><h2 className="text-2xl md:text-3xl font-black text-slate-800">{editingOrderId ? `Editando Venta` : 'Punto de Venta'}</h2><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'name', label: 'Nombre' }, { value: 'price', label: 'Precio' }, { value: 'category', label: 'Categoría' }]} placeholder="Buscar producto..." /></header><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', ...new Set(products.map(p => p.category))].map(cat => (<button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${selectedCategory === cat ? 'bg-teal-500 text-slate-900' : 'bg-white text-slate-600 shadow-sm'}`}>{cat}</button>))}</div><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 items-start pb-24 md:pb-0">{filterAndSort(products, ['name', 'category']).filter(p => selectedCategory === 'Todos' || p.category === selectedCategory).map(product => (<ProductCard key={product.id} product={product} ingredients={ingredients} addToCart={addToCart} exchangeRate={exchangeRate} getProductMaxStock={getProductMaxStock} />))}</div></div><aside className={`fixed inset-x-0 bottom-0 z-30 lg:sticky lg:top-4 lg:w-[27%] lg:h-fit lg:block transition-transform duration-300 ${isCartOpenMobile ? 'translate-y-0' : 'translate-y-[calc(100%-85px)]'} lg:translate-y-0 overflow-hidden`}><GlassCard className="h-[80vh] lg:h-[calc(100vh-4rem)] flex flex-col rounded-t-[2rem] rounded-b-none border-b-0 lg:rounded-[2rem] lg:border shadow-[0_-10px_40px_rgba(0,0,0,0.2)] overflow-hidden"><div onClick={() => window.innerWidth < 1024 && setIsCartOpenMobile(!isCartOpenMobile)} className={`p-4 border-b border-slate-100 flex justify-between items-center rounded-t-2xl cursor-pointer lg:cursor-default ${editingOrderId ? 'bg-teal-100' : 'bg-white'}`}><div className="flex items-center gap-2"><h3 className="font-bold text-lg flex items-center gap-2"><CartIcon size={20} /> Orden</h3><Badge>{cart.reduce((a, c) => a + c.qty, 0)} items</Badge></div><div className="lg:hidden text-slate-400 flex items-center gap-2"><span className="font-bold text-teal-600"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} size="small" /></span>{isCartOpenMobile ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</div></div><div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white/50">{cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-slate-400"><Palette size={48} className="opacity-20 mb-4" /><p>Vacío</p></div> : cart.map(item => (<div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm border border-slate-100"><div className="flex items-center gap-3">{item.image && (String(item.image).startsWith('data:image') || String(item.image).startsWith('http')) ? <img src={item.image} alt="" className="w-8 h-8 object-contain rounded" /> : <span className="text-xl">{item.image || '🎨'}</span>}<div className="flex-1"> <p className="font-bold text-sm leading-none">{item.name}</p><PriceDisplay amount={item.price} exchangeRate={exchangeRate} size="small" /><input type="text" placeholder="Talla, Color, Detalles..." value={item.variantDetails || ''} onChange={(e) => setCart(prev => prev.map(p => p.id === item.id ? {...p, variantDetails: e.target.value} : p))} className="text-xs p-1 mt-1 bg-slate-50 border border-slate-200 rounded outline-none focus:border-teal-500 w-full"/></div></div><div className="flex items-center gap-2"><button onClick={() => setCart(prev => prev.map(p => p.id === item.id ? { ...p, qty: p.qty - 1 } : p).filter(p => p.qty > 0))} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Minus size={14} /></button><span className="font-bold w-6 text-center text-sm">{item.qty}</span><button onClick={() => addToCart(item)} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Plus size={14} /></button></div></div>))}</div><div className="p-4 bg-white border-t border-slate-100 space-y-3 pb-8 lg:pb-4"><div className="flex justify-between font-black text-xl"><span>Total</span><div className="text-right"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} align="right" size="large" /></div></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Entrega (Prometida)</label><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Entrega (Prometida)</label><input type="date" value={orderDeliveryDate} onChange={(e) => setOrderDeliveryDate(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner text-slate-500" /></div></div><input type="url" value={orderDesignLink} onChange={(e) => setOrderDesignLink(e.target.value)} placeholder="Enlace del Diseño (Drive, Canva, etc)" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner" /><input type="text" value={saleDescription} onChange={(e) => setSaleDescription(e.target.value)} placeholder="Cliente / Nota..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner" /><div className="grid grid-cols-3 gap-2">{orderDesignLink && <a href={orderDesignLink} target="_blank" rel="noreferrer" className="col-span-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 hover:bg-indigo-100 transition-colors"><Link size={14}/> Ver Diseño Original</a>}
                                 <GlassButton variant="secondary" onClick={() => { setCart([]); setEditingOrderId(null); setIsCartOpenMobile(false); }} disabled={!hasPermission('pos', 'edit')} title="Vaciar carrito"><Trash2 size={16} /></GlassButton>
                                 <GlassButton onClick={handleSaveToPending} disabled={cart.length === 0 || !hasPermission('pos', 'edit')} variant="kitchen" title="Enviar a pendientes">{editingOrderId ? 'Actualizar' : 'Pendientes'}</GlassButton>
                                 <GlassButton onClick={handleDirectCharge} disabled={cart.length === 0 || !hasPermission('pos', 'edit')} variant="primary" title="Cobrar inmediatamente">Cobrar</GlassButton>
@@ -3173,105 +3178,130 @@ export default function App() {
                     </GlassCard>
                 </div>)}
 
-                {/* --- CLIENTES --- */}
-                {activeTab === 'customers' && (
-                    <div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0 pb-20">
-                        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50">
-                            <div>
-                                <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-                                    <Users className="text-teal-600" /> Clientes
-                                </h2>
-                                <p className="text-slate-500 text-xs mt-1">Gestión de clientes y datos de contacto en tiempo real</p>
+                {/* --- CONTACTOS --- */}
+                {activeTab === 'customers' && (() => {
+                    const filteredContacts = customers.filter(c => {
+                        if (contactTab === 'proveedores') {
+                            return c.type === 'provider';
+                        }
+                        return c.type === 'customer' || !c.type;
+                    });
+                    const searchedContacts = filterAndSort(filteredContacts, ['name', 'phone', 'email', 'address']);
+                    return (
+                        <div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0 pb-20">
+                            <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50">
+                                <div>
+                                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+                                        <Users className="text-teal-600" /> Contactos
+                                    </h2>
+                                    <p className="text-slate-500 text-xs mt-1">Gestión de clientes, proveedores y datos de contacto en tiempo real</p>
+                                </div>
+                                <div className="flex w-full md:w-auto gap-2">
+                                    {hasPermission('customers', 'edit') ? (
+                                        <GlassButton onClick={() => { setEditingCustomer({ name: '', phone: '', email: '', address: '', type: contactTab === 'proveedores' ? 'provider' : 'customer' }); setShowCustomerForm(true); }} className="flex-1 md:flex-none">
+                                            <Plus size={18} /> Nuevo {contactTab === 'proveedores' ? 'Proveedor' : 'Cliente'}
+                                        </GlassButton>
+                                    ) : (
+                                        <span className="text-xs text-slate-400 italic bg-white/40 border border-white/20 p-2.5 rounded-xl font-bold uppercase tracking-wider">Solo Lectura</span>
+                                    )}
+                                </div>
                             </div>
-                            <div className="flex w-full md:w-auto gap-2">
-                                {hasPermission('customers', 'edit') ? (
-                                    <GlassButton onClick={() => { setEditingCustomer({ name: '', phone: '', email: '', address: '' }); setShowCustomerForm(true); }} className="flex-1 md:flex-none">
-                                        <Plus size={18} /> Nuevo Cliente
-                                    </GlassButton>
-                                ) : (
-                                    <span className="text-xs text-slate-400 italic bg-white/40 border border-white/20 p-2.5 rounded-xl font-bold uppercase tracking-wider">Solo Lectura</span>
-                                )}
+
+                            {/* Sub-apartados: Clientes / Proveedores */}
+                            <div className="flex bg-white/50 p-1.5 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md max-w-md">
+                                <button 
+                                    onClick={() => setContactTab('clientes')} 
+                                    className={`flex-1 py-2 rounded-[2rem] text-xs font-black uppercase tracking-wider transition-all duration-300 ${contactTab === 'clientes' ? 'bg-gradient-to-r from-teal-500 to-pink-500 text-white shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    Clientes
+                                </button>
+                                <button 
+                                    onClick={() => setContactTab('proveedores')} 
+                                    className={`flex-1 py-2 rounded-[2rem] text-xs font-black uppercase tracking-wider transition-all duration-300 ${contactTab === 'proveedores' ? 'bg-gradient-to-r from-teal-500 to-pink-500 text-white shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    Proveedores
+                                </button>
                             </div>
-                        </div>
 
-                        <AdvancedToolbar 
-                            searchQuery={searchQuery} 
-                            setSearchQuery={setSearchQuery} 
-                            sortConfig={sortConfig} 
-                            setSortConfig={setSortConfig} 
-                            sortOptions={[{ value: 'name', label: 'Nombre' }]} 
-                            placeholder="Buscar cliente por nombre, teléfono o correo..."
-                        />
+                            <AdvancedToolbar 
+                                searchQuery={searchQuery} 
+                                setSearchQuery={setSearchQuery} 
+                                sortConfig={sortConfig} 
+                                setSortConfig={setSortConfig} 
+                                sortOptions={[{ value: 'name', label: 'Nombre' }]} 
+                                placeholder={contactTab === 'proveedores' ? "Buscar proveedor por nombre o teléfono..." : "Buscar cliente por nombre o teléfono..."}
+                            />
 
-                        <GlassCard className="overflow-hidden">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm min-w-[700px]">
-                                    <thead className="bg-slate-50 text-slate-500 font-medium uppercase text-xs">
-                                        <tr>
-                                            <th className="p-4">Nombre / Razón Social</th>
-                                            <th className="p-4">Teléfono</th>
-                                            <th className="p-4">Correo Electrónico</th>
-                                            <th className="p-4">Dirección / Notas</th>
-                                            <th className="p-4 text-center">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                                        {filterAndSort(customers, ['name', 'phone', 'email', 'address']).length === 0 ? (
+                            <GlassCard className="overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm min-w-[700px]">
+                                        <thead className="bg-slate-50 text-slate-500 font-medium uppercase text-xs">
                                             <tr>
-                                                <td colSpan="5" className="p-8 text-center text-slate-400">
-                                                    No se encontraron clientes registrados.
-                                                </td>
+                                                <th className="p-4">Nombre / Razón Social</th>
+                                                <th className="p-4">Teléfono</th>
+                                                <th className="p-4">Correo Electrónico</th>
+                                                <th className="p-4">Dirección / Notas</th>
+                                                <th className="p-4 text-center">Acciones</th>
                                             </tr>
-                                        ) : (
-                                            filterAndSort(customers, ['name', 'phone', 'email', 'address']).map((cust) => (
-                                                <tr key={cust.id} className="hover:bg-slate-50/50 transition-colors">
-                                                    <td className="p-4 font-bold text-slate-800">
-                                                        {cust.name}
-                                                    </td>
-                                                    <td className="p-4 font-mono text-xs">
-                                                        {cust.phone || '-'}
-                                                    </td>
-                                                    <td className="p-4 text-xs font-mono text-slate-500">
-                                                        {cust.email || '-'}
-                                                    </td>
-                                                    <td className="p-4 text-xs text-slate-600 max-w-xs truncate" title={cust.address}>
-                                                        {cust.address || '-'}
-                                                    </td>
-                                                    <td className="p-4 text-center">
-                                                        <div className="flex items-center justify-center gap-2">
-                                                            {hasPermission('customers', 'edit') ? (
-                                                                <>
-                                                                    <button 
-                                                                        type="button"
-                                                                        onClick={() => { setEditingCustomer(cust); setShowCustomerForm(true); }} 
-                                                                        className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-xl transition-colors"
-                                                                        title="Editar Cliente"
-                                                                    >
-                                                                        <Edit size={16} />
-                                                                    </button>
-                                                                    <button 
-                                                                        type="button"
-                                                                        onClick={() => handleDeleteCustomer(cust)} 
-                                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                                                                        title="Eliminar Cliente"
-                                                                    >
-                                                                        <Trash2 size={16} />
-                                                                    </button>
-                                                                </>
-                                                            ) : (
-                                                                <span className="text-xs text-slate-400 italic">Lectura</span>
-                                                            )}
-                                                        </div>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 text-slate-700">
+                                            {searchedContacts.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan="5" className="p-8 text-center text-slate-400">
+                                                        No se encontraron {contactTab === 'proveedores' ? 'proveedores' : 'clientes'} registrados.
                                                     </td>
                                                 </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </GlassCard>
-                    </div>
-                )}
+                                            ) : (
+                                                searchedContacts.map((cust) => (
+                                                    <tr key={cust.id} className="hover:bg-slate-50/50 transition-colors">
+                                                        <td className="p-4 font-bold text-slate-800">
+                                                            {cust.name}
+                                                        </td>
+                                                        <td className="p-4 font-mono text-xs">
+                                                            {cust.phone || '-'}
+                                                        </td>
+                                                        <td className="p-4 text-xs font-mono text-slate-500">
+                                                            {cust.email || '-'}
+                                                        </td>
+                                                        <td className="p-4 text-xs text-slate-600 max-w-xs truncate" title={cust.address}>
+                                                            {cust.address || '-'}
+                                                        </td>
+                                                        <td className="p-4 text-center">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                {hasPermission('customers', 'edit') ? (
+                                                                    <>
+                                                                        <button 
+                                                                            type="button"
+                                                                            onClick={() => { setEditingCustomer(cust); setShowCustomerForm(true); }} 
+                                                                            className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-xl transition-colors"
+                                                                            title={contactTab === 'proveedores' ? "Editar Proveedor" : "Editar Cliente"}
+                                                                        >
+                                                                            <Edit size={16} />
+                                                                        </button>
+                                                                        <button 
+                                                                            type="button"
+                                                                            onClick={() => handleDeleteCustomer(cust)} 
+                                                                            className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                                                                            title={contactTab === 'proveedores' ? "Eliminar Proveedor" : "Eliminar Cliente"}
+                                                                        >
+                                                                            <Trash2 size={16} />
+                                                                        </button>
+                                                                    </>
+                                                                ) : (
+                                                                    <span className="text-xs text-slate-400 italic">Lectura</span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </GlassCard>
+                        </div>
+                    );
+                })()}
 
                 {/* --- REPORTES --- */}
                 {activeTab === 'reports' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0 pb-20">
@@ -3634,9 +3664,20 @@ export default function App() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
                     <GlassCard className="w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto">
                         <h3 className="font-bold mb-4 text-slate-800 flex items-center gap-2">
-                            <Users className="text-teal-600" /> {editingCustomer?.id ? 'Editar' : 'Nuevo'} Cliente
+                            <Users className="text-teal-600" /> {editingCustomer?.id ? 'Editar' : 'Nuevo'} Contacto
                         </h3>
                         <form onSubmit={handleSaveCustomer} className="space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Tipo de Contacto</label>
+                                <select 
+                                    name="type" 
+                                    defaultValue={editingCustomer?.type || (contactTab === 'proveedores' ? 'provider' : 'customer')}
+                                    className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none text-xs md:text-sm bg-white"
+                                >
+                                    <option value="customer">Cliente</option>
+                                    <option value="provider">Proveedor</option>
+                                </select>
+                            </div>
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre / Razón Social</label>
                                 <input 
@@ -3681,7 +3722,7 @@ export default function App() {
                                     Cancelar
                                 </GlassButton>
                                 <GlassButton type="submit" variant="primary" className="flex-1">
-                                    Guardar Cliente
+                                    Guardar Contacto
                                 </GlassButton>
                             </div>
                         </form>
