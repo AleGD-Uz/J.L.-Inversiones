@@ -318,7 +318,7 @@ const CartIcon = ({ size = 24, className = "" }) => (
 
 // --- COMPONENTES UI AUXILIARES ---
 const GlassCard = ({ children, className = "", onClick }) => (
-    <div onClick={onClick} className={`bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl ${className}`}>
+    <div onClick={onClick} className={`bg-white/60 backdrop-blur-lg border border-white/60 shadow-lg rounded-[2rem] ${className}`}>
         {children}
     </div>
 );
@@ -405,7 +405,7 @@ const PeriodNavigator = ({ currentDate, setCurrentDate, viewMode, setViewMode })
     };
 
     return (
-        <div className="flex flex-col md:flex-row gap-4 bg-white/50 p-3 md:p-4 rounded-2xl border border-white/40 shadow-sm mb-6 items-center justify-between">
+        <div className="flex flex-col md:flex-row gap-4 bg-white/50 p-3 md:p-4 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50 mb-6 items-center justify-between">
             <div className="flex bg-slate-200/50 rounded-xl p-1 w-full md:w-auto">
                 {[{ id: 'daily', label: 'Día' }, { id: 'monthly', label: 'Mes' }, { id: 'range', label: 'Rango' }].map(m => (
                     <button key={m.id} onClick={() => setViewMode(m.id)} className={`flex-1 md:flex-none px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${viewMode === m.id ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{m.label}</button>
@@ -423,7 +423,7 @@ const PeriodNavigator = ({ currentDate, setCurrentDate, viewMode, setViewMode })
 };
 
 const DateRangeToolbar = ({ startDate, setStartDate, endDate, setEndDate, onDownloadPdf, title = "Filtrar por Fecha" }) => (
-    <div className="flex flex-col md:flex-row gap-3 bg-white/50 p-3 rounded-2xl border border-white/40 shadow-sm mb-4 items-center">
+    <div className="flex flex-col md:flex-row gap-3 bg-white/50 p-3 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50 mb-4 items-center">
         <div className="flex items-center gap-2 text-xs md:text-sm text-slate-600 whitespace-nowrap"><Calendar size={14} className="text-teal-600" /> <span className="hidden md:inline font-medium">{title}:</span></div>
         <div className="flex gap-2 w-full md:w-auto">
             <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-white/80 border border-slate-200 rounded-lg px-2 py-1.5 md:py-2 text-xs w-full focus:outline-none focus:border-teal-500" />
@@ -438,7 +438,7 @@ const DateRangeToolbar = ({ startDate, setStartDate, endDate, setEndDate, onDown
 );
 
 const AdvancedToolbar = ({ searchQuery, setSearchQuery, sortConfig, setSortConfig, sortOptions = [], placeholder = "Buscar..." }) => (
-    <div className="flex flex-col md:flex-row gap-3 bg-white/50 p-3 rounded-2xl border border-white/40 shadow-sm mb-4">
+    <div className="flex flex-col md:flex-row gap-3 bg-white/50 p-3 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50 mb-4">
         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input type="text" placeholder={placeholder} className="pl-9 pr-4 py-2 md:py-2 rounded-xl border border-slate-200 w-full focus:outline-none focus:ring-2 focus:ring-teal-500/50 bg-white/80 text-xs md:text-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
         {sortOptions.length > 0 && (<div className="flex items-center gap-2 bg-white/80 px-3 py-1 rounded-xl border border-slate-200 overflow-x-auto"><span className="text-slate-400 hidden md:block"><Filter size={16} /></span><select className="bg-transparent py-2 text-xs md:text-sm text-slate-700 focus:outline-none cursor-pointer w-full md:w-auto" value={sortConfig.key} onChange={(e) => setSortConfig({ ...sortConfig, key: e.target.value })}>{sortOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select><button onClick={() => setSortConfig({ ...sortConfig, direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })} className="p-2 hover:bg-slate-100 rounded text-slate-500" title={sortConfig.direction === 'asc' ? "Ascendente" : "Descendente"}>{sortConfig.direction === 'asc' ? <SortAsc size={16} /> : <SortDesc size={16} />}</button></div>)}
     </div>
@@ -2252,8 +2252,8 @@ export default function App() {
     }
 
     return (
-        <div className="flex h-[100dvh] bg-slate-100 font-sans text-slate-800 overflow-hidden text-xs md:text-sm lg:text-base">
-            <aside className={`fixed z-40 inset-y-0 left-0 w-72 bg-white text-slate-800 border-r border-slate-200 transform transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl flex flex-col`}>
+        <div className="flex h-[100dvh] font-sans text-slate-800 overflow-hidden text-xs md:text-sm lg:text-base relative" style={{ backgroundImage: 'radial-gradient(circle at 15% 20%, rgba(20, 184, 166, 0.08) 0%, transparent 45%), radial-gradient(circle at 95% 15%, rgba(236, 72, 153, 0.12) 0%, transparent 50%), radial-gradient(circle at 80% 85%, rgba(139, 92, 246, 0.1) 0%, transparent 45%), radial-gradient(circle at 25% 80%, rgba(59, 130, 246, 0.06) 0%, transparent 40%), linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
+            <aside className={`fixed z-40 top-4 bottom-4 left-4 w-72 bg-white/70 backdrop-blur-xl text-slate-800 border border-white/60 rounded-[2rem] shadow-xl flex flex-col transform transition-transform duration-300 md:relative md:translate-x-0 md:top-0 md:bottom-0 md:left-0 md:my-4 md:ml-4 md:mr-2 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="p-6 flex items-center gap-3 border-b border-slate-200/60">
                     <div className="w-12 h-12 rounded-xl border border-slate-700 overflow-hidden bg-white flex items-center justify-center shrink-0 shadow-lg"><img src="/JLlogo.png" alt="Logo" className="w-full h-full object-cover" /></div>
                     <div>
@@ -2337,7 +2337,7 @@ export default function App() {
                 <div className="p-4 border-t border-slate-200 bg-slate-50 space-y-3"><div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200"><DollarSign size={16} className="text-green-600" /><input type="number" value={exchangeRate} onChange={(e) => handleUpdateExchangeRate(parseFloat(e.target.value))} className="bg-transparent w-full text-slate-800 font-mono text-right focus:outline-none" /><span className="text-slate-400 text-xs">Bs</span></div><button onClick={() => handleLogout()} className="w-full flex items-center gap-2 p-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"><LogOut size={16} /> Cerrar Sesión</button></div>
             </aside>
 
-            <main className="flex-1 overflow-y-auto relative p-4 md:p-6 lg:p-8 bg-slate-100">
+            <main className="flex-1 overflow-y-auto relative p-4 md:p-6 lg:p-8 bg-transparent">
                 <button className="md:hidden absolute top-4 left-4 z-20 bg-white p-2 rounded-full shadow-lg" onClick={() => setIsMobileMenuOpen(true)}><Menu className="text-slate-700" /></button>
 
                 {/* Switch de moneda global */}
@@ -2364,7 +2364,7 @@ export default function App() {
                 {activeTab === 'dashboard' && (
                     <div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0 pb-20">
                         {/* Cabecera */}
-                        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 md:p-6 rounded-2xl border border-white/40 shadow-sm">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 md:p-6 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50">
                             <div>
                                 <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
                                     <LayoutDashboard className="text-teal-500" /> Dashboard General
@@ -2673,7 +2673,7 @@ export default function App() {
                                 </div></div></GlassCard></div></div>)}
 
                 {/* --- PENDIENTES --- */}
-                {activeTab === 'pending' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><header className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 md:p-6 rounded-2xl border border-white/40 shadow-sm"><div><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Clock3 className="text-teal-600" /> Pendientes</h2></div><div className="w-full md:w-auto"><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} /></div></header><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-20">{filterAndSort(pendingOrders, ['description', 'id']).map(order => (<GlassCard key={order.id} className="border-l-4 border-teal-500 p-0 flex flex-col"><div className="p-4 bg-teal-50 flex justify-between"><div><h3 className="font-bold text-lg">{order.description}</h3><p className="text-xs text-slate-500">{formatDateApp(order.date, 'time')} {order.deliveryDate && <span className="text-red-500 font-bold ml-2">Entrega: {order.deliveryDate}</span>}</p></div><Badge type="warning">Pendiente</Badge></div><div className="p-4 flex-1 space-y-1">{order.items.map((i, idx) => <div key={idx} className="flex justify-between text-sm"><span className="text-slate-600"><b>{i.qty}</b> {i.name} {i.variantDetails ? <span className="text-xs text-indigo-500">({i.variantDetails})</span> : ""}</span></div>)}</div><div className="p-4 bg-white border-t flex flex-col gap-3"><div className="flex justify-between items-end">
+                {activeTab === 'pending' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><header className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 md:p-6 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50"><div><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Clock3 className="text-teal-600" /> Pendientes</h2></div><div className="w-full md:w-auto"><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} /></div></header><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-20">{filterAndSort(pendingOrders, ['description', 'id']).map(order => (<GlassCard key={order.id} className="border-l-4 border-teal-500 p-0 flex flex-col"><div className="p-4 bg-teal-50 flex justify-between"><div><h3 className="font-bold text-lg">{order.description}</h3><p className="text-xs text-slate-500">{formatDateApp(order.date, 'time')} {order.deliveryDate && <span className="text-red-500 font-bold ml-2">Entrega: {order.deliveryDate}</span>}</p></div><Badge type="warning">Pendiente</Badge></div><div className="p-4 flex-1 space-y-1">{order.items.map((i, idx) => <div key={idx} className="flex justify-between text-sm"><span className="text-slate-600"><b>{i.qty}</b> {i.name} {i.variantDetails ? <span className="text-xs text-indigo-500">({i.variantDetails})</span> : ""}</span></div>)}</div><div className="p-4 bg-white border-t flex flex-col gap-3"><div className="flex justify-between items-end">
                                             <span className="text-xs text-slate-400">Total</span>
                                             <PriceDisplay amount={order.total} exchangeRate={exchangeRate} align="right" />
                                         </div>
@@ -2697,7 +2697,7 @@ export default function App() {
                 {/* --- MENÚ / PRODUCTOS --- */}
                 {activeTab === 'products' && (
                     <div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0">
-                        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 rounded-2xl border border-white/40 shadow-sm">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50">
                             <div>
                                 <h2 className="text-2xl font-black text-slate-800">Catálogo</h2>
                                 <p className="text-slate-500">Gestión de productos</p>
@@ -3176,7 +3176,7 @@ export default function App() {
                 {/* --- CLIENTES --- */}
                 {activeTab === 'customers' && (
                     <div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0 pb-20">
-                        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 rounded-2xl border border-white/40 shadow-sm">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50">
                             <div>
                                 <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
                                     <Users className="text-teal-600" /> Clientes
@@ -3497,7 +3497,7 @@ export default function App() {
 
 
                 {/* --- CONFIGURACIÓN --- */}
-                {activeTab === 'settings' && (<div className="max-w-4xl mx-auto space-y-8 fade-in mt-10 md:mt-0 pb-10"><header className="flex items-center gap-4 bg-white/50 p-6 rounded-2xl border border-white/40 shadow-sm"><div className="p-3 bg-slate-200 rounded-xl"><Settings className="text-slate-700" size={32} /></div><div><h2 className="text-2xl font-black text-slate-800">Configuración Global</h2><p className="text-slate-500">Usuarios, Respaldos y Nube</p></div></header>
+                {activeTab === 'settings' && (<div className="max-w-4xl mx-auto space-y-8 fade-in mt-10 md:mt-0 pb-10"><header className="flex items-center gap-4 bg-white/50 p-6 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50"><div className="p-3 bg-slate-200 rounded-xl"><Settings className="text-slate-700" size={32} /></div><div><h2 className="text-2xl font-black text-slate-800">Configuración Global</h2><p className="text-slate-500">Usuarios, Respaldos y Nube</p></div></header>
 
                     {/* 1. SECCIÓN DE USUARIOS (ACTUALIZADA) */}<UserManagement appUsers={appUsers} onCreateUser={handleCreateUserSystem} onEditUser={handleEditUserSystem} onDeleteUser={handleDeleteUserSystem} currentUserId={user.uid} />
 
