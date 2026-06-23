@@ -23,7 +23,7 @@ import {
     getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot,
     query, orderBy, writeBatch, serverTimestamp, setDoc, getDocs,
     enableIndexedDbPersistence, initializeFirestore, persistentLocalCache,
-    persistentMultipleTabManager
+    persistentMultipleTabManager, where, limit
 } from "firebase/firestore";
 import {
     getAuth,
@@ -52,11 +52,11 @@ let auth;
 try {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     try {
-        db = getFirestore(app);
-    } catch (e) {
         db = initializeFirestore(app, {
             localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
         });
+    } catch (e) {
+        db = getFirestore(app);
     }
     auth = getAuth(app);
 } catch (error) {
@@ -106,6 +106,16 @@ const normalizeId = (id) => {
 
 const generateSecureId = () => {
     return Date.now().toString() + '-' + Math.random().toString(36).substring(2, 9);
+};
+
+const getOffsetDateString = (dateStr, offsetDays) => {
+    if (!dateStr) return dateStr;
+    const d = new Date(dateStr + 'T12:00:00'); // Usar mediodía para evitar problemas de DST/zona horaria
+    d.setDate(d.getDate() + offsetDays);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
 };
 
 // --- PDF GENERATOR UTILS ---
@@ -210,7 +220,7 @@ const useIdleTimer = (timeout = 1800000, onIdle) => {
 };
 
 // --- HOOK DE SINCRONIZACIÓN DE DATOS ---
-const useDataSync = (user, appId, isPublicCatalogMode = false) => {
+const useDataSync = (user, appId, isPublicCatalogMode = false, activeTab = '', startDate = '', endDate = '', currentDateView = null, viewMode = 'daily') => {
     const [data, setData] = useState({
         ingredients: [],
         products: [],
@@ -240,50 +250,160 @@ const useDataSync = (user, appId, isPublicCatalogMode = false) => {
 
         const publicPath = (col) => collection(db, 'artifacts', appId, 'public', 'data', col);
 
-        const subscribe = (colName, stateKey, orderField = null) => {
-            let q = publicPath(colName);
-            return onSnapshot(q,
+        const subscribe = (firestoreQuery, stateKey) => {
+            return onSnapshot(firestoreQuery,
                 (snapshot) => {
                     const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
                     setData(prev => ({ ...prev, [stateKey]: items }));
                     setStatus(prev => ({ ...prev, lastSync: new Date() }));
                 },
                 (error) => {
-                    console.error(`Error en ${colName}:`, error);
+                    console.error(`Error en ${stateKey}:`, error);
                     let errMsg = error.message;
                     if (errMsg.includes("code=not-found") || errMsg.includes("project not found")) {
                         setStatus(prev => ({ ...prev, dbMissing: true, error: "Base de datos no encontrada" }));
                     } else {
-                        setStatus(prev => ({ ...prev, error: `Error ${colName}: ${errMsg}` }));
+                        setStatus(prev => ({ ...prev, error: `Error en ${stateKey}: ${errMsg}` }));
                     }
                 }
             );
         };
 
         const unsubs = [];
+        
+        // 1. Colecciones base/operacionales (siempre activas si el usuario está logueado)
         if (user) {
             unsubs.push(
-                subscribe('ingredients', 'ingredients'),
-                subscribe('products', 'products'),
-                subscribe('sales', 'salesHistory'),
-                subscribe('stock_history', 'stockHistory'),
-                subscribe('other_expenses', 'otherExpenses'),
-                subscribe('pending_orders', 'pendingOrders'),
-                subscribe('users', 'appUsers'),
-                subscribe('bitacora', 'bitacoraLogs'),
-                subscribe('customers', 'customers')
+                subscribe(publicPath('ingredients'), 'ingredients'),
+                subscribe(publicPath('products'), 'products'),
+                subscribe(publicPath('pending_orders'), 'pending_orders'),
+                subscribe(publicPath('users'), 'appUsers'),
+                subscribe(publicPath('customers'), 'customers')
             );
         } else if (isPublicCatalogMode) {
             unsubs.push(
-                subscribe('products', 'products')
+                subscribe(publicPath('products'), 'products')
             );
         }
 
+        // Suscribir al config general (siempre activo)
         unsubs.push(
             onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'general'), (docSnap) => {
                 if (docSnap.exists()) setData(prev => ({ ...prev, config: docSnap.data() }));
             })
         );
+
+        // 2. Colecciones históricas (Carga condicional y filtrada)
+        if (user) {
+            // Verificar qué colecciones se necesitan según la pestaña activa
+            const needsSales = ['dashboard', 'history', 'reports', 'balance'].includes(activeTab);
+            const needsStockHistory = ['dashboard', 'inventory_history', 'reports', 'balance'].includes(activeTab);
+            const needsExpenses = ['dashboard', 'reports', 'balance'].includes(activeTab);
+            const needsBitacora = ['bitacora'].includes(activeTab);
+
+            // Calcular rango de fechas para las consultas
+            let minDateQuery = null;
+            let maxDateQuery = null;
+
+            if (activeTab === 'dashboard') {
+                // Para el dashboard, cargamos por defecto los últimos 30 días para cubrir estadísticas y órdenes recientes
+                const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                minDateQuery = thirtyDaysAgo.toISOString();
+            } else if (activeTab) {
+                // Para pestañas de historial/reportes, calcular según los filtros activos
+                let startStr = '';
+                let endStr = '';
+
+                if (viewMode === 'range') {
+                    startStr = startDate;
+                    endStr = endDate;
+                } else {
+                    const target = getZonedDate(currentDateView || new Date());
+                    const yyyy = target.getFullYear();
+                    const mm = String(target.getMonth() + 1).padStart(2, '0');
+                    if (viewMode === 'daily') {
+                        const dd = String(target.getDate()).padStart(2, '0');
+                        startStr = `${yyyy}-${mm}-${dd}`;
+                        endStr = `${yyyy}-${mm}-${dd}`;
+                    } else if (viewMode === 'monthly') {
+                        startStr = `${yyyy}-${mm}-01`;
+                        const lastDay = new Date(yyyy, target.getMonth() + 1, 0).getDate();
+                        endStr = `${yyyy}-${mm}-${String(lastDay).padStart(2, '0')}`;
+                    }
+                }
+
+                if (startStr) {
+                    const offsetStart = getOffsetDateString(startStr, -1);
+                    minDateQuery = `${offsetStart}T00:00:00.000Z`;
+                }
+                if (endStr) {
+                    const offsetEnd = getOffsetDateString(endStr, +1);
+                    maxDateQuery = `${offsetEnd}T23:59:59.999Z`;
+                }
+
+                // Si no hay rango de fecha definido, usar los últimos 30 días por defecto
+                if (!minDateQuery && !maxDateQuery) {
+                    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                    minDateQuery = thirtyDaysAgo.toISOString();
+                }
+            }
+
+            // Suscribir a Ventas
+            if (needsSales) {
+                let qSales = query(publicPath('sales'), orderBy('date', 'desc'));
+                if (minDateQuery) qSales = query(qSales, where('date', '>=', minDateQuery));
+                if (maxDateQuery) qSales = query(qSales, where('date', '<=', maxDateQuery));
+                
+                if (activeTab === 'dashboard') {
+                    qSales = query(qSales, limit(150));
+                }
+                unsubs.push(subscribe(qSales, 'salesHistory'));
+            } else {
+                setData(prev => ({ ...prev, salesHistory: [] }));
+            }
+
+            // Suscribir a Kardex (stock_history)
+            if (needsStockHistory) {
+                let qStock = query(publicPath('stock_history'), orderBy('date', 'desc'));
+                if (minDateQuery) qStock = query(qStock, where('date', '>=', minDateQuery));
+                if (maxDateQuery) qStock = query(qStock, where('date', '<=', maxDateQuery));
+                
+                if (activeTab === 'dashboard') {
+                    qStock = query(qStock, limit(100));
+                }
+                unsubs.push(subscribe(qStock, 'stockHistory'));
+            } else {
+                setData(prev => ({ ...prev, stockHistory: [] }));
+            }
+
+            // Suscribir a Gastos (other_expenses)
+            if (needsExpenses) {
+                let qExpenses = query(publicPath('other_expenses'), orderBy('date', 'desc'));
+                if (minDateQuery) qExpenses = query(qExpenses, where('date', '>=', minDateQuery));
+                if (maxDateQuery) qExpenses = query(qExpenses, where('date', '<=', maxDateQuery));
+                
+                if (activeTab === 'dashboard') {
+                    qExpenses = query(qExpenses, limit(100));
+                }
+                unsubs.push(subscribe(qExpenses, 'otherExpenses'));
+            } else {
+                setData(prev => ({ ...prev, otherExpenses: [] }));
+            }
+
+            // Suscribir a Bitácora
+            if (needsBitacora) {
+                let qBitacora = query(publicPath('bitacora'), orderBy('date', 'desc'));
+                if (minDateQuery) qBitacora = query(qBitacora, where('date', '>=', minDateQuery));
+                if (maxDateQuery) qBitacora = query(qBitacora, where('date', '<=', maxDateQuery));
+                
+                if (!startDate && !endDate) {
+                    qBitacora = query(qBitacora, limit(150));
+                }
+                unsubs.push(subscribe(qBitacora, 'bitacoraLogs'));
+            } else {
+                setData(prev => ({ ...prev, bitacoraLogs: [] }));
+            }
+        }
 
         const updatePresence = async () => {
             if (user?.uid) {
@@ -304,7 +424,7 @@ const useDataSync = (user, appId, isPublicCatalogMode = false) => {
             clearInterval(presenceInterval);
             setStatus(prev => ({ ...prev, connected: false }));
         };
-    }, [user, appId, isPublicCatalogMode]);
+    }, [user, appId, isPublicCatalogMode, activeTab, startDate, endDate, currentDateView, viewMode]);
 
     return { data, status, loading };
 };
@@ -585,7 +705,9 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {filteredProducts.map(product => {
-                            const priceVES = (product.price || 0) * (bcvRate || 0);
+                            const rateToUse = exchangeRate || bcvRate || 0;
+                            const priceVES = (product.price || 0) * rateToUse;
+                            const priceUSD = bcvRate ? (priceVES / bcvRate) : (product.price || 0);
                             return (
                                 <div 
                                     key={product.id} 
@@ -612,12 +734,12 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
                                                 {hasBcv ? (
                                                     new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'VES' }).format(priceVES)
                                                 ) : (
-                                                    `REF: ${(product.price || 0).toFixed(2)}$`
+                                                    `REF: ${priceUSD.toFixed(2)}$`
                                                 )}
                                             </div>
                                             {hasBcv && (
                                                 <span className="text-xs md:text-sm font-black text-slate-600 font-mono mt-1 block">
-                                                    REF: ${(product.price || 0).toFixed(2)}$
+                                                    REF: ${priceUSD.toFixed(2)}$
                                                 </span>
                                             )}
                                         </div>
@@ -1069,6 +1191,12 @@ export default function App() {
 
     const [currentAppId, setCurrentAppId] = useState(ENV_APP_ID);
 
+    // Mover variables de fechas y periodos arriba para que useDataSync las pueda consumir
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [currentDateView, setCurrentDateView] = useState(new Date());
+    const [viewMode, setViewMode] = useState('daily');
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
@@ -1105,7 +1233,7 @@ export default function App() {
         }
     });
 
-    const { data, status: connectionStatus, loading: dataLoading } = useDataSync(user, currentAppId, isPublicCatalogMode);
+    const { data, status: connectionStatus, loading: dataLoading } = useDataSync(user, currentAppId, isPublicCatalogMode, activeTab, startDate, endDate, currentDateView, viewMode);
     const { ingredients, products, salesHistory, stockHistory, otherExpenses, pendingOrders, appUsers, bitacoraLogs, config, customers = [] } = data;
     const exchangeRate = config?.exchangeRate || 0;
 
@@ -1368,10 +1496,6 @@ export default function App() {
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
     const [selectedCategory, setSelectedCategory] = useState("Todos");
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [startDate, setStartDate] = useState("");
-    const [endDate, setEndDate] = useState("");
-    const [currentDateView, setCurrentDateView] = useState(new Date());
-    const [viewMode, setViewMode] = useState('daily');
     const [isRestoring, setIsRestoring] = useState(false);
     const [restoreStatus, setRestoreStatus] = useState("");
     const [editingIngredient, setEditingIngredient] = useState(null);
@@ -2003,17 +2127,48 @@ export default function App() {
         reader.readAsText(file); e.target.value = null;
     };
 
-    const handleExportData = () => {
-        const dataStr = JSON.stringify({ ingredients, products, salesHistory, stockHistory, otherExpenses, pendingOrders, bitacoraLogs }, null, 2);
-        const blob = new Blob([dataStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `backup_yuyas_${formatDateApp(new Date(), 'date').replace(/\//g, '-')}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        logActivity('Sistema', 'Respaldo de datos descargado');
+    const handleExportData = async () => {
+        if (!db || !currentAppId) return;
+        showNotification("Generando copia de seguridad, por favor espere...", "info");
+        
+        try {
+            const fetchAllDocs = async (colName) => {
+                const colRef = collection(db, 'artifacts', currentAppId, 'public', 'data', colName);
+                const snap = await getDocs(colRef);
+                return snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            };
+            
+            const [allSales, allStockHistory, allExpenses, allBitacora] = await Promise.all([
+                fetchAllDocs('sales'),
+                fetchAllDocs('stock_history'),
+                fetchAllDocs('other_expenses'),
+                fetchAllDocs('bitacora')
+            ]);
+            
+            const dataStr = JSON.stringify({ 
+                ingredients, 
+                products, 
+                salesHistory: allSales, 
+                stockHistory: allStockHistory, 
+                otherExpenses: allExpenses, 
+                pendingOrders, 
+                bitacoraLogs: allBitacora 
+            }, null, 2);
+            
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `backup_yuyas_${formatDateApp(new Date(), 'date').replace(/\//g, '-')}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            logActivity('Sistema', 'Respaldo de datos completo descargado');
+            showNotification("Copia de seguridad descargada exitosamente", "success");
+        } catch (err) {
+            console.error("Error al exportar datos:", err);
+            showNotification("Error al exportar datos: " + err.message, "error");
+        }
     };
 
     const handleLoadSublimationDemoData = () => {
