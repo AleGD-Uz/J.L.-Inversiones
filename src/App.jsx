@@ -318,7 +318,7 @@ const CartIcon = ({ size = 24, className = "" }) => (
 
 // --- COMPONENTES UI AUXILIARES ---
 const GlassCard = ({ children, className = "", onClick }) => (
-    <div onClick={onClick} className={`bg-white/60 backdrop-blur-lg border border-white/60 shadow-lg rounded-[2rem] ${className}`}>
+    <div onClick={onClick} className={`bg-white/40 backdrop-blur-xl border border-white/40 shadow-lg rounded-[2rem] ${className}`}>
         {children}
     </div>
 );
@@ -405,7 +405,7 @@ const PeriodNavigator = ({ currentDate, setCurrentDate, viewMode, setViewMode })
     };
 
     return (
-        <div className="flex flex-col md:flex-row gap-4 bg-white/50 p-3 md:p-4 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50 mb-6 items-center justify-between">
+        <div className="flex flex-col md:flex-row gap-4 bg-white/40 p-3 md:p-4 rounded-[2rem] border border-white/40 shadow-md backdrop-blur-xl mb-6 items-center justify-between">
             <div className="flex bg-slate-200/50 rounded-xl p-1 w-full md:w-auto">
                 {[{ id: 'daily', label: 'Día' }, { id: 'monthly', label: 'Mes' }, { id: 'range', label: 'Rango' }].map(m => (
                     <button key={m.id} onClick={() => setViewMode(m.id)} className={`flex-1 md:flex-none px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${viewMode === m.id ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{m.label}</button>
@@ -423,7 +423,7 @@ const PeriodNavigator = ({ currentDate, setCurrentDate, viewMode, setViewMode })
 };
 
 const DateRangeToolbar = ({ startDate, setStartDate, endDate, setEndDate, onDownloadPdf, title = "Filtrar por Fecha" }) => (
-    <div className="flex flex-col md:flex-row gap-3 bg-white/50 p-3 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50 mb-4 items-center">
+    <div className="flex flex-col md:flex-row gap-3 bg-white/40 p-3 rounded-[2rem] border border-white/40 shadow-md backdrop-blur-xl mb-4 items-center">
         <div className="flex items-center gap-2 text-xs md:text-sm text-slate-600 whitespace-nowrap"><Calendar size={14} className="text-teal-600" /> <span className="hidden md:inline font-medium">{title}:</span></div>
         <div className="flex gap-2 w-full md:w-auto">
             <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-white/80 border border-slate-200 rounded-lg px-2 py-1.5 md:py-2 text-xs w-full focus:outline-none focus:border-teal-500" />
@@ -438,7 +438,7 @@ const DateRangeToolbar = ({ startDate, setStartDate, endDate, setEndDate, onDown
 );
 
 const AdvancedToolbar = ({ searchQuery, setSearchQuery, sortConfig, setSortConfig, sortOptions = [], placeholder = "Buscar..." }) => (
-    <div className="flex flex-col md:flex-row gap-3 bg-white/50 p-3 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50 mb-4">
+    <div className="flex flex-col md:flex-row gap-3 bg-white/40 p-3 rounded-[2rem] border border-white/40 shadow-md backdrop-blur-xl mb-4">
         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input type="text" placeholder={placeholder} className="pl-9 pr-4 py-2 md:py-2 rounded-xl border border-slate-200 w-full focus:outline-none focus:ring-2 focus:ring-teal-500/50 bg-white/80 text-xs md:text-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
         {sortOptions.length > 0 && (<div className="flex items-center gap-2 bg-white/80 px-3 py-1 rounded-xl border border-slate-200 overflow-x-auto"><span className="text-slate-400 hidden md:block"><Filter size={16} /></span><select className="bg-transparent py-2 text-xs md:text-sm text-slate-700 focus:outline-none cursor-pointer w-full md:w-auto" value={sortConfig.key} onChange={(e) => setSortConfig({ ...sortConfig, key: e.target.value })}>{sortOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select><button onClick={() => setSortConfig({ ...sortConfig, direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' })} className="p-2 hover:bg-slate-100 rounded text-slate-500" title={sortConfig.direction === 'asc' ? "Ascendente" : "Descendente"}>{sortConfig.direction === 'asc' ? <SortAsc size={16} /> : <SortDesc size={16} />}</button></div>)}
     </div>
@@ -2258,7 +2258,7 @@ export default function App() {
 
     return (
         <div className="flex h-[100dvh] font-sans text-slate-800 overflow-hidden text-xs md:text-sm lg:text-base relative" style={{ backgroundImage: 'radial-gradient(circle at 15% 20%, rgba(20, 184, 166, 0.08) 0%, transparent 45%), radial-gradient(circle at 95% 15%, rgba(236, 72, 153, 0.12) 0%, transparent 50%), radial-gradient(circle at 80% 85%, rgba(139, 92, 246, 0.1) 0%, transparent 45%), radial-gradient(circle at 25% 80%, rgba(59, 130, 246, 0.06) 0%, transparent 40%), linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
-            <aside className={`fixed z-40 top-4 bottom-4 left-4 w-72 bg-white/70 backdrop-blur-xl text-slate-800 border border-white/60 rounded-[2rem] shadow-xl flex flex-col overflow-hidden transform transition-transform duration-300 md:relative md:translate-x-0 md:top-0 md:bottom-0 md:left-0 md:my-4 md:ml-4 md:mr-2 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <aside className={`fixed z-40 top-4 bottom-4 left-4 w-72 bg-white/40 backdrop-blur-xl text-slate-800 border border-white/40 rounded-[2rem] shadow-xl flex flex-col overflow-hidden transform transition-transform duration-300 md:relative md:translate-x-0 md:top-0 md:bottom-0 md:left-0 md:my-4 md:ml-4 md:mr-2 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="p-6 flex items-center gap-3 border-b border-slate-200/60">
                     <div className="w-12 h-12 rounded-xl border border-slate-700 overflow-hidden bg-white flex items-center justify-center shrink-0 shadow-lg"><img src="/JLlogo.png" alt="Logo" className="w-full h-full object-cover" /></div>
                     <div>
@@ -2345,31 +2345,33 @@ export default function App() {
             <main className="flex-1 overflow-y-auto relative p-4 md:p-6 lg:p-8 bg-transparent">
                 <button className="md:hidden absolute top-4 left-4 z-20 bg-white p-2 rounded-full shadow-lg" onClick={() => setIsMobileMenuOpen(true)}><Menu className="text-slate-700" /></button>
 
-                {/* Switch de moneda global */}
-                <div className={`absolute top-4 z-20 flex items-center gap-2 transition-all duration-300 ${activeTab === 'pos' ? 'right-4 md:right-6 lg:right-[calc(33.333333%+3rem)]' : 'right-4 md:right-6 lg:right-8'}`}>
-                    <div className="bg-white/80 backdrop-blur-md border border-white/40 shadow-lg rounded-2xl p-1 flex items-center gap-1 select-none">
-                        <button 
-                            type="button"
-                            onClick={() => setCurrencyMode('USD')}
-                            className={`px-3 py-1.5 rounded-xl font-black text-[10px] transition-all uppercase tracking-wider ${currencyMode === 'USD' ? 'bg-teal-500 text-slate-900 shadow-md shadow-teal-500/10' : 'text-slate-400 hover:text-slate-700'}`}
-                        >
-                            $ USD
-                        </button>
-                        <button 
-                            type="button"
-                            onClick={() => setCurrencyMode('VES')}
-                            className={`px-3 py-1.5 rounded-xl font-black text-[10px] transition-all uppercase tracking-wider ${currencyMode === 'VES' ? 'bg-teal-500 text-slate-900 shadow-md shadow-teal-500/10' : 'text-slate-400 hover:text-slate-700'}`}
-                        >
-                            Bs VES
-                        </button>
+                {/* Switch de moneda global (oculto en POS ya que está en el carrito) */}
+                {activeTab !== 'pos' && (
+                    <div className="absolute top-4 right-4 md:right-6 lg:right-8 z-20 flex items-center gap-2 transition-all duration-300">
+                        <div className="bg-white/40 backdrop-blur-xl border border-white/40 shadow-lg rounded-2xl p-1 flex items-center gap-1 select-none">
+                            <button 
+                                type="button"
+                                onClick={() => setCurrencyMode('USD')}
+                                className={`px-3 py-1.5 rounded-xl font-black text-[10px] transition-all uppercase tracking-wider ${currencyMode === 'USD' ? 'bg-teal-500 text-slate-900 shadow-md' : 'text-slate-400 hover:text-slate-700'}`}
+                            >
+                                $ USD
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={() => setCurrencyMode('VES')}
+                                className={`px-3 py-1.5 rounded-xl font-black text-[10px] transition-all uppercase tracking-wider ${currencyMode === 'VES' ? 'bg-teal-500 text-slate-900 shadow-md' : 'text-slate-400 hover:text-slate-700'}`}
+                            >
+                                Bs VES
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* --- DASHBOARD --- */}
                 {activeTab === 'dashboard' && (
                     <div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0 pb-20">
                         {/* Cabecera */}
-                        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 md:p-6 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/40 p-4 md:p-6 rounded-[2rem] border border-white/40 shadow-md backdrop-blur-xl w-full">
                             <div>
                                 <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
                                     <LayoutDashboard className="text-teal-500" /> Dashboard General
@@ -2671,14 +2673,14 @@ export default function App() {
                 )}
 
                 {/* --- POS --- */}
-                {activeTab === 'pos' && (<div className="flex flex-col lg:flex-row gap-6 h-full pb-20 lg:pb-0"><div className="lg:w-[73%] space-y-4 fade-in"><header className="flex flex-col gap-2 mt-10 md:mt-0"><h2 className="text-2xl md:text-3xl font-black text-slate-800">{editingOrderId ? `Editando Venta` : 'Punto de Venta'}</h2><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'name', label: 'Nombre' }, { value: 'price', label: 'Precio' }, { value: 'category', label: 'Categoría' }]} placeholder="Buscar producto..." /></header><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', ...new Set(products.map(p => p.category))].map(cat => (<button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${selectedCategory === cat ? 'bg-teal-500 text-slate-900' : 'bg-white text-slate-600 shadow-sm'}`}>{cat}</button>))}</div><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 items-start pb-24 md:pb-0">{filterAndSort(products, ['name', 'category']).filter(p => selectedCategory === 'Todos' || p.category === selectedCategory).map(product => (<ProductCard key={product.id} product={product} ingredients={ingredients} addToCart={addToCart} exchangeRate={exchangeRate} getProductMaxStock={getProductMaxStock} />))}</div></div><aside className={`fixed inset-x-0 bottom-0 z-30 lg:sticky lg:top-4 lg:w-[27%] lg:h-fit lg:block transition-transform duration-300 ${isCartOpenMobile ? 'translate-y-0' : 'translate-y-[calc(100%-85px)]'} lg:translate-y-0 overflow-hidden`}><GlassCard className="h-[80vh] lg:h-[calc(100vh-4rem)] flex flex-col rounded-t-[2rem] rounded-b-none border-b-0 lg:rounded-[2rem] lg:border shadow-[0_-10px_40px_rgba(0,0,0,0.2)] overflow-hidden"><div onClick={() => window.innerWidth < 1024 && setIsCartOpenMobile(!isCartOpenMobile)} className={`p-4 border-b border-slate-100 flex justify-between items-center rounded-t-2xl cursor-pointer lg:cursor-default ${editingOrderId ? 'bg-teal-100' : 'bg-white'}`}><div className="flex items-center gap-2"><h3 className="font-bold text-lg flex items-center gap-2"><CartIcon size={20} /> Orden</h3><Badge>{cart.reduce((a, c) => a + c.qty, 0)} items</Badge></div><div className="lg:hidden text-slate-400 flex items-center gap-2"><span className="font-bold text-teal-600"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} size="small" /></span>{isCartOpenMobile ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</div></div><div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white/50">{cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-slate-400"><Palette size={48} className="opacity-20 mb-4" /><p>Vacío</p></div> : cart.map(item => (<div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm border border-slate-100"><div className="flex items-center gap-3">{item.image && (String(item.image).startsWith('data:image') || String(item.image).startsWith('http')) ? <img src={item.image} alt="" className="w-8 h-8 object-contain rounded" /> : <span className="text-xl">{item.image || '🎨'}</span>}<div className="flex-1"> <p className="font-bold text-sm leading-none">{item.name}</p><PriceDisplay amount={item.price} exchangeRate={exchangeRate} size="small" /><input type="text" placeholder="Talla, Color, Detalles..." value={item.variantDetails || ''} onChange={(e) => setCart(prev => prev.map(p => p.id === item.id ? {...p, variantDetails: e.target.value} : p))} className="text-xs p-1 mt-1 bg-slate-50 border border-slate-200 rounded outline-none focus:border-teal-500 w-full"/></div></div><div className="flex items-center gap-2"><button onClick={() => setCart(prev => prev.map(p => p.id === item.id ? { ...p, qty: p.qty - 1 } : p).filter(p => p.qty > 0))} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Minus size={14} /></button><span className="font-bold w-6 text-center text-sm">{item.qty}</span><button onClick={() => addToCart(item)} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Plus size={14} /></button></div></div>))}</div><div className="p-4 bg-white border-t border-slate-100 space-y-3 pb-8 lg:pb-4"><div className="flex justify-between font-black text-xl"><span>Total</span><div className="text-right"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} align="right" size="large" /></div></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Entrega (Prometida)</label><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Entrega (Prometida)</label><input type="date" value={orderDeliveryDate} onChange={(e) => setOrderDeliveryDate(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner text-slate-500" /></div></div><input type="url" value={orderDesignLink} onChange={(e) => setOrderDesignLink(e.target.value)} placeholder="Enlace del Diseño (Drive, Canva, etc)" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner" /><input type="text" value={saleDescription} onChange={(e) => setSaleDescription(e.target.value)} placeholder="Cliente / Nota..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner" /><div className="grid grid-cols-3 gap-2">{orderDesignLink && <a href={orderDesignLink} target="_blank" rel="noreferrer" className="col-span-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 hover:bg-indigo-100 transition-colors"><Link size={14}/> Ver Diseño Original</a>}
+                {activeTab === 'pos' && (<div className="flex flex-col lg:flex-row gap-6 pb-20 lg:pb-0"><div className="lg:w-[73%] space-y-4 fade-in"><header className="flex flex-col gap-2 mt-10 md:mt-0"><h2 className="text-2xl md:text-3xl font-black text-slate-800">{editingOrderId ? `Editando Venta` : 'Punto de Venta'}</h2><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'name', label: 'Nombre' }, { value: 'price', label: 'Precio' }, { value: 'category', label: 'Categoría' }]} placeholder="Buscar producto..." /></header><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', ...new Set(products.map(p => p.category))].map(cat => (<button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${selectedCategory === cat ? 'bg-teal-500 text-slate-900' : 'bg-white text-slate-600 shadow-sm'}`}>{cat}</button>))}</div><div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 items-start pb-24 md:pb-0">{filterAndSort(products, ['name', 'category']).filter(p => selectedCategory === 'Todos' || p.category === selectedCategory).map(product => (<ProductCard key={product.id} product={product} ingredients={ingredients} addToCart={addToCart} exchangeRate={exchangeRate} getProductMaxStock={getProductMaxStock} />))}</div></div><aside className={`fixed inset-x-0 bottom-0 z-30 lg:sticky lg:top-4 lg:w-[27%] lg:h-fit lg:block transition-transform duration-300 ${isCartOpenMobile ? 'translate-y-0' : 'translate-y-[calc(100%-85px)]'} lg:translate-y-0 overflow-hidden`}><GlassCard className="h-[80vh] lg:h-[calc(100vh-4rem)] flex flex-col rounded-t-[2rem] rounded-b-none border-b-0 lg:rounded-[2rem] lg:border shadow-[0_-10px_40px_rgba(0,0,0,0.2)] overflow-hidden"><div onClick={() => window.innerWidth < 1024 && setIsCartOpenMobile(!isCartOpenMobile)} className={`p-4 border-b border-slate-100/60 flex justify-between items-center rounded-t-2xl cursor-pointer lg:cursor-default bg-white/45 backdrop-blur-md`}><div className="flex items-center gap-2"><h3 className="font-bold text-lg flex items-center gap-2"><CartIcon size={20} /> Orden</h3><Badge>{cart.reduce((a, c) => a + c.qty, 0)} items</Badge></div><div className="hidden lg:flex bg-slate-200/50 rounded-xl p-0.5 border border-slate-300/40 gap-0.5 select-none text-[10px] font-bold"><button type="button" onClick={(e) => { e.stopPropagation(); setCurrencyMode('USD'); }} className={`px-2 py-1 rounded-lg transition-all ${currencyMode === 'USD' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>$ USD</button><button type="button" onClick={(e) => { e.stopPropagation(); setCurrencyMode('VES'); }} className={`px-2 py-1 rounded-lg transition-all ${currencyMode === 'VES' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Bs</button></div><div className="lg:hidden text-slate-400 flex items-center gap-2"><span className="font-bold text-teal-600"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} size="small" /></span>{isCartOpenMobile ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</div></div><div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white/30">{cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-slate-400"><Palette size={48} className="opacity-20 mb-4" /><p>Vacío</p></div> : cart.map(item => (<div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm border border-slate-100"><div className="flex items-center gap-3">{item.image && (String(item.image).startsWith('data:image') || String(item.image).startsWith('http')) ? <img src={item.image} alt="" className="w-8 h-8 object-contain rounded" /> : <span className="text-xl">{item.image || '🎨'}</span>}<div className="flex-1"> <p className="font-bold text-sm leading-none">{item.name}</p><PriceDisplay amount={item.price} exchangeRate={exchangeRate} size="small" /><input type="text" placeholder="Talla, Color, Detalles..." value={item.variantDetails || ''} onChange={(e) => setCart(prev => prev.map(p => p.id === item.id ? {...p, variantDetails: e.target.value} : p))} className="text-xs p-1 mt-1 bg-slate-50 border border-slate-200 rounded outline-none focus:border-teal-500 w-full"/></div></div><div className="flex items-center gap-2"><button onClick={() => setCart(prev => prev.map(p => p.id === item.id ? { ...p, qty: p.qty - 1 } : p).filter(p => p.qty > 0))} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Minus size={14} /></button><span className="font-bold w-6 text-center text-sm">{item.qty}</span><button onClick={() => addToCart(item)} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Plus size={14} /></button></div></div>))}</div><div className="p-4 bg-white border-t border-slate-100 space-y-3 pb-8 lg:pb-4"><div className="flex justify-between font-black text-xl"><span>Total</span><div className="text-right"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} align="right" size="large" /></div></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Entrega (Prometida)</label><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Entrega (Prometida)</label><input type="date" value={orderDeliveryDate} onChange={(e) => setOrderDeliveryDate(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner text-slate-500" /></div></div><input type="url" value={orderDesignLink} onChange={(e) => setOrderDesignLink(e.target.value)} placeholder="Enlace del Diseño (Drive, Canva, etc)" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner" /><input type="text" value={saleDescription} onChange={(e) => setSaleDescription(e.target.value)} placeholder="Cliente / Nota..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner" /><div className="grid grid-cols-3 gap-2">{orderDesignLink && <a href={orderDesignLink} target="_blank" rel="noreferrer" className="col-span-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 hover:bg-indigo-100 transition-colors"><Link size={14}/> Ver Diseño Original</a>}
                                 <GlassButton variant="secondary" onClick={() => { setCart([]); setEditingOrderId(null); setIsCartOpenMobile(false); }} disabled={!hasPermission('pos', 'edit')} title="Vaciar carrito"><Trash2 size={16} /></GlassButton>
                                 <GlassButton onClick={handleSaveToPending} disabled={cart.length === 0 || !hasPermission('pos', 'edit')} variant="kitchen" title="Enviar a pendientes">{editingOrderId ? 'Actualizar' : 'Pendientes'}</GlassButton>
                                 <GlassButton onClick={handleDirectCharge} disabled={cart.length === 0 || !hasPermission('pos', 'edit')} variant="primary" title="Cobrar inmediatamente">Cobrar</GlassButton>
                                 </div></div></GlassCard></aside></div>)}
 
                 {/* --- PENDIENTES --- */}
-                {activeTab === 'pending' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><header className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 md:p-6 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50"><div><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Clock3 className="text-teal-600" /> Pendientes</h2></div><div className="w-full md:w-auto"><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} /></div></header><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-20">{filterAndSort(pendingOrders, ['description', 'id']).map(order => (<GlassCard key={order.id} className="border-l-4 border-teal-500 p-0 flex flex-col"><div className="p-4 bg-teal-50 flex justify-between"><div><h3 className="font-bold text-lg">{order.description}</h3><p className="text-xs text-slate-500">{formatDateApp(order.date, 'time')} {order.deliveryDate && <span className="text-red-500 font-bold ml-2">Entrega: {order.deliveryDate}</span>}</p></div><Badge type="warning">Pendiente</Badge></div><div className="p-4 flex-1 space-y-1">{order.items.map((i, idx) => <div key={idx} className="flex justify-between text-sm"><span className="text-slate-600"><b>{i.qty}</b> {i.name} {i.variantDetails ? <span className="text-xs text-indigo-500">({i.variantDetails})</span> : ""}</span></div>)}</div><div className="p-4 bg-white border-t flex flex-col gap-3"><div className="flex justify-between items-end">
+                {activeTab === 'pending' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><header className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/40 p-4 md:p-6 rounded-[2rem] border border-white/40 shadow-md backdrop-blur-xl w-full"><div><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Clock3 className="text-teal-600" /> Pendientes</h2></div><div className="w-full md:w-auto"><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} /></div></header><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-20">{filterAndSort(pendingOrders, ['description', 'id']).map(order => (<GlassCard key={order.id} className="border-l-4 border-teal-500 p-0 flex flex-col"><div className="p-4 bg-teal-50 flex justify-between"><div><h3 className="font-bold text-lg">{order.description}</h3><p className="text-xs text-slate-500">{formatDateApp(order.date, 'time')} {order.deliveryDate && <span className="text-red-500 font-bold ml-2">Entrega: {order.deliveryDate}</span>}</p></div><Badge type="warning">Pendiente</Badge></div><div className="p-4 flex-1 space-y-1">{order.items.map((i, idx) => <div key={idx} className="flex justify-between text-sm"><span className="text-slate-600"><b>{i.qty}</b> {i.name} {i.variantDetails ? <span className="text-xs text-indigo-500">({i.variantDetails})</span> : ""}</span></div>)}</div><div className="p-4 bg-white border-t flex flex-col gap-3"><div className="flex justify-between items-end">
                                             <span className="text-xs text-slate-400">Total</span>
                                             <PriceDisplay amount={order.total} exchangeRate={exchangeRate} align="right" />
                                         </div>
@@ -2702,7 +2704,7 @@ export default function App() {
                 {/* --- MENÚ / PRODUCTOS --- */}
                 {activeTab === 'products' && (
                     <div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0">
-                        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/50 p-4 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/40 p-4 rounded-[2rem] border border-white/40 shadow-md backdrop-blur-xl w-full">
                             <div>
                                 <h2 className="text-2xl font-black text-slate-800">Catálogo</h2>
                                 <p className="text-slate-500">Gestión de productos</p>
@@ -2838,43 +2840,61 @@ export default function App() {
                         </div>
 
                         <div className="space-y-4">
-                            {/* Desktop View Table */}
-                            <div className="hidden md:block overflow-x-auto ">
-                                <GlassCard className="overflow-hidden">
-                                    <table className="w-full text-left text-sm min-w-[700px]">
-                                        <thead className="bg-slate-50 text-slate-500 font-medium uppercase">
-                                            <tr><th className="p-4">Material</th><th className="p-4">Costo Unit.</th><th className="p-4 text-center">Stock</th><th className="p-4 text-right">Valor Total</th><th className="p-4 text-center">Acciones</th></tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">{filterAndSort(ingredients, ['name']).map(ing => {
-                                            const isAssociated = products.some(p => p.recipe?.some(r => normalizeId(r.ingredientId) === normalizeId(ing.id)));
-                                            const totalVal = (ing.stock || 0) * (ing.cost || 0);
-                                            return (
-                                                <tr key={ing.id}><td className="p-4 font-bold">{ing.name}</td><td className="p-4"><div className="flex flex-col"><PriceDisplay amount={ing.cost || 0} exchangeRate={exchangeRate} size="small" />{ing.ivaPercent > 0 && <span className="text-[9px] text-emerald-600 font-black">+{ing.ivaPercent}% IVA</span>}</div></td><td className="p-4 text-center"><span className={`font-bold ${ing.stock <= ing.minStock ? 'text-red-500' : ''}`}>{ing.stock} {ing.unit}</span></td><td className="p-4 text-right"><PriceDisplay amount={totalVal} exchangeRate={exchangeRate} size="small" align="right" /></td>
-                                                    <td className="p-4 text-center">
-                                                        {hasPermission('inventory', 'edit') ? (
-                                                            <div className="flex items-center justify-center gap-2">
-                                                                <button onClick={() => { if (isAssociated) { alert("El item ya está agregado."); } else { setConfirmation({ show: true, message: "¿Quieres agregar este producto al catálogo?", onConfirm: () => { setConfirmation({ show: false }); setActiveTab('products'); const suggestedPrice = (ing.cost || 0) * 1.30; setEditingProduct({ name: ing.name, price: Number(suggestedPrice.toFixed(2)), category: '', recipe: [{ ingredientId: ing.id, qty: 1 }] }); setProductIconPreview(null); setProfitMargin(30); setShowProductForm(true); } }); } }} className={`p-3 md:p-2 rounded ${isAssociated ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:bg-slate-100 hover:text-emerald-600'}`} title="Añadir al catálogo"><Utensils size={16} /></button>
-                                                                <button onClick={() => { setEditingIngredient(ing); setIvaPercent(ing.ivaPercent || 0); setTempCost(ing.cost || 0); setFormCurrency('USD'); setIsIvaApplied(false); setBaseCostBeforeIva(0); setShowIngredientForm(true); }} className="p-3 md:p-2 hover:bg-slate-100 rounded text-slate-500 hover:text-teal-600" title="Editar"><Edit size={16} /></button>
-                                                                <button onClick={() => setConfirmation({
-                                                                    show: true,
-                                                                    message: `¿Eliminar "${ing.name}" del inventario?`,
-                                                                    onConfirm: () => {
-                                                                        deleteFromDB('ingredients', ing.id);
-                                                                        logActivity('Inventario', `Material eliminado: ${ing.name}`);
-                                                                        setConfirmation({ show: false });
-                                                                        showNotification("Material eliminado");
-                                                                    }
-                                                                })} className="p-3 md:p-2 hover:bg-slate-100 rounded text-slate-400 hover:text-red-500" title="Eliminar"><Trash2 size={16} /></button>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-xs text-slate-400 italic">Lectura</span>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}</tbody>
-                                    </table>
-                                </GlassCard>
+                            {/* Desktop View Table (Zebra Capsule List) */}
+                            <div className="hidden md:block">
+                                <div className="flex justify-between items-center px-6 py-3 text-slate-500 font-bold uppercase text-xs tracking-wider">
+                                    <div className="w-[30%]">Insumo</div>
+                                    <div className="w-[20%] text-right pr-8">Costo Unit.</div>
+                                    <div className="w-[15%] text-center">Stock Disp.</div>
+                                    <div className="w-[20%] text-right pr-8">Valor Total</div>
+                                    <div className="w-[15%] text-center">Acciones</div>
+                                </div>
+                                <div className="space-y-3">
+                                    {filterAndSort(ingredients, ['name']).map(ing => {
+                                        const isAssociated = products.some(p => p.recipe?.some(r => normalizeId(r.ingredientId) === normalizeId(ing.id)));
+                                        const totalVal = (ing.stock || 0) * (ing.cost || 0);
+                                        return (
+                                            <div key={ing.id} className="bg-white/40 backdrop-blur-xl border border-white/40 rounded-[1.5rem] p-4 flex justify-between items-center shadow-sm hover:shadow-md hover:bg-white/50 transition-all">
+                                                <div className="w-[30%] flex items-center gap-2">
+                                                    <ChevronDown size={16} className="text-slate-400" />
+                                                    <span className="font-bold text-slate-800">{ing.name}</span>
+                                                </div>
+                                                <div className="w-[20%] text-right pr-8 flex flex-col justify-center items-end">
+                                                    <PriceDisplay amount={ing.cost || 0} exchangeRate={exchangeRate} size="small" align="right" />
+                                                    {ing.ivaPercent > 0 && <span className="text-[9px] text-emerald-600 font-black">+{ing.ivaPercent}% IVA</span>}
+                                                </div>
+                                                <div className="w-[15%] text-center flex justify-center">
+                                                    <span className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap ${ing.stock <= ing.minStock ? 'bg-red-100 text-red-800 border border-red-200/50' : 'bg-emerald-100 text-emerald-800 border border-emerald-200/50'}`}>
+                                                        {ing.stock} {ing.unit}
+                                                    </span>
+                                                </div>
+                                                <div className="w-[20%] text-right pr-8">
+                                                    <PriceDisplay amount={totalVal} exchangeRate={exchangeRate} size="small" align="right" />
+                                                </div>
+                                                <div className="w-[15%] flex justify-center items-center gap-2">
+                                                    {hasPermission('inventory', 'edit') ? (
+                                                        <>
+                                                            <button onClick={() => { if (isAssociated) { alert("El item ya está agregado."); } else { setConfirmation({ show: true, message: "¿Quieres agregar este producto al catálogo?", onConfirm: () => { setConfirmation({ show: false }); setActiveTab('products'); const suggestedPrice = (ing.cost || 0) * 1.30; setEditingProduct({ name: ing.name, price: Number(suggestedPrice.toFixed(2)), category: '', recipe: [{ ingredientId: ing.id, qty: 1 }] }); setProductIconPreview(null); setProfitMargin(30); setShowProductForm(true); } }); } }} className={`p-2 rounded-xl border border-slate-200/60 bg-white/50 hover:bg-white transition-colors ${isAssociated ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-emerald-600'}`} title="Añadir al catálogo"><Utensils size={16} /></button>
+                                                            <button onClick={() => { setEditingIngredient(ing); setIvaPercent(ing.ivaPercent || 0); setTempCost(ing.cost || 0); setFormCurrency('USD'); setIsIvaApplied(false); setBaseCostBeforeIva(0); setShowIngredientForm(true); }} className="p-2 rounded-xl border border-slate-200/60 bg-white/50 hover:bg-white text-slate-500 hover:text-teal-600 transition-colors" title="Editar"><Edit size={16} /></button>
+                                                            <button onClick={() => setConfirmation({
+                                                                show: true,
+                                                                message: `¿Eliminar "${ing.name}" del inventario?`,
+                                                                onConfirm: () => {
+                                                                    deleteFromDB('ingredients', ing.id);
+                                                                    logActivity('Inventario', `Material eliminado: ${ing.name}`);
+                                                                    setConfirmation({ show: false });
+                                                                    showNotification("Material eliminado");
+                                                                }
+                                                            })} className="p-2 rounded-xl border border-slate-200/60 bg-white/50 hover:bg-white text-slate-400 hover:text-red-500 transition-colors" title="Eliminar"><Trash2 size={16} /></button>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-xs text-slate-400 italic">Lectura</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
 
                             {/* Mobile View Cards */}
@@ -2946,7 +2966,60 @@ export default function App() {
                 )}
 
                 {/* --- KARDEX (Entrada/Salida) --- */}
-                {activeTab === 'inventory_history' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex justify-between items-center"><h2 className="text-2xl font-black">Entrada/Salida</h2></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} onDownloadPdf={() => generatePDF('Kardex', ['Fecha', 'Material', 'Tipo', 'Cant'], filterAndSort(stockHistory, [], true).map(l => [formatDateApp(l.date, 'date'), l.ingredientName, l.type, l.qtyChange]), 'kardex.pdf')} title="Filtrar Movimientos" /><GlassCard className="overflow-hidden"><div className="overflow-x-auto "><table className="w-full text-left text-sm min-w-[800px]"><thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4">Fecha</th><th className="p-4">Item</th><th className="p-4 text-center">Mov</th><th className="p-4 text-right">Cant</th><th className="p-4 text-right">Saldo</th></tr></thead><tbody className="divide-y divide-slate-100">{filterAndSort(stockHistory, ['ingredientName', 'reason'], true).slice(0, 100).map(log => (<React.Fragment key={log.id}><tr onClick={() => { setExpandedKardexId(expandedKardexId === log.id ? null : log.id); setTempKardexObs(log.observation || ""); }} className={`cursor-pointer transition-colors ${expandedKardexId === log.id ? 'bg-teal-50' : 'hover:bg-slate-50'} active:bg-slate-100`}><td className="p-4 text-slate-500">{formatDateApp(log.date, 'full')}</td><td className="p-4 font-bold">{log.ingredientName}</td><td className="p-4 text-center"><Badge type={log.type === 'ADD' ? 'success' : 'danger'}>{log.type === 'ADD' ? 'Entrada' : 'Salida'}</Badge></td><td className="p-4 text-right font-mono font-bold">{log.qtyChange}</td><td className="p-4 text-right text-slate-500">{log.newStock}</td></tr>{expandedKardexId === log.id && (<tr className="bg-teal-50/50"><td colSpan="5" className="p-4"><div className="flex flex-col md:flex-row gap-4"><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Razón</p><p className="text-sm bg-white p-2 rounded border border-teal-100">{log.reason}</p></div><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Valor Movimiento</p><PriceDisplay amount={log.totalValue || 0} exchangeRate={exchangeRate} size="small" /></div><div className="flex-1"><p className="text-xs font-bold text-slate-500 uppercase">Nota</p><div className="flex gap-2"><input className="flex-1 p-2 text-sm border rounded" value={tempKardexObs} onChange={e => setTempKardexObs(e.target.value)} /><button onClick={() => handleSaveKardexObservation(log.id)} className="bg-teal-600 text-white p-2 rounded"><Save size={14} /></button></div></div></div></td></tr>)}</React.Fragment>))}</tbody></table></div></GlassCard></div>)}
+                {activeTab === 'inventory_history' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex justify-between items-center"><h2 className="text-2xl font-black">Entrada/Salida</h2></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} onDownloadPdf={() => generatePDF('Kardex', ['Fecha', 'Material', 'Tipo', 'Cant'], filterAndSort(stockHistory, [], true).map(l => [formatDateApp(l.date, 'date'), l.ingredientName, l.type, l.qtyChange]), 'kardex.pdf')} title="Filtrar Movimientos" />
+                            <div className="hidden md:flex justify-between items-center px-6 py-3 text-slate-500 font-bold uppercase text-xs tracking-wider">
+                                <div className="w-[25%]">Fecha y Hora</div>
+                                <div className="w-[30%]">Item</div>
+                                <div className="w-[15%] text-center">Movimiento</div>
+                                <div className="w-[15%] text-right pr-6">Cantidad</div>
+                                <div className="w-[15%] text-right pr-6">Saldo</div>
+                            </div>
+                            <div className="space-y-3">
+                                {filterAndSort(stockHistory, ['ingredientName', 'reason'], true).slice(0, 100).map(log => {
+                                    const isExpanded = expandedKardexId === log.id;
+                                    return (
+                                        <div key={log.id} className="flex flex-col gap-2">
+                                            <div onClick={() => { setExpandedKardexId(isExpanded ? null : log.id); setTempKardexObs(log.observation || ""); }} className="bg-white/40 backdrop-blur-xl border border-white/40 rounded-[1.5rem] p-4 flex justify-between items-center shadow-sm hover:shadow-md hover:bg-white/50 transition-all cursor-pointer">
+                                                <div className="w-[25%] text-xs text-slate-500 font-mono">
+                                                    {formatDateApp(log.date, 'full')}
+                                                </div>
+                                                <div className="w-[30%] font-bold text-slate-800">
+                                                    {log.ingredientName}
+                                                </div>
+                                                <div className="w-[15%] text-center flex justify-center">
+                                                    <Badge type={log.type === 'ADD' ? 'success' : 'danger'}>{log.type === 'ADD' ? 'Entrada' : 'Salida'}</Badge>
+                                                </div>
+                                                <div className="w-[15%] text-right pr-6 font-mono font-bold text-slate-800">
+                                                    {log.qtyChange}
+                                                </div>
+                                                <div className="w-[15%] text-right pr-6 font-mono text-slate-500">
+                                                    {log.newStock}
+                                                </div>
+                                            </div>
+                                            {isExpanded && (
+                                                <div className="bg-white/30 backdrop-blur-md border border-white/30 rounded-[1.5rem] p-4 ml-6 mr-2 flex flex-col md:flex-row gap-4 shadow-inner">
+                                                    <div className="flex-1">
+                                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Razón</p>
+                                                        <p className="text-sm bg-white/70 p-2.5 rounded-xl border border-slate-200">{log.reason}</p>
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Valor Movimiento</p>
+                                                        <PriceDisplay amount={log.totalValue || 0} exchangeRate={exchangeRate} size="small" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Nota</p>
+                                                        <div className="flex gap-2">
+                                                            <input className="flex-1 p-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-teal-500 bg-white/80" value={tempKardexObs} onChange={e => setTempKardexObs(e.target.value)} />
+                                                            <button onClick={() => handleSaveKardexObservation(log.id)} className="bg-teal-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-teal-500 transition-colors"><Save size={14} /></button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>)}
 
                 {/* --- BALANCE --- */}
                 {activeTab === 'balance' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0">
@@ -3232,73 +3305,62 @@ export default function App() {
                                 placeholder={contactTab === 'proveedores' ? "Buscar proveedor por nombre o teléfono..." : "Buscar cliente por nombre o teléfono..."}
                             />
 
-                            <GlassCard className="overflow-hidden">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left text-sm min-w-[700px]">
-                                        <thead className="bg-slate-50 text-slate-500 font-medium uppercase text-xs">
-                                            <tr>
-                                                <th className="p-4">Nombre / Razón Social</th>
-                                                <th className="p-4">Teléfono</th>
-                                                <th className="p-4">Correo Electrónico</th>
-                                                <th className="p-4">Dirección / Notas</th>
-                                                <th className="p-4 text-center">Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100 text-slate-700">
-                                            {searchedContacts.length === 0 ? (
-                                                <tr>
-                                                    <td colSpan="5" className="p-8 text-center text-slate-400">
-                                                        No se encontraron {contactTab === 'proveedores' ? 'proveedores' : 'clientes'} registrados.
-                                                    </td>
-                                                </tr>
-                                            ) : (
-                                                searchedContacts.map((cust) => (
-                                                    <tr key={cust.id} className="hover:bg-slate-50/50 transition-colors">
-                                                        <td className="p-4 font-bold text-slate-800">
-                                                            {cust.name}
-                                                        </td>
-                                                        <td className="p-4 font-mono text-xs">
-                                                            {cust.phone || '-'}
-                                                        </td>
-                                                        <td className="p-4 text-xs font-mono text-slate-500">
-                                                            {cust.email || '-'}
-                                                        </td>
-                                                        <td className="p-4 text-xs text-slate-600 max-w-xs truncate" title={cust.address}>
-                                                            {cust.address || '-'}
-                                                        </td>
-                                                        <td className="p-4 text-center">
-                                                            <div className="flex items-center justify-center gap-2">
-                                                                {hasPermission('customers', 'edit') ? (
-                                                                    <>
-                                                                        <button 
-                                                                            type="button"
-                                                                            onClick={() => { setEditingCustomer(cust); setShowCustomerForm(true); }} 
-                                                                            className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-xl transition-colors"
-                                                                            title={contactTab === 'proveedores' ? "Editar Proveedor" : "Editar Cliente"}
-                                                                        >
-                                                                            <Edit size={16} />
-                                                                        </button>
-                                                                        <button 
-                                                                            type="button"
-                                                                            onClick={() => handleDeleteCustomer(cust)} 
-                                                                            className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                                                                            title={contactTab === 'proveedores' ? "Eliminar Proveedor" : "Eliminar Cliente"}
-                                                                        >
-                                                                            <Trash2 size={16} />
-                                                                        </button>
-                                                                    </>
-                                                                ) : (
-                                                                    <span className="text-xs text-slate-400 italic">Lectura</span>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </GlassCard>
+                            <div className="hidden md:flex justify-between items-center px-6 py-3 text-slate-500 font-bold uppercase text-xs tracking-wider">
+                                <div className="w-[30%]">Nombre / Razón Social</div>
+                                <div className="w-[20%] text-center">Teléfono</div>
+                                <div className="w-[20%] text-center">Correo Electrónico</div>
+                                <div className="w-[18%]">Dirección / Notas</div>
+                                <div className="w-[12%] text-center">Acciones</div>
+                            </div>
+                            <div className="space-y-3">
+                                {searchedContacts.length === 0 ? (
+                                    <div className="bg-white/40 backdrop-blur-xl border border-white/40 rounded-[1.5rem] p-8 text-center text-slate-400 shadow-sm">
+                                        No se encontraron {contactTab === 'proveedores' ? 'proveedores' : 'clientes'} registrados.
+                                    </div>
+                                ) : (
+                                    searchedContacts.map((cust) => (
+                                        <div key={cust.id} className="bg-white/40 backdrop-blur-xl border border-white/40 rounded-[1.5rem] p-4 flex justify-between items-center shadow-sm hover:shadow-md hover:bg-white/50 transition-all">
+                                            <div className="w-[30%] flex items-center gap-2">
+                                                <ChevronDown size={16} className="text-slate-400" />
+                                                <span className="font-bold text-slate-800">{cust.name}</span>
+                                            </div>
+                                            <div className="w-[20%] text-center font-mono text-xs text-slate-600">
+                                                {cust.phone || '-'}
+                                            </div>
+                                            <div className="w-[20%] text-center text-xs font-mono text-slate-500">
+                                                {cust.email || '-'}
+                                            </div>
+                                            <div className="w-[18%] text-xs text-slate-600 truncate pr-4" title={cust.address}>
+                                                {cust.address || '-'}
+                                            </div>
+                                            <div className="w-[12%] flex justify-center items-center gap-2">
+                                                {hasPermission('customers', 'edit') ? (
+                                                    <>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => { setEditingCustomer(cust); setShowCustomerForm(true); }} 
+                                                            className="p-2 rounded-xl border border-slate-200/60 bg-white/50 hover:bg-white text-indigo-500 hover:text-indigo-600 transition-colors"
+                                                            title={contactTab === 'proveedores' ? "Editar Proveedor" : "Editar Cliente"}
+                                                        >
+                                                            <Edit size={16} />
+                                                        </button>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => handleDeleteCustomer(cust)} 
+                                                            className="p-2 rounded-xl border border-slate-200/60 bg-white/50 hover:bg-white text-red-500 hover:text-red-600 transition-colors"
+                                                            title={contactTab === 'proveedores' ? "Eliminar Proveedor" : "Eliminar Cliente"}
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-xs text-slate-400 italic">Lectura</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
                     );
                 })()}
