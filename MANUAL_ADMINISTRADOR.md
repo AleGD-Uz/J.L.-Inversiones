@@ -166,7 +166,7 @@ Pantalla de visualización rápida del estado del negocio.
 
 *   **KPIs en Tiempo Real**: Ingresos del día, número de transacciones y margen promedio general.
 *   **Gráfico de Flujo de Ventas**: Curva de ingresos por horas para identificar picos de tráfico en tienda.
-*   **Gráfico de Balance Semanal**: Barras comparativas de Ingresos vs. Gastos (compras de inventario + gastos operativos) de los últimos 7 días.
+*   **Gráfico de Balance Semanal**: Barras comparativas de Ingresos vs. Gastos (registrados manualmente) de los últimos 7 días.
 *   **Sección de Alertas de Stock Crítico**: Lista de materiales urgentes por comprar antes de que afecten la producción.
 
 ### Balance Financiero
@@ -177,8 +177,8 @@ Centro contable para la toma de decisiones.
     2.  **Costo de Ventas (COGS)**: Costo acumulado de la materia prima consumida para generar las ventas realizadas.
     3.  **Costo de Mermas**: Pérdida monetaria directa por desecho de materiales.
     4.  **Ganancia Bruta Ajustada**: `Ventas Totales - Costo de Ventas - Costo de Mermas`.
-    5.  **Gastos Operativos**: Compras generales de material más gastos extras del negocio.
-    6.  **Flujo Neto de Caja**: Liquidez neta generada en el período.
+    5.  **Gastos Operativos**: Egresos generales del negocio registrados manualmente (no incluye compras automáticas de inventario).
+    6.  **Flujo Neto de Caja**: Liquidez neta generada en el período (Entradas - Salidas Reales).
 
 ### Reportes de Rendimiento
 Análisis detallado de rentabilidad por producto.

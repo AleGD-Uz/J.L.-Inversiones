@@ -612,12 +612,12 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
                                                 {hasBcv ? (
                                                     new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'VES' }).format(priceVES)
                                                 ) : (
-                                                    `$${(product.price || 0).toFixed(2)}`
+                                                    `REF: ${(product.price || 0).toFixed(2)}$`
                                                 )}
                                             </div>
                                             {hasBcv && (
-                                                <span className="text-[10px] text-slate-400 font-mono mt-0.5 block">
-                                                    ≈ ${(product.price || 0).toFixed(2)} USD
+                                                <span className="text-xs md:text-sm font-black text-slate-600 font-mono mt-1 block">
+                                                    REF: ${(product.price || 0).toFixed(2)}$
                                                 </span>
                                             )}
                                         </div>
@@ -1238,18 +1238,8 @@ export default function App() {
                        ed.getFullYear() === d.getFullYear();
             });
             
-            const stockExpenses = stockHistory.filter(l => {
-                if (!l.date) return false;
-                if (l.type !== 'ADD' || l.reason.includes('Cancelación')) return false;
-                const ld = getZonedDate(l.date);
-                return ld.getDate() === d.getDate() &&
-                       ld.getMonth() === d.getMonth() &&
-                       ld.getFullYear() === d.getFullYear();
-            });
-            
             const income = dailySales.reduce((sum, s) => sum + s.total, 0);
-            const expense = dailyExpenses.reduce((sum, e) => sum + e.amount, 0) +
-                            stockExpenses.reduce((sum, l) => sum + (l.totalValue || 0), 0);
+            const expense = dailyExpenses.reduce((sum, e) => sum + e.amount, 0);
             
             const name = d.toLocaleDateString('es-VE', { weekday: 'short', day: 'numeric', timeZone: APP_TIMEZONE });
             
@@ -1260,7 +1250,7 @@ export default function App() {
             });
         }
         return dataList;
-    }, [salesHistory, otherExpenses, stockHistory]);
+    }, [salesHistory, otherExpenses]);
 
     const topSellingProducts = useMemo(() => {
         const productQuantities = {};
@@ -2231,7 +2221,6 @@ export default function App() {
         const lossCost = activeLosses.reduce((acc, l) => acc + Math.abs(l.totalValue || 0), 0);
         
         const grossProfit = income - cogs;
-        const invExp = activeStock.filter(l => l.type === 'ADD' && !l.reason.includes('Cancelación')).reduce((acc, l) => acc + (l.totalValue || 0), 0);
         const otherExp = activeExpenses.reduce((acc, e) => acc + e.amount, 0);
         
         return { 
@@ -2239,8 +2228,8 @@ export default function App() {
             cogs, 
             grossProfit, 
             lossCost, 
-            expenses: invExp + otherExp, 
-            netCashFlow: income - (invExp + otherExp) 
+            expenses: otherExp, 
+            netCashFlow: income - otherExp 
         };
     }, [salesHistory, stockHistory, otherExpenses, viewMode, currentDateView, products, ingredients]);
  
@@ -3112,7 +3101,7 @@ export default function App() {
                                 <div>
                                     <p className="text-sm text-slate-500 font-bold mb-1">Gastos Totales (Salidas)</p>
                                     <PriceDisplay amount={financialData.expenses} exchangeRate={exchangeRate} size="large" />
-                                    <p className="text-xs text-slate-400 mt-2">Compras Inventario + Gastos Op.</p>
+                                    <p className="text-xs text-slate-400 mt-2">Gastos Registrados Manualmente</p>
                                 </div>
                                 <GlassButton variant="expense" onClick={() => setShowExpenseForm(true)} className="text-xs py-1">
                                     <CreditCard size={14} /> Registrar Gasto
