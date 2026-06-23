@@ -480,6 +480,29 @@ const ProductCard = ({ product, ingredients, addToCart, exchangeRate, getProduct
 const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("Todos");
+    const [bcvRate, setBcvRate] = useState(() => {
+        const cached = localStorage.getItem('cachedBcvRate');
+        return cached ? parseFloat(cached) : null;
+    });
+    const [loadingBcv, setLoadingBcv] = useState(!bcvRate);
+
+    useEffect(() => {
+        const getRate = async () => {
+            try {
+                const res = await fetch("https://ve.dolarapi.com/v1/dolares/oficial");
+                const json = await res.json();
+                if (json && json.promedio) {
+                    setBcvRate(json.promedio);
+                    localStorage.setItem('cachedBcvRate', String(json.promedio));
+                }
+            } catch (err) {
+                console.error("Error fetching BCV rate:", err);
+            } finally {
+                setLoadingBcv(false);
+            }
+        };
+        getRate();
+    }, []);
 
     const categories = useMemo(() => {
         return ["Todos", ...new Set(products.map(p => p.category).filter(Boolean))];
@@ -495,6 +518,8 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
         });
     }, [products, searchQuery, selectedCategory]);
 
+    const hasBcv = bcvRate !== null && bcvRate > 0;
+
     return (
         <div className="min-h-screen bg-gradient-to-tr from-rose-50 via-teal-50 to-indigo-50 text-slate-800 flex flex-col font-sans overflow-x-hidden">
             {/* Header */}
@@ -505,7 +530,9 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
                     </div>
                     <div>
                         <h1 className="text-lg md:text-xl font-black text-slate-800 tracking-tight">Catálogo de Productos</h1>
-                        <p className="text-[10px] md:text-xs text-slate-500">Sweet Ink</p>
+                        <p className="text-[10px] md:text-xs text-slate-500 font-bold">
+                            Sweet Ink {bcvRate ? `• Tasa BCV: Bs. ${bcvRate.toFixed(2)}` : ''}
+                        </p>
                     </div>
                 </div>
                 <button 
@@ -558,7 +585,7 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {filteredProducts.map(product => {
-                            const priceBs = (product.price || 0) * (exchangeRate || 0);
+                            const priceVES = (product.price || 0) * (bcvRate || 0);
                             return (
                                 <div 
                                     key={product.id} 
@@ -582,8 +609,17 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
                                         <div className="mt-2 pt-3 border-t border-slate-100">
                                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Precio</span>
                                             <div className="text-lg font-black text-teal-600 tracking-tight mt-0.5">
-                                                {new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'VES' }).format(priceBs)}
+                                                {hasBcv ? (
+                                                    new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'VES' }).format(priceVES)
+                                                ) : (
+                                                    `$${(product.price || 0).toFixed(2)}`
+                                                )}
                                             </div>
+                                            {hasBcv && (
+                                                <span className="text-[10px] text-slate-400 font-mono mt-0.5 block">
+                                                    ≈ ${(product.price || 0).toFixed(2)} USD
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -3611,7 +3647,7 @@ export default function App() {
             </main>
 
             {activeTab === 'pos' && (
-                <aside className={`fixed inset-x-0 bottom-0 z-30 lg:relative lg:inset-auto lg:translate-y-0 lg:my-4 lg:mr-4 lg:ml-2 lg:w-[27%] lg:shrink-0 lg:block transition-transform duration-300 ${isCartOpenMobile ? 'translate-y-0' : 'translate-y-[calc(100%-85px)]'} overflow-hidden`}>
+                <aside className={`fixed inset-x-0 bottom-0 z-30 lg:relative lg:inset-auto lg:translate-y-0 lg:my-4 lg:mr-4 lg:ml-2 lg:w-[24%] lg:shrink-0 lg:block transition-transform duration-300 ${isCartOpenMobile ? 'translate-y-0' : 'translate-y-[calc(100%-85px)]'} overflow-hidden`}>
                     <GlassCard className="h-[80vh] lg:h-full flex flex-col rounded-t-[2rem] rounded-b-none border-b-0 lg:rounded-[2rem] lg:border shadow-[0_-10px_40px_rgba(0,0,0,0.2)] overflow-hidden">
                         <div onClick={() => window.innerWidth < 1024 && setIsCartOpenMobile(!isCartOpenMobile)} className={`p-4 border-b border-slate-100/60 flex justify-between items-center rounded-t-2xl cursor-pointer lg:cursor-default bg-white/45 backdrop-blur-md`}><div className="flex items-center gap-2"><h3 className="font-bold text-lg flex items-center gap-2"><CartIcon size={20} /> Orden</h3><Badge>{cart.reduce((a, c) => a + c.qty, 0)} items</Badge></div><div className="hidden lg:flex bg-slate-200/50 rounded-xl p-0.5 border border-slate-300/40 gap-0.5 select-none text-[10px] font-bold"><button type="button" onClick={(e) => { e.stopPropagation(); setCurrencyMode('USD'); }} className={`px-2 py-1 rounded-lg transition-all ${currencyMode === 'USD' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>$ USD</button><button type="button" onClick={(e) => { e.stopPropagation(); setCurrencyMode('VES'); }} className={`px-2 py-1 rounded-lg transition-all ${currencyMode === 'VES' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Bs</button></div><div className="lg:hidden text-slate-400 flex items-center gap-2"><span className="font-bold text-teal-600"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} size="small" /></span>{isCartOpenMobile ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</div></div><div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white/30">{cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-slate-400"><Palette size={48} className="opacity-20 mb-4" /><p>Vacío</p></div> : cart.map(item => (<div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm border border-slate-100"><div className="flex items-center gap-3">{item.image && (String(item.image).startsWith('data:image') || String(item.image).startsWith('http')) ? <img src={item.image} alt="" className="w-8 h-8 object-contain rounded" /> : <span className="text-xl">{item.image || '🎨'}</span>}<div className="flex-1"> <p className="font-bold text-sm leading-none">{item.name}</p><PriceDisplay amount={item.price} exchangeRate={exchangeRate} size="small" /><input type="text" placeholder="Talla, Color, Detalles..." value={item.variantDetails || ''} onChange={(e) => setCart(prev => prev.map(p => p.id === item.id ? {...p, variantDetails: e.target.value} : p))} className="text-xs p-1 mt-1 bg-slate-50 border border-slate-200 rounded outline-none focus:border-teal-500 w-full"/></div></div><div className="flex items-center gap-2"><button onClick={() => setCart(prev => prev.map(p => p.id === item.id ? { ...p, qty: p.qty - 1 } : p).filter(p => p.qty > 0))} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Minus size={14} /></button><span className="font-bold w-6 text-center text-sm">{item.qty}</span><button onClick={() => addToCart(item)} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Plus size={14} /></button></div></div>))}</div><div className="p-4 bg-white border-t border-slate-100 space-y-3 pb-8 lg:pb-4"><div className="flex justify-between font-black text-xl"><span>Total</span><div className="text-right"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} align="right" size="large" /></div></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Entrega (Prometida)</label><input type="date" value={orderDeliveryDate} onChange={(e) => setOrderDeliveryDate(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner text-slate-500" /></div><input type="url" value={orderDesignLink} onChange={(e) => setOrderDesignLink(e.target.value)} placeholder="Enlace del Diseño (Drive, Canva, etc)" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner" /><input type="text" value={saleDescription} onChange={(e) => setSaleDescription(e.target.value)} placeholder="Cliente / Nota..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner" /><div className="grid grid-cols-3 gap-2">{orderDesignLink && <a href={orderDesignLink} target="_blank" rel="noreferrer" className="col-span-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 hover:bg-indigo-100 transition-colors"><Link size={14}/> Ver Diseño Original</a>}
                                 <GlassButton variant="secondary" onClick={() => { setCart([]); setEditingOrderId(null); setIsCartOpenMobile(false); }} disabled={!hasPermission('pos', 'edit')} title="Vaciar carrito"><Trash2 size={16} /></GlassButton>
