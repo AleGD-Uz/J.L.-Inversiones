@@ -378,7 +378,7 @@ const FixedClock = () => {
         return () => clearInterval(timer);
     }, []);
     return (
-        <div className="text-xs text-slate-400 font-mono mt-1 bg-slate-800/50 px-2 py-1 rounded border border-slate-700 inline-block">
+        <div className="text-xs text-slate-500 font-mono mt-1 bg-slate-100 px-2 py-1 rounded border border-slate-200 inline-block">
             {formatDateApp(new Date(), 'date')} • {time}
         </div>
     );
@@ -496,21 +496,21 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
     }, [products, searchQuery, selectedCategory]);
 
     return (
-        <div className="min-h-screen bg-slate-900 text-white flex flex-col font-sans overflow-x-hidden">
+        <div className="min-h-screen bg-gradient-to-tr from-rose-50 via-teal-50 to-indigo-50 text-slate-800 flex flex-col font-sans overflow-x-hidden">
             {/* Header */}
-            <header className="bg-slate-800/80 backdrop-blur-md border-b border-slate-700/50 sticky top-0 z-50 px-4 py-4 md:px-8 flex justify-between items-center shadow-lg">
+            <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 px-4 py-4 md:px-8 flex justify-between items-center shadow-sm">
                 <div className="flex items-center gap-3">
                     <div className="bg-gradient-to-tr from-teal-400 to-teal-600 p-2 rounded-xl shadow-lg shadow-teal-500/20">
-                        <Palette size={20} className="text-slate-900" />
+                        <Palette size={20} className="text-white" />
                     </div>
                     <div>
-                        <h1 className="text-lg md:text-xl font-black text-white tracking-tight">Catálogo de Productos</h1>
-                        <p className="text-[10px] md:text-xs text-slate-400">Sweet Ink</p>
+                        <h1 className="text-lg md:text-xl font-black text-slate-800 tracking-tight">Catálogo de Productos</h1>
+                        <p className="text-[10px] md:text-xs text-slate-500">Sweet Ink</p>
                     </div>
                 </div>
                 <button 
                     onClick={onGoToLogin}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 shadow-lg shadow-teal-500/10 active:scale-95 animate-in fade-in"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-500 to-pink-500 hover:opacity-90 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 shadow-lg shadow-teal-500/10 active:scale-95 animate-in fade-in"
                 >
                     {user ? <LayoutDashboard size={14} /> : <LogIn size={14} />} {user ? "Administración" : "Personal"}
                 </button>
@@ -519,7 +519,7 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
             {/* Main Content */}
             <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 lg:p-8 space-y-6">
                 {/* Search and Category Filter Toolbar */}
-                <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 bg-slate-800/40 p-4 rounded-2xl border border-slate-700/50 shadow-inner">
+                <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 bg-white/70 p-4 rounded-2xl border border-slate-200 shadow-sm">
                     <div className="relative flex-1">
                         <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input 
@@ -527,21 +527,21 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
                             placeholder="Buscar producto..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-teal-500 text-sm"
+                            className="w-full bg-white/90 border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-slate-800 focus:outline-none focus:border-teal-500 text-sm"
                         />
                     </div>
                 </div>
 
                 {/* Categories */}
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
                     {categories.map(cat => (
                         <button 
                             key={cat} 
                             onClick={() => setSelectedCategory(cat)} 
                             className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold transition-all ${
                                 selectedCategory === cat 
-                                    ? 'bg-teal-500 text-slate-900 shadow-lg shadow-teal-500/10' 
-                                    : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700/50'
+                                    ? 'bg-gradient-to-r from-teal-500 to-pink-500 text-white shadow-lg shadow-teal-500/20' 
+                                    : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200/80'
                             }`}
                         >
                             {cat}
@@ -551,7 +551,7 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
 
                 {/* Products Grid */}
                 {filteredProducts.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+                    <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                         <Utensils size={48} className="opacity-20 mb-4 animate-bounce" />
                         <p>No se encontraron productos.</p>
                     </div>
@@ -562,10 +562,10 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
                             return (
                                 <div 
                                     key={product.id} 
-                                    className="bg-slate-800/60 border border-slate-700/50 rounded-3xl p-5 flex flex-col gap-4 hover:border-teal-500/50 hover:shadow-xl hover:shadow-teal-500/5 transition-all duration-300 group"
+                                    className="bg-white border border-slate-100 rounded-3xl p-5 flex flex-col gap-4 hover:border-teal-400/50 hover:shadow-xl hover:shadow-teal-500/5 shadow-md transition-all duration-300 group"
                                 >
                                     {/* Image/Emoji area */}
-                                    <div className="aspect-square bg-slate-900 rounded-2xl flex items-center justify-center text-5xl overflow-hidden shadow-inner border border-slate-800 relative">
+                                    <div className="aspect-square bg-slate-50 rounded-2xl flex items-center justify-center text-5xl overflow-hidden shadow-inner border border-slate-100 relative">
                                         {product.image && (String(product.image).startsWith('data:image') || String(product.image).startsWith('http')) ? (
                                             <img src={product.image} alt={product.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" />
                                         ) : (
@@ -576,12 +576,12 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
                                     {/* Product Details */}
                                     <div className="flex-1 flex flex-col justify-between gap-2">
                                         <div>
-                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{product.category || 'Otros'}</span>
-                                            <h3 className="font-bold text-sm text-white group-hover:text-teal-400 transition-colors line-clamp-2 mt-1">{product.name}</h3>
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">{product.category || 'Otros'}</span>
+                                            <h3 className="font-bold text-sm text-slate-800 group-hover:text-teal-600 transition-colors line-clamp-2 mt-1">{product.name}</h3>
                                         </div>
-                                        <div className="mt-2 pt-3 border-t border-slate-700/50">
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Precio</span>
-                                            <div className="text-lg font-black text-teal-500 tracking-tight mt-0.5">
+                                        <div className="mt-2 pt-3 border-t border-slate-100">
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Precio</span>
+                                            <div className="text-lg font-black text-teal-600 tracking-tight mt-0.5">
                                                 {new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'VES' }).format(priceBs)}
                                             </div>
                                         </div>
@@ -614,30 +614,30 @@ const LoginScreen = ({ onLogin, onViewPublicCatalog }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-            <GlassCard className="w-full max-w-md p-8 z-10 relative !bg-white/10 !backdrop-blur-2xl !border-white/10">
+        <div className="min-h-screen bg-gradient-to-tr from-rose-100 via-teal-50 to-indigo-100 flex items-center justify-center p-4">
+            <GlassCard className="w-full max-w-md p-8 z-10 relative !bg-white/90 !backdrop-blur-2xl !border-white/60 shadow-2xl text-slate-800">
                 <div className="text-center mb-8">
-                    <div className="w-24 h-24 mx-auto mb-4 overflow-hidden rounded-3xl shadow-2xl border-2 border-white/20">
+                    <div className="w-24 h-24 mx-auto mb-4 overflow-hidden rounded-3xl shadow-xl border-2 border-white/50 bg-white">
                         <img 
                             src="/JLlogo.png" 
                             alt="Logo Sweet Ink" 
                             className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500" 
                         />
                     </div>
-                    <h1 className="text-3xl font-black text-white tracking-tight">Sweet Ink</h1>
+                    <h1 className="text-3xl font-black text-slate-800 tracking-tight">Sweet Ink</h1>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {error && (<div className="p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-xs flex items-center gap-2"><AlertCircle size={16} /> {error}</div>)}
-                    <div className="space-y-1"><label className="text-xs font-bold text-slate-400 uppercase ml-1">Correo</label><input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-3 pl-10 text-white focus:outline-none focus:border-teal-500" placeholder="admin@jl-inversiones.com" /></div>
-                    <div className="space-y-1"><label className="text-xs font-bold text-slate-400 uppercase ml-1">Contraseña</label><input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-3 pl-10 text-white focus:outline-none focus:border-teal-500" placeholder="••••••••" /></div>
-                    <button type="submit" disabled={loading} className="w-full text-slate-900 font-bold py-3 rounded-xl shadow-lg transition-all disabled:opacity-50 flex justify-center items-center gap-2 bg-gradient-to-r from-teal-400 to-teal-600 hover:shadow-teal-500/30">{loading ? <Loader2 size={20} className="animate-spin" /> : 'Iniciar Sesión'}</button>
+                    {error && (<div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2"><AlertCircle size={16} /> {error}</div>)}
+                    <div className="space-y-1"><label className="text-xs font-bold text-slate-500 uppercase ml-1">Correo</label><input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/80 border border-slate-200 rounded-xl py-3 pl-4 text-slate-800 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20" placeholder="admin@sweetink.com" /></div>
+                    <div className="space-y-1"><label className="text-xs font-bold text-slate-500 uppercase ml-1">Contraseña</label><input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/80 border border-slate-200 rounded-xl py-3 pl-4 text-slate-800 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20" placeholder="••••••••" /></div>
+                    <button type="submit" disabled={loading} className="w-full text-white font-bold py-3 rounded-xl shadow-lg transition-all disabled:opacity-50 flex justify-center items-center gap-2 bg-gradient-to-r from-teal-500 via-purple-500 to-pink-500 hover:shadow-teal-500/20">{loading ? <Loader2 size={20} className="animate-spin" /> : 'Iniciar Sesión'}</button>
                     <div className="text-center mt-4">
                         <p className="text-xs text-slate-400">Acceso restringido a personal autorisado.</p>
                         {onViewPublicCatalog && (
                             <button 
                                 type="button" 
                                 onClick={onViewPublicCatalog} 
-                                className="mt-4 text-xs font-black text-teal-500 hover:text-teal-400 hover:underline uppercase tracking-wider block mx-auto transition-all duration-300"
+                                className="mt-4 text-xs font-black text-teal-600 hover:text-teal-700 hover:underline uppercase tracking-wider block mx-auto transition-all duration-300"
                             >
                                 Ver Catálogo de Productos
                             </button>
@@ -647,6 +647,24 @@ const LoginScreen = ({ onLogin, onViewPublicCatalog }) => {
             </GlassCard>
         </div>
     );
+};
+
+const getActiveTabStyle = (tabId) => {
+    const styles = {
+        dashboard: 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-pink-500/25',
+        pos: 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg shadow-teal-500/25',
+        pending: 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/25',
+        history: 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg shadow-purple-500/25',
+        customers: 'bg-gradient-to-r from-blue-500 to-sky-600 text-white shadow-lg shadow-blue-500/25',
+        products: 'bg-gradient-to-r from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-500/25',
+        inventory: 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-lg shadow-fuchsia-500/25',
+        inventory_history: 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-lg shadow-teal-500/25',
+        balance: 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/25',
+        reports: 'bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-lg shadow-orange-500/25',
+        bitacora: 'bg-gradient-to-r from-slate-600 to-indigo-700 text-white shadow-lg shadow-slate-500/25',
+        settings: 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25'
+    };
+    return styles[tabId] || 'bg-teal-500 text-white shadow-lg shadow-teal-500/25';
 };
 
 const DEFAULT_PERMISSIONS_BY_ROLE = {
@@ -2235,18 +2253,18 @@ export default function App() {
 
     return (
         <div className="flex h-[100dvh] bg-slate-100 font-sans text-slate-800 overflow-hidden text-xs md:text-sm lg:text-base">
-            <aside className={`fixed z-40 inset-y-0 left-0 w-72 bg-slate-900 text-white transform transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl flex flex-col`}>
-                <div className="p-6 flex items-center gap-3 border-b border-slate-700/50">
+            <aside className={`fixed z-40 inset-y-0 left-0 w-72 bg-white text-slate-800 border-r border-slate-200 transform transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl flex flex-col`}>
+                <div className="p-6 flex items-center gap-3 border-b border-slate-200/60">
                     <div className="w-12 h-12 rounded-xl border border-slate-700 overflow-hidden bg-white flex items-center justify-center shrink-0 shadow-lg"><img src="/JLlogo.png" alt="Logo" className="w-full h-full object-cover" /></div>
                     <div>
-                        <h1 className="text-xl font-black tracking-tight text-white">Sweet Ink</h1>
+                        <h1 className="text-xl font-black tracking-tight text-slate-800">Sweet Ink</h1>
                         <FixedClock />
                     </div>
                     <button className="md:hidden ml-auto p-2" onClick={() => setIsMobileMenuOpen(false)}><X /></button>
                 </div>
 
                 <div className="px-6 py-2">
-                    <div className={`text-xs px-2 py-1 rounded flex items-center gap-2 border ${connectionStatus.error ? 'bg-red-900/50 text-red-200 border-red-800' : 'bg-slate-800 text-teal-500 border-slate-700'}`}>
+                    <div className={`text-xs px-2 py-1 rounded flex items-center gap-2 border ${connectionStatus.error ? 'bg-red-50 text-red-600 border-red-200' : 'bg-slate-50 text-teal-600 border-slate-200'}`}>
                         {connectionStatus.connected ? <Wifi size={12} /> : <WifiOff size={12} />}
                         <span className="truncate">{connectionStatus.error ? 'Error de Conexión' : user.email}</span>
                     </div>
@@ -2266,9 +2284,9 @@ export default function App() {
                             <div className="space-y-1">
                                 <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider px-3 mb-1">Operaciones</div>
                                 {items.map(item => (
-                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-teal-500 text-slate-900 shadow-xl shadow-teal-500/10' : 'text-slate-400 hover:bg-slate-800'}`}>
+                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === item.id ? getActiveTabStyle(item.id) : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
                                         {item.icon} <span className="truncate">{item.label}</span>
-                                        {item.count > 0 && <span className="ml-auto bg-slate-800 text-teal-500 text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count}</span>}
+                                        {item.count > 0 && <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === item.id ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'}`}>{item.count}</span>}
                                     </button>
                                 ))}
                             </div>
@@ -2286,9 +2304,9 @@ export default function App() {
                             <div className="space-y-1">
                                 <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider px-3 mb-1">Catálogo</div>
                                 {items.map(item => (
-                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-teal-500 text-slate-900 shadow-xl shadow-teal-500/10' : 'text-slate-400 hover:bg-slate-800'}`}>
+                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === item.id ? getActiveTabStyle(item.id) : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
                                         {item.icon} <span className="truncate">{item.label}</span>
-                                        {item.count > 0 && <span className="ml-auto bg-slate-800 text-teal-500 text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count}</span>}
+                                        {item.count > 0 && <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === item.id ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'}`}>{item.count}</span>}
                                     </button>
                                 ))}
                             </div>
@@ -2307,16 +2325,16 @@ export default function App() {
                             <div className="space-y-1">
                                 <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider px-3 mb-1">Administración</div>
                                 {items.map(item => (
-                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-teal-500 text-slate-900 shadow-xl shadow-teal-500/10' : 'text-slate-400 hover:bg-slate-800'}`}>
+                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === item.id ? getActiveTabStyle(item.id) : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
                                         {item.icon} <span className="truncate">{item.label}</span>
-                                        {item.count > 0 && <span className="ml-auto bg-slate-800 text-teal-500 text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count}</span>}
+                                        {item.count > 0 && <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === item.id ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'}`}>{item.count}</span>}
                                     </button>
                                 ))}
                             </div>
                         );
                     })()}
                 </nav>
-                <div className="p-4 border-t border-slate-700/50 bg-slate-800/50 space-y-3"><div className="flex items-center gap-2 bg-slate-900 p-2 rounded-lg border border-slate-700"><DollarSign size={16} className="text-green-400" /><input type="number" value={exchangeRate} onChange={(e) => handleUpdateExchangeRate(parseFloat(e.target.value))} className="bg-transparent w-full text-white font-mono text-right focus:outline-none" /><span className="text-slate-500 text-xs">Bs</span></div><button onClick={() => handleLogout()} className="w-full flex items-center gap-2 p-2 text-sm text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"><LogOut size={16} /> Cerrar Sesión</button></div>
+                <div className="p-4 border-t border-slate-200 bg-slate-50 space-y-3"><div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200"><DollarSign size={16} className="text-green-600" /><input type="number" value={exchangeRate} onChange={(e) => handleUpdateExchangeRate(parseFloat(e.target.value))} className="bg-transparent w-full text-slate-800 font-mono text-right focus:outline-none" /><span className="text-slate-400 text-xs">Bs</span></div><button onClick={() => handleLogout()} className="w-full flex items-center gap-2 p-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"><LogOut size={16} /> Cerrar Sesión</button></div>
             </aside>
 
             <main className="flex-1 overflow-y-auto relative p-4 md:p-6 lg:p-8 bg-slate-100">
