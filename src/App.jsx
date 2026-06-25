@@ -9,7 +9,7 @@ import {
     ShieldCheck, Hash, CreditCard, Receipt, Clock3, Filter, SortAsc, SortDesc,
     Maximize2, Minimize2, CalendarDays, ChevronLeft, ChevronRight, Upload, Database,
     Cloud, Wifi, WifiOff, LogOut, LogIn, Lock, User, Mail, Key, Users, UserPlus, UserMinus,
-    CheckCircle, Activity, Link, UserCog, UserCheck, Timer, FileSearch
+    CheckCircle, Activity, Link, UserCog, UserCheck, Timer, FileSearch, Play, Truck
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -369,9 +369,10 @@ const Badge = ({ children, type = "neutral" }) => {
         success: "bg-emerald-100/60 text-emerald-800 border border-emerald-200/50",
         warning: "bg-amber-100/60 text-amber-800 border border-amber-200/50",
         danger: "bg-red-100/60 text-red-800 border border-red-200/50",
-        info: "bg-blue-100/60 text-blue-800 border border-blue-200/50"
+        info: "bg-blue-100/60 text-blue-800 border border-blue-200/50",
+        purple: "bg-purple-100/60 text-purple-800 border border-purple-200/50"
     };
-    return <span className={`px-1.5 py-0.5 md:px-2 md:py-0.5 rounded-lg text-[9px] md:text-xs font-bold backdrop-blur-sm whitespace-nowrap ${styles[type]}`}>{children}</span>;
+    return <span className={`px-1.5 py-0.5 md:px-2 md:py-0.5 rounded-lg text-[9px] md:text-xs font-bold backdrop-blur-sm whitespace-nowrap ${styles[type] || styles.neutral}`}>{children}</span>;
 };
 
 const PriceDisplay = ({ amount = 0, className = "", exchangeRate, size = "normal", align = "left", hideSecondary = false }) => {
@@ -1086,9 +1087,30 @@ const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, curr
 
 
 
+const getStatusLabel = (status) => {
+    switch (status) {
+        case 'pending': return 'Pendiente';
+        case 'in_progress': return 'En proceso';
+        case 'ready': return 'Listo';
+        case 'to_deliver': return 'Por entregar';
+        default: return 'Pendiente';
+    }
+};
+
+const getStatusBadgeType = (status) => {
+    switch (status) {
+        case 'pending': return 'warning';
+        case 'in_progress': return 'info';
+        case 'ready': return 'success';
+        case 'to_deliver': return 'purple';
+        default: return 'warning';
+    }
+};
+
 // --- COMPONENTE PRINCIPAL APP ---
 export default function App() {
     const [activeTab, setActiveTab] = useState('dashboard');
+    const [pendingSubTab, setPendingSubTab] = useState('pending');
     const [currencyMode, setCurrencyMode] = useState(() => localStorage.getItem('currencyMode') || 'USD');
     const [user, setUser] = useState(null);
     const [authLoading, setAuthLoading] = useState(true);
@@ -1323,8 +1345,8 @@ export default function App() {
         const pending = pendingOrders.map(o => ({
             ...o,
             type: 'pending',
-            statusLabel: 'Pendiente',
-            badgeType: 'warning',
+            statusLabel: getStatusLabel(o.status || 'pending'),
+            badgeType: getStatusBadgeType(o.status || 'pending'),
             rawDate: o.date
         }));
         const completed = salesHistory.map(s => ({
@@ -1607,7 +1629,10 @@ export default function App() {
         const isUpdate = editingOrderId !== null;
         const orderId = isUpdate ? editingOrderId : generateSecureId();
         const desc = saleDescription || "Cliente General";
-        const order = { id: orderId, date: new Date().toISOString(), items: cart, total: cart.reduce((s, i) => s + i.price * i.qty, 0), description: desc, status: 'pending', deliveryDate: orderDeliveryDate, designLink: orderDesignLink };
+        const originalOrder = isUpdate ? pendingOrders.find(o => o.id === editingOrderId) : null;
+        const status = isUpdate && originalOrder ? (originalOrder.status || 'pending') : 'pending';
+        const date = isUpdate && originalOrder ? originalOrder.date : new Date().toISOString();
+        const order = { id: orderId, date, items: cart, total: cart.reduce((s, i) => s + i.price * i.qty, 0), description: desc, status, deliveryDate: orderDeliveryDate, designLink: orderDesignLink };
 
         // Calculamos la diferencia neta de inventario a descontar/devolver
         const stockDeductions = {};
@@ -1658,6 +1683,54 @@ export default function App() {
         logActivity('Pedido', `Orden ${isUpdate ? 'actualizada' : 'enviada a pendientes'}: ${desc}`);
         showNotification(isUpdate ? "Orden actualizada" : "Enviada a pendientes");
         setCart([]); setSaleDescription(""); setOrderDeliveryDate(""); setOrderDesignLink(""); setEditingOrderId(null); setIsCartOpenMobile(false); if (isUpdate) setActiveTab('pending');
+    };
+
+    const handleAdvanceOrder = (order) => {
+        let newStatus = 'pending';
+        let actionDesc = '';
+        const currentStatus = order.status || 'pending';
+        
+        if (currentStatus === 'pending') {
+            newStatus = 'in_progress';
+            actionDesc = 'iniciado (En Proceso)';
+        } else if (currentStatus === 'in_progress') {
+            newStatus = 'ready';
+            actionDesc = 'marcado como Listo';
+        } else if (currentStatus === 'ready') {
+            newStatus = 'to_deliver';
+            actionDesc = 'marcado como Por Entregar';
+        } else {
+            return;
+        }
+        
+        const updatedOrder = { ...order, status: newStatus };
+        saveToDB('pending_orders', updatedOrder, order.id);
+        logActivity('Pedido', `Pedido ${actionDesc}: ${order.description}`);
+        showNotification(`Pedido movido a ${getStatusLabel(newStatus)}`);
+    };
+
+    const handleMoveBackOrder = (order) => {
+        let newStatus = 'pending';
+        let actionDesc = '';
+        const currentStatus = order.status || 'pending';
+        
+        if (currentStatus === 'in_progress') {
+            newStatus = 'pending';
+            actionDesc = 'devuelto a Pendientes';
+        } else if (currentStatus === 'ready') {
+            newStatus = 'in_progress';
+            actionDesc = 'devuelto a En Proceso';
+        } else if (currentStatus === 'to_deliver') {
+            newStatus = 'ready';
+            actionDesc = 'devuelto a Listo';
+        } else {
+            return;
+        }
+        
+        const updatedOrder = { ...order, status: newStatus };
+        saveToDB('pending_orders', updatedOrder, order.id);
+        logActivity('Pedido', `Pedido ${actionDesc}: ${order.description}`);
+        showNotification(`Pedido devuelto a ${getStatusLabel(newStatus)}`, 'warning');
     };
 
     const handleCancelPendingOrder = (order) => {
@@ -2779,26 +2852,207 @@ export default function App() {
                 )}
 
                 {/* --- PENDIENTES --- */}
-                {activeTab === 'pending' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><header className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/40 p-4 md:p-6 rounded-[2rem] border border-white/40 shadow-md backdrop-blur-xl w-full"><div><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Clock3 className="text-teal-600" /> Pendientes</h2></div><div className="w-full md:w-auto"><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} /></div></header><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-20">{filterAndSort(pendingOrders, ['description', 'id']).map(order => (<GlassCard key={order.id} className="border-l-4 border-teal-500 p-0 flex flex-col"><div className="p-4 bg-teal-50 flex justify-between"><div><h3 className="font-bold text-lg">{order.description}</h3><p className="text-xs text-slate-500">{formatDateApp(order.date, 'time')} {order.deliveryDate && <span className="text-red-500 font-bold ml-2">Entrega: {order.deliveryDate}</span>}</p></div><Badge type="warning">Pendiente</Badge></div><div className="p-4 flex-1 space-y-1">{order.items.map((i, idx) => <div key={idx} className="flex justify-between text-sm"><span className="text-slate-600"><b>{i.qty}</b> {i.name} {i.variantDetails ? <span className="text-xs text-indigo-500">({i.variantDetails})</span> : ""}</span></div>)}</div><div className="p-4 bg-white border-t flex flex-col gap-3"><div className="flex justify-between items-end">
-                                            <span className="text-xs text-slate-400">Total</span>
-                                            <PriceDisplay amount={order.total} exchangeRate={exchangeRate} align="right" />
-                                        </div>
-                                            {hasPermission('pending', 'edit') ? (
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    <button onClick={() => { setCart(order.items); setSaleDescription(order.description); setOrderDeliveryDate(order.deliveryDate || ""); setOrderDesignLink(order.designLink || ""); setEditingOrderId(order.id); setActiveTab('pos'); }} className="py-3 md:py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation hover:bg-slate-200 transition-colors">
-                                                        <Edit size={14} /> Editar
-                                                    </button>
-                                                    <button onClick={() => handleCancelPendingOrder(order)} className="py-3 md:py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation hover:bg-red-100 transition-colors">
-                                                        <Trash2 size={14} /> Cancelar
-                                                    </button>
-                                                    <button onClick={() => handleCobrar(order)} className="py-3 md:py-2 bg-gradient-to-br from-teal-400 to-teal-600 text-slate-900 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation shadow-lg shadow-teal-500/20 active:shadow-none transition-all">
-                                                        <Zap size={14} /> Cobrar
-                                                    </button>
+                {activeTab === 'pending' && (() => {
+                    const pendingCount = pendingOrders.filter(o => !o.status || o.status === 'pending').length;
+                    const inProgressCount = pendingOrders.filter(o => o.status === 'in_progress').length;
+                    const readyCount = pendingOrders.filter(o => o.status === 'ready').length;
+                    const toDeliverCount = pendingOrders.filter(o => o.status === 'to_deliver').length;
+                    
+                    const stageStyles = {
+                        pending: { border: 'border-amber-500', bg: 'bg-amber-50/50', badge: 'warning' },
+                        in_progress: { border: 'border-blue-500', bg: 'bg-blue-50/50', badge: 'info' },
+                        ready: { border: 'border-emerald-500', bg: 'bg-emerald-50/50', badge: 'success' },
+                        to_deliver: { border: 'border-purple-500', bg: 'bg-purple-50/50', badge: 'purple' }
+                    };
+
+                    const currentTabOrders = pendingOrders.filter(o => (o.status || 'pending') === pendingSubTab);
+                    const filteredAndSortedOrders = filterAndSort(currentTabOrders, ['description', 'id']);
+
+                    return (
+                        <div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0">
+                            <header className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/40 p-4 md:p-6 rounded-[2rem] border border-white/40 shadow-md backdrop-blur-xl w-full">
+                                <div>
+                                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+                                        <Clock3 className="text-teal-600" /> Pedidos
+                                    </h2>
+                                </div>
+                                <div className="w-full md:w-auto">
+                                    <AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} />
+                                </div>
+                            </header>
+
+                            {/* Sub-apartados de Pedidos */}
+                            <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                                {[
+                                    { id: 'pending', label: 'Pendientes', count: pendingCount, color: 'border-amber-500 text-amber-700 bg-amber-50' },
+                                    { id: 'in_progress', label: 'En proceso', count: inProgressCount, color: 'border-blue-500 text-blue-700 bg-blue-50' },
+                                    { id: 'ready', label: 'Listos', count: readyCount, color: 'border-emerald-500 text-emerald-700 bg-emerald-50' },
+                                    { id: 'to_deliver', label: 'Por entregar', count: toDeliverCount, color: 'border-purple-500 text-purple-700 bg-purple-50' },
+                                ].map(tab => {
+                                    const isActive = pendingSubTab === tab.id;
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setPendingSubTab(tab.id)}
+                                            className={`px-4 py-2.5 rounded-2xl border-2 flex items-center gap-2 font-bold text-sm transition-all whitespace-nowrap shadow-sm hover:scale-[1.02] ${
+                                                isActive 
+                                                    ? `${tab.color} ring-2 ring-offset-2 ring-teal-500/20` 
+                                                    : 'border-white/60 bg-white/40 text-slate-600 hover:text-slate-900 backdrop-blur-md'
+                                            }`}
+                                        >
+                                            {tab.label}
+                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                                                isActive 
+                                                    ? 'bg-slate-800 text-white' 
+                                                    : 'bg-slate-200 text-slate-600'
+                                            }`}>
+                                                {tab.count}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {filteredAndSortedOrders.length === 0 ? (
+                                <div className="py-16 text-center bg-white/30 rounded-[2rem] border border-white/30 backdrop-blur-md">
+                                    <Clock3 size={48} className="mx-auto text-slate-400/80 mb-3" />
+                                    <h3 className="font-bold text-slate-700 text-lg">No hay pedidos</h3>
+                                    <p className="text-slate-500 text-sm mt-1">No se encontraron pedidos en la etapa "{getStatusLabel(pendingSubTab)}"</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-20">
+                                    {filteredAndSortedOrders.map(order => {
+                                        const currentStyle = stageStyles[order.status || 'pending'] || stageStyles.pending;
+                                        return (
+                                            <GlassCard key={order.id} className={`border-l-4 ${currentStyle.border} p-0 flex flex-col`}>
+                                                <div className={`p-4 ${currentStyle.bg} flex justify-between items-center`}>
+                                                    <div>
+                                                        <h3 className="font-bold text-lg">{order.description}</h3>
+                                                        <p className="text-xs text-slate-500">
+                                                            {formatDateApp(order.date, 'time')} 
+                                                            {order.deliveryDate && <span className="text-red-500 font-bold ml-2">Entrega: {order.deliveryDate}</span>}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        {order.status && order.status !== 'pending' && (
+                                                            <button 
+                                                                onClick={() => handleMoveBackOrder(order)}
+                                                                className="p-1 bg-white/80 hover:bg-white text-slate-500 hover:text-slate-800 rounded-lg border border-slate-200 transition-colors"
+                                                                title="Regresar a etapa anterior"
+                                                            >
+                                                                <ChevronLeft size={14} />
+                                                            </button>
+                                                        )}
+                                                        <Badge type={currentStyle.badge}>{getStatusLabel(order.status || 'pending')}</Badge>
+                                                    </div>
                                                 </div>
-                                            ) : (
-                                                <div className="text-center text-xs text-slate-400 italic py-2">Solo Lectura</div>
-                                            )}
-                                        </div></GlassCard>))}</div></div>)}
+                                                <div className="p-4 flex-1 space-y-1">
+                                                    {order.items.map((i, idx) => (
+                                                        <div key={idx} className="flex justify-between text-sm">
+                                                            <span className="text-slate-600">
+                                                                <b>{i.qty}</b> {i.name} {i.variantDetails ? <span className="text-xs text-indigo-500">({i.variantDetails})</span> : ""}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                    {order.designLink && (
+                                                        <div className="mt-3 flex items-center justify-between text-xs border-t border-slate-100 pt-2">
+                                                            <span className="text-slate-400">Diseño</span>
+                                                            <a 
+                                                                href={order.designLink.startsWith('http') ? order.designLink : `https://${order.designLink}`} 
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer" 
+                                                                className="text-teal-600 hover:text-teal-800 font-bold flex items-center gap-1 transition-colors"
+                                                            >
+                                                                <Link size={12} /> Ver Diseño
+                                                            </a>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="p-4 bg-white border-t flex flex-col gap-3">
+                                                    <div className="flex justify-between items-end">
+                                                        <span className="text-xs text-slate-400">Total</span>
+                                                        <PriceDisplay amount={order.total} exchangeRate={exchangeRate} align="right" />
+                                                    </div>
+                                                    {hasPermission('pending', 'edit') ? (
+                                                        <div className="grid grid-cols-3 gap-2">
+                                                            <button 
+                                                                onClick={() => { 
+                                                                    setCart(order.items); 
+                                                                    setSaleDescription(order.description); 
+                                                                    setOrderDeliveryDate(order.deliveryDate || ""); 
+                                                                    setOrderDesignLink(order.designLink || ""); 
+                                                                    setEditingOrderId(order.id); 
+                                                                    setActiveTab('pos'); 
+                                                                }} 
+                                                                className="py-3 md:py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation hover:bg-slate-200 transition-colors"
+                                                                title="Editar Pedido"
+                                                            >
+                                                                <Edit size={14} /> Editar
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleCancelPendingOrder(order)} 
+                                                                className="py-3 md:py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation hover:bg-red-100 transition-colors"
+                                                                title="Cancelar y Devolver Stock"
+                                                            >
+                                                                <Trash2 size={14} /> Cancelar
+                                                            </button>
+                                                            {(() => {
+                                                                const status = order.status || 'pending';
+                                                                if (status === 'pending') {
+                                                                    return (
+                                                                        <button 
+                                                                            onClick={() => handleAdvanceOrder(order)} 
+                                                                            className="py-3 md:py-2 bg-gradient-to-br from-amber-400 to-amber-600 text-slate-900 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation shadow-lg shadow-amber-500/20 active:shadow-none transition-all hover:brightness-110"
+                                                                            title="Preparar Pedido"
+                                                                        >
+                                                                            <Play size={14} /> Preparar
+                                                                        </button>
+                                                                    );
+                                                                } else if (status === 'in_progress') {
+                                                                    return (
+                                                                        <button 
+                                                                            onClick={() => handleAdvanceOrder(order)} 
+                                                                            className="py-3 md:py-2 bg-gradient-to-br from-blue-400 to-blue-600 text-white rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation shadow-lg shadow-blue-500/20 active:shadow-none transition-all hover:brightness-110"
+                                                                            title="Marcar como Listo"
+                                                                        >
+                                                                            <CheckCircle size={14} /> Terminar
+                                                                        </button>
+                                                                    );
+                                                                } else if (status === 'ready') {
+                                                                    return (
+                                                                        <button 
+                                                                            onClick={() => handleAdvanceOrder(order)} 
+                                                                            className="py-3 md:py-2 bg-gradient-to-br from-emerald-400 to-emerald-600 text-slate-900 rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation shadow-lg shadow-emerald-500/20 active:shadow-none transition-all hover:brightness-110"
+                                                                            title="Preparar Despacho"
+                                                                        >
+                                                                            <Truck size={14} /> Despachar
+                                                                        </button>
+                                                                    );
+                                                                } else if (status === 'to_deliver') {
+                                                                    return (
+                                                                        <button 
+                                                                            onClick={() => handleCobrar(order)} 
+                                                                            className="py-3 md:py-2 bg-gradient-to-br from-purple-400 to-purple-600 text-white rounded-lg text-xs font-bold flex justify-center items-center gap-1 touch-manipulation shadow-lg shadow-purple-500/20 active:shadow-none transition-all hover:brightness-110"
+                                                                            title="Cobrar y Finalizar"
+                                                                        >
+                                                                            <Zap size={14} /> Cobrar
+                                                                        </button>
+                                                                    );
+                                                                }
+                                                            })()}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-center text-xs text-slate-400 italic py-2">Solo Lectura</div>
+                                                    )}
+                                                </div>
+                                            </GlassCard>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {/* --- MENÚ / PRODUCTOS --- */}
                 {activeTab === 'products' && (
