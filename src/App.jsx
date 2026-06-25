@@ -283,7 +283,7 @@ const useDataSync = (user, appId, isPublicCatalogMode = false) => {
             unsubs.push(
                 subscribe(publicPath('ingredients'), 'ingredients'),
                 subscribe(publicPath('products'), 'products'),
-                subscribe(publicPath('pending_orders'), 'pending_orders'),
+                subscribe(publicPath('pending_orders'), 'pendingOrders'),
                 subscribe(publicPath('users'), 'appUsers'),
                 subscribe(publicPath('customers'), 'customers')
             );
