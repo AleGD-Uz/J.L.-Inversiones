@@ -9,13 +9,17 @@ import {
     ShieldCheck, Hash, CreditCard, Receipt, Clock3, Filter, SortAsc, SortDesc,
     Maximize2, Minimize2, CalendarDays, ChevronLeft, ChevronRight, Upload, Database,
     Cloud, Wifi, WifiOff, LogOut, LogIn, Lock, User, Mail, Key, Users, UserPlus, UserMinus,
-    CheckCircle, Activity, Link, UserCog, UserCheck, Timer, FileSearch, Play, Truck
+    CheckCircle, Activity, Link, UserCog, UserCheck, Timer, FileSearch, Play, Truck,
+    Gift
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     AreaChart, Area
 } from 'recharts';
 import FloatingCalculator from './components/FloatingCalculator';
+import { useSales } from './hooks/useSales';
+import HistoryView from './components/HistoryView';
+import ReceiptModal from './components/ReceiptModal';
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp, getApp, getApps } from "firebase/app";
@@ -30,7 +34,8 @@ import {
     onAuthStateChanged,
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
-    signOut
+    signOut,
+    sendPasswordResetEmail
 } from "firebase/auth";
 
 // =========================================================================
@@ -660,7 +665,7 @@ const PublicCatalogScreen = ({ products, exchangeRate, onGoToLogin, user }) => {
     );
 };
 
-const LoginScreen = ({ onLogin, onViewPublicCatalog }) => {
+const LoginScreen = ({ onLogin, onViewPublicCatalog, onEnterLocalMode }) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState(null);
@@ -695,6 +700,17 @@ const LoginScreen = ({ onLogin, onViewPublicCatalog }) => {
                     <div className="space-y-1"><label className="text-xs font-bold text-slate-500 uppercase ml-1">Correo</label><input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/80 border border-slate-200 rounded-xl py-3 pl-4 text-slate-800 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20" placeholder="admin@sweetink.com" /></div>
                     <div className="space-y-1"><label className="text-xs font-bold text-slate-500 uppercase ml-1">Contraseña</label><input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/80 border border-slate-200 rounded-xl py-3 pl-4 text-slate-800 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20" placeholder="••••••••" /></div>
                     <button type="submit" disabled={loading} className="w-full text-white font-bold py-3 rounded-xl shadow-lg transition-all disabled:opacity-50 flex justify-center items-center gap-2 bg-gradient-to-r from-teal-500 via-purple-500 to-pink-500 hover:shadow-teal-500/20">{loading ? <Loader2 size={20} className="animate-spin" /> : 'Iniciar Sesión'}</button>
+
+                    {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
+                        <button 
+                            type="button" 
+                            onClick={onEnterLocalMode} 
+                            className="w-full text-slate-700 hover:text-teal-700 font-bold py-3 rounded-xl border border-slate-200 hover:border-teal-500 bg-white hover:bg-teal-50/20 transition-all flex justify-center items-center gap-2 mt-2 shadow-sm"
+                        >
+                            <Gift size={16} className="text-teal-600 animate-pulse" /> Modo Demo Local (Sin Servidor)
+                        </button>
+                    )}
+
                     <div className="text-center mt-4">
                         <p className="text-xs text-slate-400">Acceso restringido a personal autorisado.</p>
                         {onViewPublicCatalog && (
@@ -792,7 +808,7 @@ const DEFAULT_PERMISSIONS_BY_ROLE = {
 };
 
 // --- GESTIÓN DE USUARIOS ---
-const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, currentUserId }) => {
+const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, onResetPassword, currentUserId }) => {
     const [isCreating, setIsCreating] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const [newEmail, setNewEmail] = useState("");
@@ -998,6 +1014,25 @@ const UserManagement = ({ appUsers, onCreateUser, onEditUser, onDeleteUser, curr
                                 </div>
                             )}
 
+                            {/* Cambio de Contraseña para Administradores */}
+                            {onResetPassword && editingUser.uid !== currentUserId && (
+                                <div className="bg-slate-100 p-4 rounded-2xl border border-slate-200/60 space-y-2 text-left">
+                                    <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Seguridad</h5>
+                                    <p className="text-[10px] text-slate-400">Envía un correo de restablecimiento de contraseña oficial para este usuario.</p>
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            if (confirm(`¿Enviar correo de restablecimiento de contraseña a ${editingUser.email}?`)) {
+                                                await onResetPassword(editingUser.email);
+                                            }
+                                        }}
+                                        className="w-full py-2.5 bg-white hover:bg-slate-100/50 text-teal-600 border border-slate-200 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
+                                    >
+                                        <Key size={14} /> Enviar Cambio de Contraseña
+                                    </button>
+                                </div>
+                            )}
+
                             <div className="flex items-center justify-between pt-4 border-t border-slate-200">
                                 <button 
                                     type="button" 
@@ -1107,6 +1142,22 @@ const getStatusBadgeType = (status) => {
     }
 };
 
+const getLocalKey = (col) => {
+    switch (col) {
+        case 'ingredients': return 'ingredients';
+        case 'products': return 'products';
+        case 'pending_orders': return 'pendingOrders';
+        case 'users': return 'appUsers';
+        case 'customers': return 'customers';
+        case 'sales': return 'salesHistory';
+        case 'stock_history': return 'stockHistory';
+        case 'bitacora': return 'bitacoraLogs';
+        case 'config': return 'config';
+        case 'other_expenses': return 'otherExpenses';
+        default: return col;
+    }
+};
+
 // --- COMPONENTE PRINCIPAL APP ---
 export default function App() {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -1115,8 +1166,82 @@ export default function App() {
     const [user, setUser] = useState(null);
     const [authLoading, setAuthLoading] = useState(true);
     const [isPublicCatalogMode, setIsPublicCatalogMode] = useState(false);
-
     const [currentAppId, setCurrentAppId] = useState(ENV_APP_ID);
+
+    const [isLocalMode, setIsLocalMode] = useState(() => localStorage.getItem('isLocalMode') === 'true');
+
+    // Inicializar datos locales cargados desde localStorage o semillas
+    const [localData, setLocalData] = useState(() => {
+        const getLocalStorageItem = (key, defaultValue) => {
+            const stored = localStorage.getItem(`local_db_${key}`);
+            return stored ? JSON.parse(stored) : defaultValue;
+        };
+
+        const defaultUsers = [
+            {
+                id: 'local-dev',
+                uid: 'local-dev',
+                name: 'Desarrollador Local (Modo Demo)',
+                email: 'dev@jl-inversiones.local',
+                role: 'Gerente',
+                isActive: true,
+                permissions: {
+                    dashboard: { view: true, edit: true },
+                    pos: { view: true, edit: true },
+                    pending: { view: true, edit: true },
+                    history: { view: true, edit: true },
+                    products: { view: true, edit: true },
+                    inventory: { view: true, edit: true },
+                    inventory_history: { view: true, edit: true },
+                    customers: { view: true, edit: true },
+                    balance: { view: true, edit: true },
+                    reports: { view: true, edit: true }
+                }
+            }
+        ];
+
+        const defaultIngredients = [
+            { id: 'ing-1', name: 'Camisa Algodón Blanca', stock: 120, minStock: 20, unit: 'Unid', cost: 5.50 },
+            { id: 'ing-2', name: 'Camisa Algodón Negra', stock: 95, minStock: 20, unit: 'Unid', cost: 5.50 },
+            { id: 'ing-3', name: 'Taza Cerámica Blanca', stock: 150, minStock: 30, unit: 'Unid', cost: 1.20 }
+        ];
+
+        const defaultProducts = [
+            { 
+                id: 'prod-1', 
+                name: 'Camisa Personalizada', 
+                price: 15.00, 
+                category: 'Textil', 
+                image: '👕', 
+                recipe: [
+                    { ingredientId: 'ing-1', qty: 1 }
+                ] 
+            },
+            { 
+                id: 'prod-2', 
+                name: 'Taza Sublimada', 
+                price: 8.50, 
+                category: 'Tazas', 
+                image: '☕', 
+                recipe: [
+                    { ingredientId: 'ing-3', qty: 1 }
+                ] 
+            }
+        ];
+
+        return {
+            ingredients: getLocalStorageItem('ingredients', defaultIngredients),
+            products: getLocalStorageItem('products', defaultProducts),
+            salesHistory: getLocalStorageItem('sales', []),
+            stockHistory: getLocalStorageItem('stock_history', []),
+            otherExpenses: getLocalStorageItem('other_expenses', []),
+            pendingOrders: getLocalStorageItem('pending_orders', []),
+            appUsers: getLocalStorageItem('users', defaultUsers),
+            bitacoraLogs: getLocalStorageItem('bitacora', []),
+            config: getLocalStorageItem('config', { exchangeRate: 40.50 }),
+            customers: getLocalStorageItem('customers', [])
+        };
+    });
 
     // Mover variables de fechas y periodos arriba para que useDataSync las pueda consumir
     const [startDate, setStartDate] = useState("");
@@ -1125,6 +1250,20 @@ export default function App() {
     const [viewMode, setViewMode] = useState('daily');
 
     useEffect(() => {
+        const isLocal = localStorage.getItem('isLocalMode') === 'true';
+        if (isLocal) {
+            setUser({
+                uid: 'local-dev',
+                id: 'local-dev',
+                email: 'dev@jl-inversiones.local',
+                displayName: 'Desarrollador Local',
+                role: 'Gerente',
+                isLocal: true
+            });
+            setAuthLoading(false);
+            return;
+        }
+
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
             setAuthLoading(false);
@@ -1149,9 +1288,18 @@ export default function App() {
         localStorage.setItem('currencyMode', currencyMode);
     }, [currencyMode]);
 
-    const handleLogout = useCallback(() => signOut(auth).then(() => {
-        setUser(null);
-    }), []);
+    const handleLogout = useCallback(() => {
+        const isLocal = localStorage.getItem('isLocalMode') === 'true';
+        if (isLocal) {
+            setIsLocalMode(false);
+            localStorage.removeItem('isLocalMode');
+            setUser(null);
+            return Promise.resolve();
+        }
+        return signOut(auth).then(() => {
+            setUser(null);
+        });
+    }, []);
 
     const isIdle = useIdleTimer(1800000, () => {
         if (user) {
@@ -1160,7 +1308,18 @@ export default function App() {
         }
     });
 
-    const { data, status: connectionStatus, loading: dataLoading } = useDataSync(user, currentAppId, isPublicCatalogMode);
+    const { data: firestoreData, status: rawConnectionStatus, loading: rawDataLoading } = useDataSync(
+        isLocalMode ? null : user, 
+        currentAppId, 
+        isPublicCatalogMode
+    );
+
+    const data = isLocalMode ? localData : firestoreData;
+    const connectionStatus = isLocalMode 
+        ? { connected: true, lastSync: new Date(), error: null, dbMissing: false } 
+        : rawConnectionStatus;
+    const dataLoading = isLocalMode ? false : rawDataLoading;
+
     const { ingredients, products, salesHistory, stockHistory, otherExpenses, pendingOrders, appUsers, bitacoraLogs, config, customers = [] } = data;
     const exchangeRate = config?.exchangeRate || 0;
 
@@ -1171,6 +1330,17 @@ export default function App() {
         if (!user || !appUsers?.length) return null;
         return appUsers.find(u => u.uid === user.uid);
     }, [user, appUsers]);
+
+    // Cerrar sesión automáticamente si el usuario fue borrado de Firestore
+    useEffect(() => {
+        if (user && !dataLoading && appUsers?.length > 0) {
+            const found = appUsers.find(u => u.uid === user.uid || u.id === user.uid);
+            if (!found) {
+                handleLogout();
+                alert("Tu usuario ha sido eliminado del sistema.");
+            }
+        }
+    }, [user, dataLoading, appUsers, handleLogout]);
 
     const PERMISSION_SECTIONS = [
         { id: 'dashboard', label: 'Dashboard' },
@@ -1189,6 +1359,11 @@ export default function App() {
 
     const hasPermission = (tabId, type = 'view') => {
         if (!user) return false;
+        // Si ya cargó la base de datos y el usuario no existe en Firestore, denegar todo
+        if (!dataLoading && appUsers?.length > 0) {
+            const found = appUsers.find(u => u.uid === user.uid || u.id === user.uid);
+            if (!found) return false;
+        }
         if (!currentUserData) return true; // Default to true while loading
         if (currentUserData.role === 'Gerente') return true;
         
@@ -1224,6 +1399,7 @@ export default function App() {
     // --- CÁLCULOS DEL DASHBOARD ---
     const todaySales = useMemo(() => {
         return salesHistory.filter(s => {
+            if (s.isInvalidated) return false;
             if (!s.date) return false;
             const d = getZonedDate(s.date);
             const today = getZonedDate(new Date());
@@ -1278,6 +1454,7 @@ export default function App() {
             d.setHours(0, 0, 0, 0);
             
             const dailySales = salesHistory.filter(s => {
+                if (s.isInvalidated) return false;
                 if (!s.date) return false;
                 const sd = getZonedDate(s.date);
                 return sd.getDate() === d.getDate() &&
@@ -1310,6 +1487,7 @@ export default function App() {
     const topSellingProducts = useMemo(() => {
         const productQuantities = {};
         salesHistory.forEach(sale => {
+            if (sale.isInvalidated) return;
             sale.items?.forEach(item => {
                 if (!productQuantities[item.id]) {
                     productQuantities[item.id] = {
@@ -1409,7 +1587,24 @@ export default function App() {
     };
 
     const [cart, setCart] = useState([]);
+    const [cartDiscountType, setCartDiscountType] = useState("percent"); // "percent" | "fixed"
+    const [cartDiscountValue, setCartDiscountValue] = useState(0);
     const [saleDescription, setSaleDescription] = useState("");
+
+    const cartSubtotal = useMemo(() => {
+        return cart.reduce((s, i) => s + i.price * i.qty, 0);
+    }, [cart]);
+
+    const cartDiscountAmount = useMemo(() => {
+        if (cartDiscountType === "percent") {
+            return (cartSubtotal * cartDiscountValue) / 100;
+        }
+        return Math.min(cartSubtotal, cartDiscountValue);
+    }, [cartSubtotal, cartDiscountType, cartDiscountValue]);
+
+    const cartTotal = useMemo(() => {
+        return Math.max(0, cartSubtotal - cartDiscountAmount);
+    }, [cartSubtotal, cartDiscountAmount]);
     const [orderDeliveryDate, setOrderDeliveryDate] = useState("");
     const [orderDesignLink, setOrderDesignLink] = useState("");
     const [showMermaForm, setShowMermaForm] = useState(false);
@@ -1488,27 +1683,63 @@ export default function App() {
 
     // --- SISTEMA DE BITÁCORA (LOG DE ACCIONES) ---
     const logActivity = async (actionType, detailsText) => {
-        if (!user || !db) return;
         const logId = generateSecureId();
-        const currentUserObj = appUsers.find(u => u.uid === user.uid);
-        const userName = currentUserObj ? currentUserObj.name : user.email;
+        const userName = isLocalMode 
+            ? 'Desarrollador Local' 
+            : (user ? (appUsers.find(u => u.uid === user.uid)?.name || user.email) : 'Sistema');
 
         const logEntry = {
             id: logId,
             date: new Date().toISOString(),
-            userId: user.uid,
+            userId: user ? user.uid : 'local-dev',
             userName: userName,
             action: actionType,
             details: detailsText
         };
+
+        if (isLocalMode) {
+            setLocalData(prev => {
+                const updatedList = [...(prev.bitacoraLogs || []), logEntry];
+                localStorage.setItem('local_db_bitacora', JSON.stringify(updatedList));
+                return { ...prev, bitacoraLogs: updatedList };
+            });
+            return;
+        }
+
+        if (!user || !db) return;
         try {
             await setDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', 'bitacora', logId), logEntry);
         } catch (e) { console.error("Error saving log:", e); }
     };
 
+    const { invalidateSale, updateCompletedSale } = useSales({
+        db,
+        user,
+        currentAppId,
+        logActivity
+    });
+
     const handleLogin = (email, password) => signInWithEmailAndPassword(auth, email, password);
 
     const handleCreateUserSystem = async (email, password, name, role) => {
+        if (isLocalMode) {
+            const localUid = `local-user-${generateSecureId()}`;
+            const defaultPerms = DEFAULT_PERMISSIONS_BY_ROLE[role] || {};
+            const newUser = {
+                id: localUid,
+                uid: localUid,
+                name: name,
+                email: email,
+                role: role,
+                isActive: true,
+                permissions: defaultPerms,
+                createdAt: new Date().toISOString()
+            };
+            await saveToDB('users', newUser, localUid);
+            logActivity('Sistema', `Usuario creado localmente: ${name} (${role})`);
+            showNotification(`Usuario ${name} creado exitosamente (Local)`);
+            return;
+        }
         try {
             let secondaryApp;
             try { secondaryApp = getApp("SecondaryApp"); } catch (e) { secondaryApp = initializeApp(firebaseConfig, "SecondaryApp"); }
@@ -1534,7 +1765,34 @@ export default function App() {
         }
     };
 
+    const handleResetUserPassword = async (email) => {
+        if (isLocalMode) {
+            showNotification(`(Local Demo) Correo de restablecimiento simulado para ${email}`, "success");
+            logActivity('Sistema', `Simulado correo de restablecimiento de contraseña para: ${email}`);
+            return;
+        }
+        if (!auth) return;
+        try {
+            await sendPasswordResetEmail(auth, email);
+            showNotification(`Correo de restablecimiento enviado a ${email}`, "success");
+            logActivity('Sistema', `Enviado correo de restablecimiento de contraseña para: ${email}`);
+        } catch (error) {
+            console.error("Error al restablecer contraseña:", error);
+            showNotification("Error al enviar el correo de restablecimiento: " + error.message, "error");
+        }
+    };
+
     const handleEditUserSystem = async (uid, newData) => {
+        if (isLocalMode) {
+            const currentUser = localData.appUsers.find(u => u.uid === uid || u.id === uid);
+            if (currentUser) {
+                const updated = { ...currentUser, ...newData };
+                await saveToDB('users', updated, uid);
+                logActivity('Sistema', `Usuario actualizado (Local): ${newData.name}`);
+                showNotification("Usuario actualizado correctamente");
+            }
+            return;
+        }
         try {
             await updateDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', 'users', uid), newData);
             logActivity('Sistema', `Usuario actualizado: ${newData.name}`);
@@ -1546,7 +1804,15 @@ export default function App() {
         setConfirmation({
             show: true, message: `¿Eliminar a ${userToDelete.name} de la lista?`, onConfirm: async () => {
                 try {
-                    await deleteDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', 'users', userToDelete.uid));
+                    const uid = userToDelete.id || userToDelete.uid;
+                    if (isLocalMode) {
+                        await deleteFromDB('users', uid);
+                        logActivity('Sistema', `Usuario eliminado (Local): ${userToDelete.name}`);
+                        showNotification("Usuario eliminado de la lista");
+                        setConfirmation({ show: false });
+                        return;
+                    }
+                    await deleteDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', 'users', uid));
                     logActivity('Sistema', `Usuario eliminado: ${userToDelete.name}`);
                     showNotification("Usuario eliminado de la lista");
                     setConfirmation({ show: false });
@@ -1555,14 +1821,214 @@ export default function App() {
         });
     };
 
-    const saveToDB = async (collectionName, data, id = null) => {
+    const saveToDB = async (collectionName, dataItem, id = null) => {
+        const docId = id ? id.toString() : (dataItem.id ? dataItem.id.toString() : generateSecureId());
+        
+        if (isLocalMode) {
+            setLocalData(prev => {
+                const colKey = getLocalKey(collectionName);
+                
+                if (colKey === 'config') {
+                    const newData = { ...prev, config: dataItem };
+                    localStorage.setItem(`local_db_${collectionName}`, JSON.stringify(dataItem));
+                    return newData;
+                }
+                
+                const currentList = prev[colKey] || [];
+                const updatedList = currentList.some(item => item.id.toString() === docId)
+                    ? currentList.map(item => item.id.toString() === docId ? { ...dataItem, id: docId } : item)
+                    : [...currentList, { ...dataItem, id: docId }];
+                
+                const newData = { ...prev, [colKey]: updatedList };
+                localStorage.setItem(`local_db_${collectionName}`, JSON.stringify(updatedList));
+                return newData;
+            });
+            return;
+        }
+
         if (!db) return;
-        const docId = id ? id.toString() : (data.id ? data.id.toString() : generateSecureId());
-        await setDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', collectionName, docId), data);
+        await setDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', collectionName, docId), dataItem);
     };
+
     const deleteFromDB = async (collectionName, id) => {
+        const docId = id.toString();
+
+        if (isLocalMode) {
+            setLocalData(prev => {
+                const colKey = getLocalKey(collectionName);
+                const currentList = prev[colKey] || [];
+                const updatedList = currentList.filter(item => item.id.toString() !== docId);
+                
+                const newData = { ...prev, [colKey]: updatedList };
+                localStorage.setItem(`local_db_${collectionName}`, JSON.stringify(updatedList));
+                return newData;
+            });
+            return;
+        }
+
         if (!db) return;
-        await deleteDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', collectionName, id.toString()));
+        await deleteDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', collectionName, docId));
+    };
+
+    const localInvalidateSale = async (saleId, items, reason) => {
+        const callerName = currentUserData?.name || 'Desarrollador Local';
+        
+        const currentSale = localData.salesHistory.find(s => s.id === saleId);
+        if (!currentSale) return;
+        
+        const updatedSale = {
+            ...currentSale,
+            isInvalidated: true,
+            invalidateReason: reason,
+            invalidatedAt: new Date().toISOString(),
+            invalidatedBy: callerName
+        };
+        
+        const updatedIngredients = [...localData.ingredients];
+        const newLogs = [];
+        
+        for (const item of items) {
+            item.recipe?.forEach(r => {
+                const ingIndex = updatedIngredients.findIndex(i => normalizeId(i.id) === normalizeId(r.ingredientId));
+                if (ingIndex !== -1) {
+                    const ing = updatedIngredients[ingIndex];
+                    const netQty = r.qty * item.qty;
+                    const newStock = ing.stock + netQty;
+                    updatedIngredients[ingIndex] = { ...ing, stock: newStock };
+                    
+                    const log = {
+                        id: generateSecureId(),
+                        date: new Date().toISOString(),
+                        type: 'ADD',
+                        ingredientName: ing.name,
+                        ingredientId: ing.id,
+                        qtyChange: netQty,
+                        costPerUnit: ing.cost || 0,
+                        totalValue: netQty * (ing.cost || 0),
+                        previousStock: ing.stock,
+                        newStock: newStock,
+                        reason: `Anulación Venta #${String(saleId).slice(-6)}`
+                    };
+                    newLogs.push(log);
+                }
+            });
+        }
+        
+        setLocalData(prev => {
+            const newSales = prev.salesHistory.map(s => s.id === saleId ? updatedSale : s);
+            const newHistory = [...prev.stockHistory, ...newLogs];
+            
+            localStorage.setItem('local_db_sales', JSON.stringify(newSales));
+            localStorage.setItem('local_db_ingredients', JSON.stringify(updatedIngredients));
+            localStorage.setItem('local_db_stock_history', JSON.stringify(newHistory));
+            
+            return {
+                ...prev,
+                salesHistory: newSales,
+                ingredients: updatedIngredients,
+                stockHistory: newHistory
+            };
+        });
+        
+        logActivity('Venta', `Venta #${String(saleId).slice(-6)} anulada localmente por ${callerName}`);
+    };
+
+    const localUpdateCompletedSale = async (oldSale, newCart, newTotal, newDescription, options) => {
+        const callerName = currentUserData?.name || 'Desarrollador Local';
+        const stockDiff = {};
+        
+        newCart.forEach(item => {
+            item.recipe?.forEach(r => {
+                const id = normalizeId(r.ingredientId);
+                stockDiff[id] = (stockDiff[id] || 0) + (r.qty * item.qty);
+            });
+        });
+        
+        oldSale.items.forEach(item => {
+            item.recipe?.forEach(r => {
+                const id = normalizeId(r.ingredientId);
+                stockDiff[id] = (stockDiff[id] || 0) - (r.qty * item.qty);
+            });
+        });
+        
+        const updatedIngredients = [...localData.ingredients];
+        const newLogs = [];
+        
+        for (const [ingId, netQty] of Object.entries(stockDiff)) {
+            if (netQty === 0) continue;
+            const ingIndex = updatedIngredients.findIndex(i => normalizeId(i.id) === ingId);
+            if (ingIndex !== -1) {
+                const ing = updatedIngredients[ingIndex];
+                const newStock = ing.stock - netQty;
+                updatedIngredients[ingIndex] = { ...ing, stock: newStock };
+                
+                const log = {
+                    id: generateSecureId(),
+                    date: new Date().toISOString(),
+                    type: netQty > 0 ? 'SUB' : 'ADD',
+                    ingredientName: ing.name,
+                    ingredientId: ing.id,
+                    qtyChange: -netQty,
+                    costPerUnit: ing.cost || 0,
+                    totalValue: Math.abs(netQty) * (ing.cost || 0),
+                    previousStock: ing.stock,
+                    newStock: newStock,
+                    reason: `Modif Venta #${String(oldSale.id).slice(-6)}`
+                };
+                newLogs.push(log);
+            }
+        }
+        
+        const modHistoryEntry = {
+            timestamp: new Date().toISOString(),
+            user: callerName,
+            previousTotal: Number(oldSale.total) || 0,
+            newTotal: Number(newTotal) || 0,
+            previousItems: oldSale.items,
+            newItems: newCart,
+            previousPaymentData: oldSale.paymentData || {},
+            newPaymentData: options.paymentData || {},
+            type: 'price_and_items'
+        };
+        
+        const currentHistory = oldSale.modificationHistory || [];
+        
+        const updatedSale = {
+            ...oldSale,
+            items: newCart,
+            total: Number(newTotal),
+            description: newDescription,
+            paymentMethod: options.paymentMethod,
+            paymentData: options.paymentData || {},
+            isModifiedFromHistory: true,
+            modifiedAt: new Date().toISOString(),
+            modifiedBy: callerName,
+            changeStatus: options.changeStatus || 'exact',
+            observation: options.observation || oldSale.observation || '',
+            modificationHistory: [...currentHistory, modHistoryEntry],
+            subtotal: options.subtotal !== undefined ? options.subtotal : Number(newTotal),
+            discountType: options.discountType || 'percent',
+            discountValue: options.discountValue || 0,
+            discountAmount: options.discountAmount || 0
+        };
+        
+        setLocalData(prev => {
+            const newSales = prev.salesHistory.map(s => s.id === oldSale.id ? updatedSale : s);
+            const newHistory = [...prev.stockHistory, ...newLogs];
+            
+            localStorage.setItem('local_db_sales', JSON.stringify(newSales));
+            localStorage.setItem('local_db_ingredients', JSON.stringify(updatedIngredients));
+            localStorage.setItem('local_db_stock_history', JSON.stringify(newHistory));
+            
+            return {
+                ...prev,
+                salesHistory: newSales,
+                ingredients: updatedIngredients,
+                stockHistory: newHistory
+            };
+        });
+        
+        logActivity('Venta', `Venta #${String(oldSale.id).slice(-6)} editada localmente por ${callerName}`);
     };
 
     const getProductMaxStock = (product) => {
@@ -1583,11 +2049,69 @@ export default function App() {
         if (window.innerWidth < 1024 && cart.length === 0) setIsCartOpenMobile(true);
     };
 
+    const toggleCartItemGift = (itemId) => {
+        if (!hasPermission('pos', 'edit')) { showNotification("No tienes permisos para interactuar con la orden", "error"); return; }
+        setCart(prev => {
+            const itemIndex = prev.findIndex(i => i.id === itemId);
+            if (itemIndex === -1) return prev;
+            const item = prev[itemIndex];
+            
+            if (item.isGift) {
+                // Restaurar a item normal
+                const originalId = itemId.replace('-gift', '');
+                const normalItemIndex = prev.findIndex(i => i.id === originalId);
+                
+                if (normalItemIndex !== -1) {
+                    const updated = [...prev];
+                    updated[normalItemIndex].qty += item.qty;
+                    return updated.filter(i => i.id !== itemId);
+                } else {
+                    return prev.map(i => i.id === itemId ? { 
+                        ...i, 
+                        id: originalId, 
+                        price: i.originalPrice || i.price, 
+                        isGift: false 
+                    } : i);
+                }
+            } else {
+                // Convertir o dividir a obsequio
+                if (item.qty > 1) {
+                    const updated = [...prev];
+                    updated[itemIndex].qty -= 1;
+                    
+                    const giftId = `${item.id}-gift`;
+                    const existingGiftIndex = prev.findIndex(i => i.id === giftId);
+                    
+                    if (existingGiftIndex !== -1) {
+                        updated[existingGiftIndex].qty += 1;
+                    } else {
+                        updated.push({
+                            ...item,
+                            id: giftId,
+                            qty: 1,
+                            price: 0,
+                            originalPrice: item.price,
+                            isGift: true
+                        });
+                    }
+                    return updated;
+                } else {
+                    return prev.map(i => i.id === itemId ? {
+                        ...i,
+                        id: `${item.id}-gift`,
+                        price: 0,
+                        originalPrice: i.price,
+                        isGift: true
+                    } : i);
+                }
+            }
+        });
+    };
+
     const handleDirectCharge = async () => {
         if (cart.length === 0) return;
         const orderId = generateSecureId();
         const desc = saleDescription || "Cliente POS";
-        const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
 
         // Descontar stock directamente
         for (const item of cart) {
@@ -1616,12 +2140,29 @@ export default function App() {
             });
         }
 
-        const sale = { id: orderId, date: new Date().toISOString(), items: cart, total: total, description: desc, observation: "" };
+        const sale = { 
+            id: orderId, 
+            date: new Date().toISOString(), 
+            items: cart, 
+            subtotal: cartSubtotal,
+            discountType: cartDiscountType,
+            discountValue: Number(cartDiscountValue) || 0,
+            discountAmount: cartDiscountAmount,
+            total: cartTotal, 
+            description: desc, 
+            observation: "" 
+        };
         await saveToDB('sales', sale, orderId);
-        logActivity('Venta', `Venta directa realizada: ${desc} - ${formatCurrency(total)}`);
+        logActivity('Venta', `Venta directa realizada: ${desc} - ${formatCurrency(cartTotal)}`);
         showNotification("Venta procesada exitosamente");
         setReceiptModal({ show: true, sale });
-        setCart([]); setSaleDescription(""); setOrderDeliveryDate(""); setOrderDesignLink(""); setIsCartOpenMobile(false);
+        setCart([]); 
+        setCartDiscountType("percent");
+        setCartDiscountValue(0);
+        setSaleDescription(""); 
+        setOrderDeliveryDate(""); 
+        setOrderDesignLink(""); 
+        setIsCartOpenMobile(false);
     };
 
     const handleSaveToPending = async () => {
@@ -1632,7 +2173,20 @@ export default function App() {
         const originalOrder = isUpdate ? pendingOrders.find(o => o.id === editingOrderId) : null;
         const status = isUpdate && originalOrder ? (originalOrder.status || 'pending') : 'pending';
         const date = isUpdate && originalOrder ? originalOrder.date : new Date().toISOString();
-        const order = { id: orderId, date, items: cart, total: cart.reduce((s, i) => s + i.price * i.qty, 0), description: desc, status, deliveryDate: orderDeliveryDate, designLink: orderDesignLink };
+        const order = { 
+            id: orderId, 
+            date, 
+            items: cart, 
+            subtotal: cartSubtotal,
+            discountType: cartDiscountType,
+            discountValue: Number(cartDiscountValue) || 0,
+            discountAmount: cartDiscountAmount,
+            total: cartTotal, 
+            description: desc, 
+            status, 
+            deliveryDate: orderDeliveryDate, 
+            designLink: orderDesignLink 
+        };
 
         // Calculamos la diferencia neta de inventario a descontar/devolver
         const stockDeductions = {};
@@ -1682,7 +2236,15 @@ export default function App() {
         saveToDB('pending_orders', order, order.id);
         logActivity('Pedido', `Orden ${isUpdate ? 'actualizada' : 'enviada a pendientes'}: ${desc}`);
         showNotification(isUpdate ? "Orden actualizada" : "Enviada a pendientes");
-        setCart([]); setSaleDescription(""); setOrderDeliveryDate(""); setOrderDesignLink(""); setEditingOrderId(null); setIsCartOpenMobile(false); if (isUpdate) setActiveTab('pending');
+        setCart([]); 
+        setCartDiscountType("percent");
+        setCartDiscountValue(0);
+        setSaleDescription(""); 
+        setOrderDeliveryDate(""); 
+        setOrderDesignLink(""); 
+        setEditingOrderId(null); 
+        setIsCartOpenMobile(false); 
+        if (isUpdate) setActiveTab('pending');
     };
 
     const handleAdvanceOrder = (order) => {
@@ -2025,7 +2587,7 @@ export default function App() {
     };
 
     const filterAndSort = (data, fieldsToCheck = [], useDateFilter = false, usePeriodFilter = false) => {
-        let processed = [...data];
+        let processed = [...data].filter(item => !item.isInvalidated);
         if (useDateFilter) processed = processed.filter(item => isWithinRange(item.date));
         if (usePeriodFilter) processed = processed.filter(item => isWithinPeriod(item.date));
         if (searchQuery) {
@@ -2409,7 +2971,19 @@ export default function App() {
                 onViewPublicCatalog={() => {
                     window.location.hash = '#/catalogo';
                     setIsPublicCatalogMode(true);
-                }} 
+                }}
+                onEnterLocalMode={() => {
+                    localStorage.setItem('isLocalMode', 'true');
+                    setIsLocalMode(true);
+                    setUser({
+                        uid: 'local-dev',
+                        id: 'local-dev',
+                        email: 'dev@jl-inversiones.local',
+                        displayName: 'Desarrollador Local',
+                        role: 'Gerente',
+                        isLocal: true
+                    });
+                }}
             />
         );
     }
@@ -2981,6 +3555,8 @@ export default function App() {
                                                                     setSaleDescription(order.description); 
                                                                     setOrderDeliveryDate(order.deliveryDate || ""); 
                                                                     setOrderDesignLink(order.designLink || ""); 
+                                                                    setCartDiscountType(order.discountType || "percent");
+                                                                    setCartDiscountValue(order.discountValue || 0);
                                                                     setEditingOrderId(order.id); 
                                                                     setActiveTab('pos'); 
                                                                 }} 
@@ -3149,7 +3725,26 @@ export default function App() {
                 )}
 
                 {/* --- HISTORIAL (VENTAS) --- */}
-                {activeTab === 'history' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4"><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><ClipboardList className="text-teal-500" /> Historial de Ventas</h2><GlassButton variant="gemini" onClick={() => callGeminiAI(`Analiza ventas: ${JSON.stringify(salesHistory.slice(0, 10))}`, "Tendencias")}>Analizar AI</GlassButton></div><div className="bg-white/60 border border-teal-200 p-4 rounded-xl text-sm flex items-center gap-3 text-slate-700 shadow-sm"><Info size={24} className="text-teal-500 shrink-0" /><p>Mostrando las ventas de las fechas seleccionadas. Si borraste el filtro, verás <b>todas</b> las ventas registradas.</p></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} onDownloadPdf={() => handleDownloadReport(filterAndSort(salesHistory, [], true))} title="Filtrar Ventas" /><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }, { value: 'total', label: 'Total' }]} /><GlassCard className="overflow-hidden"><div className="overflow-x-auto "><table className="w-full text-left text-sm min-w-[600px]"><thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4">Fecha exacta</th><th className="p-4">Cliente</th><th className="p-4 text-center">Items</th><th className="p-4 text-right">Total</th><th className="p-4 text-center">Acciones</th></tr></thead><tbody className="divide-y divide-slate-100">{filterAndSort(salesHistory, ['description'], true).map(sale => (<tr key={sale.id} onClick={() => { setSelectedSale(sale); setObservationText(sale.observation || ""); }} className="hover:bg-slate-50 cursor-pointer active:bg-slate-100"><td className="p-4">{formatDateApp(sale.date, 'full')}</td><td className="p-4 font-bold">{sale.description}</td><td className="p-4 text-center">{sale.items.reduce((a, b) => a + b.qty, 0)}</td><td className="p-4 text-right"><PriceDisplay amount={sale.total} exchangeRate={exchangeRate} align="right" size="small" /></td><td className="p-4 text-center"><button className="p-2 bg-white border rounded hover:bg-slate-100"><Eye size={16} /></button></td></tr>))}</tbody></table>{filterAndSort(salesHistory, ['description'], true).length === 0 && <div className="p-8 text-center text-slate-400">No hay ventas registradas en este rango de fechas.</div>}</div></GlassCard></div>)}
+                {activeTab === 'history' && (
+                    <div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0">
+                        <HistoryView
+                            salesHistory={salesHistory}
+                            ingredients={ingredients}
+                            products={products}
+                            exchangeRate={exchangeRate}
+                            currencyMode={currencyMode}
+                            startDate={startDate}
+                            setStartDate={setStartDate}
+                            endDate={endDate}
+                            setEndDate={setEndDate}
+                            onViewSale={(sale) => setSelectedSale(sale)}
+                            invalidateSale={invalidateSale}
+                            currentUserData={currentUserData}
+                            showNotification={showNotification}
+                            hasPermission={hasPermission}
+                        />
+                    </div>
+                )}
 
                 {/* --- BITÁCORA --- */}
                 {activeTab === 'bitacora' && (<div className="max-w-7xl mx-auto space-y-6 fade-in mt-10 md:mt-0"><div className="flex flex-col md:flex-row justify-between items-center gap-4"><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><FileSearch className="text-teal-600" /> Registro de Actividades</h2></div><div className="bg-white/60 border border-teal-200 p-4 rounded-xl text-sm flex items-center gap-3 text-slate-800 shadow-sm"><Activity size={24} className="text-teal-500 shrink-0" /><p>Aquí queda registrado <b>absolutamente todo</b> lo que ocurre en el sistema. Quién lo hizo, a qué hora y el detalle exacto.</p></div><DateRangeToolbar startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} title="Filtrar Bitácora" /><AdvancedToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortConfig={sortConfig} setSortConfig={setSortConfig} sortOptions={[{ value: 'date', label: 'Fecha' }]} placeholder="Buscar por usuario o detalle..." /><div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar ">{['Todos', 'Venta', 'Inventario', 'Catálogo', 'Sistema', 'Gasto', 'Pedido', 'Cancelación'].map(cat => (<button key={cat} onClick={() => setBitacoraFilter(cat)} className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-bold ${bitacoraFilter === cat ? 'bg-slate-800 text-white' : 'bg-white text-slate-600'}`}>{cat}</button>))}</div><GlassCard className="overflow-hidden"><div className="overflow-x-auto "><table className="w-full text-left text-sm min-w-[800px]"><thead className="bg-slate-50 text-slate-500 font-medium uppercase"><tr><th className="p-4 w-40">Fecha y Hora</th><th className="p-4 w-32">Usuario</th><th className="p-4 w-32">Módulo</th><th className="p-4">Detalle de la acción</th></tr></thead><tbody className="divide-y divide-slate-100">{filterAndSort(bitacoraLogs, ['userName', 'details'], true).filter(log => bitacoraFilter === 'Todos' || log.action === bitacoraFilter).map(log => (<tr key={log.id} className="hover:bg-slate-50"><td className="p-4 text-xs font-mono text-slate-500 whitespace-nowrap">{formatDateApp(log.date, 'full')}</td><td className="p-4 font-bold text-slate-700">{log.userName}</td><td className="p-4"><Badge type={log.action === 'Sistema' ? 'danger' : (log.action === 'Venta' ? 'success' : 'info')}>{log.action}</Badge></td><td className="p-4 text-slate-600">{log.details}</td></tr>))}</tbody></table>{filterAndSort(bitacoraLogs, ['userName', 'details'], true).filter(log => bitacoraFilter === 'Todos' || log.action === bitacoraFilter).length === 0 && <div className="p-8 text-center text-slate-400">No se encontraron registros de actividad.</div>}</div></GlassCard></div>)}
@@ -3340,7 +3935,7 @@ export default function App() {
                                                     {log.ingredientName}
                                                 </div>
                                                 <div className="w-[15%] text-center flex justify-center">
-                                                    <Badge type={log.type === 'ADD' ? 'success' : 'danger'}>{log.type === 'ADD' ? 'Entrada' : 'Salida'}</Badge>
+                                                    <Badge type={['ADD', 'in', 'IN'].includes(log.type) ? 'success' : 'danger'}>{['ADD', 'in', 'IN'].includes(log.type) ? 'Entrada' : 'Salida'}</Badge>
                                                 </div>
                                                 <div className="w-[15%] text-right pr-6 font-mono font-bold text-slate-800">
                                                     {log.qtyChange}
@@ -3944,7 +4539,15 @@ export default function App() {
                 {/* --- CONFIGURACIÓN --- */}
                 {activeTab === 'settings' && (<div className="max-w-4xl mx-auto space-y-8 fade-in mt-10 md:mt-0 pb-10"><header className="flex items-center gap-4 bg-white/50 p-6 rounded-[2rem] border border-white/60 shadow-md backdrop-blur-md bg-white/50"><div className="p-3 bg-slate-200 rounded-xl"><Settings className="text-slate-700" size={32} /></div><div><h2 className="text-2xl font-black text-slate-800">Configuración Global</h2><p className="text-slate-500">Usuarios, Respaldos y Nube</p></div></header>
 
-                    {/* 1. SECCIÓN DE USUARIOS (ACTUALIZADA) */}<UserManagement appUsers={appUsers} onCreateUser={handleCreateUserSystem} onEditUser={handleEditUserSystem} onDeleteUser={handleDeleteUserSystem} currentUserId={user.uid} />
+                    {/* 1. SECCIÓN DE USUARIOS (ACTUALIZADA) */}
+                    <UserManagement 
+                        appUsers={appUsers} 
+                        onCreateUser={handleCreateUserSystem} 
+                        onEditUser={handleEditUserSystem} 
+                        onDeleteUser={handleDeleteUserSystem} 
+                        onResetPassword={handleResetUserPassword}
+                        currentUserId={user.uid} 
+                    />
 
                     {/* 2. GESTIÓN DE RESPALDOS */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><GlassCard className="p-6 space-y-4 border-l-4 border-blue-500"><div className="flex items-center gap-3 mb-2"><div className="p-2 bg-blue-100 rounded-lg text-blue-600"><Download size={24} /></div><h3 className="font-bold text-lg">Exportar Copia Local</h3></div><p className="text-sm text-slate-600">Descarga un archivo JSON con todos los datos actuales del negocio.</p><GlassButton onClick={handleExportData} variant="info" className="w-full">Descargar Respaldo</GlassButton></GlassCard><GlassCard className="p-6 space-y-4 border-l-4 border-rose-500"><div className="flex items-center gap-3 mb-2"><div className="p-2 bg-rose-100 rounded-lg text-rose-600"><Upload size={24} /></div><h3 className="font-bold text-lg">Restaurar Copia</h3></div><p className="text-sm text-slate-600">⚠ CUIDADO: Esto <b>BORRARÁ todos los datos actuales</b> antes de restaurar.</p><div className="relative"><input type="file" ref={fileInputRef} onClick={(e) => e.target.value = null} onChange={handleImportData} accept=".json" className="hidden" /><GlassButton onClick={() => fileInputRef.current.click()} variant="danger" disabled={isRestoring} className="w-full justify-center">{isRestoring ? <><Loader2 className="animate-spin" size={16} /> {restoreStatus}</> : "Seleccionar Archivo y Restaurar"}</GlassButton></div></GlassCard></div></div>)}
@@ -3953,63 +4556,200 @@ export default function App() {
             {activeTab === 'pos' && (
                 <aside className={`fixed inset-x-0 bottom-0 z-30 lg:relative lg:inset-auto lg:translate-y-0 lg:my-4 lg:mr-4 lg:ml-2 lg:w-[24%] lg:shrink-0 lg:block transition-transform duration-300 ${isCartOpenMobile ? 'translate-y-0' : 'translate-y-[calc(100%-85px)]'} overflow-hidden`}>
                     <GlassCard className="h-[80vh] lg:h-full flex flex-col rounded-t-[2rem] rounded-b-none border-b-0 lg:rounded-[2rem] lg:border shadow-[0_-10px_40px_rgba(0,0,0,0.2)] overflow-hidden">
-                        <div onClick={() => window.innerWidth < 1024 && setIsCartOpenMobile(!isCartOpenMobile)} className={`p-4 border-b border-slate-100/60 flex justify-between items-center rounded-t-2xl cursor-pointer lg:cursor-default bg-white/45 backdrop-blur-md`}><div className="flex items-center gap-2"><h3 className="font-bold text-lg flex items-center gap-2"><CartIcon size={20} /> Orden</h3><Badge>{cart.reduce((a, c) => a + c.qty, 0)} items</Badge></div><div className="hidden lg:flex bg-slate-200/50 rounded-xl p-0.5 border border-slate-300/40 gap-0.5 select-none text-[10px] font-bold"><button type="button" onClick={(e) => { e.stopPropagation(); setCurrencyMode('USD'); }} className={`px-2 py-1 rounded-lg transition-all ${currencyMode === 'USD' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>$ USD</button><button type="button" onClick={(e) => { e.stopPropagation(); setCurrencyMode('VES'); }} className={`px-2 py-1 rounded-lg transition-all ${currencyMode === 'VES' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Bs</button></div><div className="lg:hidden text-slate-400 flex items-center gap-2"><span className="font-bold text-teal-600"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} size="small" /></span>{isCartOpenMobile ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</div></div><div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white/30">{cart.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-slate-400"><Palette size={48} className="opacity-20 mb-4" /><p>Vacío</p></div> : cart.map(item => (<div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm border border-slate-100"><div className="flex items-center gap-3">{item.image && (String(item.image).startsWith('data:image') || String(item.image).startsWith('http')) ? <img src={item.image} alt="" className="w-8 h-8 object-contain rounded" /> : <span className="text-xl">{item.image || '🎨'}</span>}<div className="flex-1"> <p className="font-bold text-sm leading-none">{item.name}</p><PriceDisplay amount={item.price} exchangeRate={exchangeRate} size="small" /><input type="text" placeholder="Talla, Color, Detalles..." value={item.variantDetails || ''} onChange={(e) => setCart(prev => prev.map(p => p.id === item.id ? {...p, variantDetails: e.target.value} : p))} className="text-xs p-1 mt-1 bg-slate-50 border border-slate-200 rounded outline-none focus:border-teal-500 w-full"/></div></div><div className="flex items-center gap-2"><button onClick={() => setCart(prev => prev.map(p => p.id === item.id ? { ...p, qty: p.qty - 1 } : p).filter(p => p.qty > 0))} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Minus size={14} /></button><span className="font-bold w-6 text-center text-sm">{item.qty}</span><button onClick={() => addToCart(item)} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Plus size={14} /></button></div></div>))}</div><div className="p-4 bg-white border-t border-slate-100 space-y-3 pb-8 lg:pb-4"><div className="flex justify-between font-black text-xl"><span>Total</span><div className="text-right"><PriceDisplay amount={cart.reduce((s, i) => s + i.price * i.qty, 0)} exchangeRate={exchangeRate} align="right" size="large" /></div></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Entrega (Prometida)</label><input type="date" value={orderDeliveryDate} onChange={(e) => setOrderDeliveryDate(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner text-slate-500" /></div><input type="url" value={orderDesignLink} onChange={(e) => setOrderDesignLink(e.target.value)} placeholder="Enlace del Diseño (Drive, Canva, etc)" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner" /><input type="text" value={saleDescription} onChange={(e) => setSaleDescription(e.target.value)} placeholder="Cliente / Nota..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner" /><div className="grid grid-cols-3 gap-2">{orderDesignLink && <a href={orderDesignLink} target="_blank" rel="noreferrer" className="col-span-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 hover:bg-indigo-100 transition-colors"><Link size={14}/> Ver Diseño Original</a>}
-                                <GlassButton variant="secondary" onClick={() => { setCart([]); setEditingOrderId(null); setIsCartOpenMobile(false); }} disabled={!hasPermission('pos', 'edit')} title="Vaciar carrito"><Trash2 size={16} /></GlassButton>
+                        {/* Header del carrito */}
+                        <div onClick={() => window.innerWidth < 1024 && setIsCartOpenMobile(!isCartOpenMobile)} className={`p-4 border-b border-slate-100/60 flex justify-between items-center rounded-t-2xl cursor-pointer lg:cursor-default bg-white/45 backdrop-blur-md`}>
+                            <div className="flex items-center gap-2">
+                                <h3 className="font-bold text-lg flex items-center gap-2">
+                                    <CartIcon size={20} /> Orden
+                                </h3>
+                                <Badge>{cart.reduce((a, c) => a + c.qty, 0)} items</Badge>
+                            </div>
+                            <div className="hidden lg:flex bg-slate-200/50 rounded-xl p-0.5 border border-slate-300/40 gap-0.5 select-none text-[10px] font-bold">
+                                <button type="button" onClick={(e) => { e.stopPropagation(); setCurrencyMode('USD'); }} className={`px-2 py-1 rounded-lg transition-all ${currencyMode === 'USD' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>$ USD</button>
+                                <button type="button" onClick={(e) => { e.stopPropagation(); setCurrencyMode('VES'); }} className={`px-2 py-1 rounded-lg transition-all ${currencyMode === 'VES' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Bs</button>
+                            </div>
+                            <div className="lg:hidden text-slate-400 flex items-center gap-2">
+                                <span className="font-bold text-teal-600">
+                                    <PriceDisplay amount={cartTotal} exchangeRate={exchangeRate} size="small" />
+                                </span>
+                                {isCartOpenMobile ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+                            </div>
+                        </div>
+
+                        {/* Listado de items */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white/30">
+                            {cart.length === 0 ? (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                                    <Palette size={48} className="opacity-20 mb-4" />
+                                    <p>Vacío</p>
+                                </div>
+                            ) : (
+                                cart.map(item => (
+                                    <div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm border border-slate-100 font-sans">
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            {item.image && (String(item.image).startsWith('data:image') || String(item.image).startsWith('http')) ? (
+                                                <img src={item.image} alt="" className="w-8 h-8 object-contain rounded" />
+                                            ) : (
+                                                <span className="text-xl">{item.image || '🎨'}</span>
+                                            )}
+                                            <div className="flex-1 min-w-0"> 
+                                                <p className="font-bold text-sm leading-none truncate flex items-center gap-1.5 text-slate-800">
+                                                    {item.name}
+                                                    {item.isGift && (
+                                                        <span className="bg-rose-100 text-rose-700 text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-0.5 shrink-0">
+                                                            <Gift size={8} /> Regalo
+                                                        </span>
+                                                    )}
+                                                </p>
+                                                <PriceDisplay amount={item.price} exchangeRate={exchangeRate} size="small" />
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Talla, Color, Detalles..." 
+                                                    value={item.variantDetails || ''} 
+                                                    onChange={(e) => setCart(prev => prev.map(p => p.id === item.id ? {...p, variantDetails: e.target.value} : p))} 
+                                                    className="text-xs p-1 mt-1 bg-slate-50 border border-slate-200 rounded outline-none focus:border-teal-500 w-full"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                            {/* Botón de Regalo */}
+                                            <button 
+                                                type="button"
+                                                onClick={() => toggleCartItemGift(item.id)} 
+                                                className={`p-1.5 rounded transition-colors ${item.isGift ? 'bg-rose-100 text-rose-600 border border-rose-300' : 'bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 border border-slate-200 shadow-sm'}`}
+                                                title={item.isGift ? "Quitar regalo" : "Marcar como regalo ($0)"}
+                                            >
+                                                <Gift size={12} />
+                                            </button>
+                                            <button onClick={() => setCart(prev => prev.map(p => p.id === item.id ? { ...p, qty: p.qty - 1 } : p).filter(p => p.qty > 0))} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Minus size={14} /></button>
+                                            <span className="font-bold w-5 text-center text-sm">{item.qty}</span>
+                                            <button onClick={() => addToCart(item)} className="p-2 bg-slate-100 rounded hover:bg-slate-200"><Plus size={14} /></button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Footer con descuentos y totales */}
+                        <div className="p-4 bg-white border-t border-slate-100 space-y-3 pb-8 lg:pb-4">
+                            {/* Panel de Descuento Global en el POS */}
+                            {cart.length > 0 && (
+                                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/60 space-y-2 text-left">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider font-sans">Descuento Global</span>
+                                        <div className="flex bg-slate-200/50 p-0.5 rounded-lg border select-none text-[8px] font-bold">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setCartDiscountType('percent')} 
+                                                className={`px-1.5 py-0.5 rounded transition-all ${cartDiscountType === 'percent' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500'}`}
+                                            >
+                                                %
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setCartDiscountType('fixed')} 
+                                                className={`px-1.5 py-0.5 rounded transition-all ${cartDiscountType === 'fixed' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500'}`}
+                                            >
+                                                $
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <input 
+                                                type="number" 
+                                                min="0"
+                                                value={cartDiscountValue || ''}
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value) || 0;
+                                                    setCartDiscountValue(val);
+                                                }}
+                                                placeholder={cartDiscountType === 'percent' ? 'Ej: 10%' : 'Ej: $15'}
+                                                className="w-full p-1.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-teal-500 font-mono bg-white text-center"
+                                            />
+                                        </div>
+                                        {cartDiscountAmount > 0 && (
+                                            <div className="flex items-center text-[10px] text-rose-600 font-bold px-1 whitespace-nowrap font-mono">
+                                                - ${cartDiscountAmount.toFixed(2)}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Desglose de Precios */}
+                            <div className="space-y-1 pt-1 font-sans">
+                                {cartDiscountAmount > 0 && (
+                                    <>
+                                        <div className="flex justify-between text-xs text-slate-400">
+                                            <span>Subtotal</span>
+                                            <PriceDisplay amount={cartSubtotal} exchangeRate={exchangeRate} align="right" size="small" />
+                                        </div>
+                                        <div className="flex justify-between text-xs text-rose-600 font-bold">
+                                            <span>Descuento ({cartDiscountType === 'percent' ? `${cartDiscountValue}%` : 'Fijo'})</span>
+                                            <span>-{formatCurrency(cartDiscountAmount)}</span>
+                                        </div>
+                                    </>
+                                )}
+                                <div className="flex justify-between font-black text-xl border-t border-dashed border-slate-100 pt-1.5 text-slate-800">
+                                    <span>Total</span>
+                                    <div className="text-right font-mono">
+                                        <PriceDisplay amount={cartTotal} exchangeRate={exchangeRate} align="right" size="large" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 font-sans">Fecha de Entrega (Prometida)</label>
+                                <input type="date" value={orderDeliveryDate} onChange={(e) => setOrderDeliveryDate(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner text-slate-500" />
+                            </div>
+                            <input type="url" value={orderDesignLink} onChange={(e) => setOrderDesignLink(e.target.value)} placeholder="Enlace del Diseño (Drive, Canva, etc)" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner" />
+                            <input type="text" value={saleDescription} onChange={(e) => setSaleDescription(e.target.value)} placeholder="Cliente / Nota..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-teal-500 outline-none shadow-inner" />
+                            <div className="grid grid-cols-3 gap-2">
+                                {orderDesignLink && (
+                                    <a href={orderDesignLink} target="_blank" rel="noreferrer" className="col-span-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 hover:bg-indigo-100 transition-colors">
+                                        <Link size={14}/> Ver Diseño Original
+                                    </a>
+                                )}
+                                <GlassButton 
+                                    variant="secondary" 
+                                    onClick={() => { 
+                                        setCart([]); 
+                                        setCartDiscountType("percent");
+                                        setCartDiscountValue(0);
+                                        setEditingOrderId(null); 
+                                        setIsCartOpenMobile(false); 
+                                    }} 
+                                    disabled={!hasPermission('pos', 'edit')} 
+                                    title="Vaciar carrito"
+                                >
+                                    <Trash2 size={16} />
+                                </GlassButton>
                                 <GlassButton onClick={handleSaveToPending} disabled={cart.length === 0 || !hasPermission('pos', 'edit')} variant="kitchen" title="Enviar a pendientes">{editingOrderId ? 'Actualizar' : 'Pendientes'}</GlassButton>
                                 <GlassButton onClick={handleDirectCharge} disabled={cart.length === 0 || !hasPermission('pos', 'edit')} variant="primary" title="Cobrar inmediatamente">Cobrar</GlassButton>
-                            </div></div></GlassCard></aside>
+                            </div>
+                        </div>
+                    </GlassCard>
+                </aside>
             )}
 
             {/* --- MODALES --- */}
             {receiptModal.show && (<div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm"><GlassCard className="p-8 max-w-sm w-full text-center slide-up max-h-[90vh] overflow-y-auto"><div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500"><ShieldCheck size={32} /></div><h3 className="text-2xl font-black text-slate-800 mb-2">¡Venta Exitosa!</h3><div className="flex flex-col gap-3 mt-6"><GlassButton onClick={() => handleDownloadReceipt(receiptModal.sale)} variant="primary" className="w-full justify-center"><Receipt size={18} /> Descargar Recibo</GlassButton><GlassButton onClick={() => setReceiptModal({ show: false, sale: null })} variant="secondary" className="w-full justify-center">Cerrar</GlassButton></div></GlassCard></div>)}
             {selectedSale && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                    <GlassCard className="w-full max-w-lg p-0 overflow-hidden flex flex-col max-h-[90vh] slide-up">
-                        <div className="p-4 bg-slate-50 border-b flex justify-between items-center">
-                            <div><h3 className="font-bold text-lg">Detalle Venta</h3></div>
-                            <button onClick={() => setSelectedSale(null)}><X size={20} /></button>
-                        </div>
-                        <div className="p-6 overflow-y-auto">
-                            <div className="mb-4">
-                                <span className="text-sm text-slate-500">Cliente:</span> <span className="font-bold">{selectedSale.description || "N/A"}</span>
-                            </div>
-                            <div className="space-y-2 mb-6">
-                                {selectedSale.items.map((item, idx) => (
-                                    <div key={idx} className="flex justify-between text-sm py-2 border-b">
-                                        <div className="flex flex-col text-left text-xs md:text-sm">
-                                            <span>{item.qty}x {item.name}</span>
-                                            {(item.variantDetails || item.details) && (
-                                                <span className="text-xs text-indigo-500 font-bold">({item.variantDetails || item.details})</span>
-                                            )}
-                                        </div>
-                                        <span className="font-bold">
-                                            <PriceDisplay amount={item.price * item.qty} exchangeRate={exchangeRate} align="right" size="small" />
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Observaciones</label>
-                                <textarea 
-                                    className="w-full p-2 mt-2 text-sm border rounded-lg bg-white resize-none disabled:bg-slate-100 disabled:text-slate-500" 
-                                    rows="3" 
-                                    value={observationText} 
-                                    onChange={(e) => setObservationText(e.target.value)} 
-                                    placeholder={hasPermission('history', 'edit') ? "Añadir nota..." : "Sin observaciones"}
-                                    disabled={!hasPermission('history', 'edit')}
-                                />
-                            </div>
-                        </div>
-                        <div className="p-4 border-t flex justify-between gap-3 bg-white">
-                            <GlassButton variant="info" onClick={() => handleDownloadReceipt(selectedSale)}><Receipt size={16} /> Recibo</GlassButton>
-                            {hasPermission('history', 'edit') ? (
-                                <GlassButton onClick={() => { handleUpdateObservation(); setSelectedSale(null); }}>Guardar Nota</GlassButton>
-                            ) : (
-                                <GlassButton variant="secondary" onClick={() => setSelectedSale(null)}>Cerrar</GlassButton>
-                            )}
-                        </div>
-                    </GlassCard>
-                </div>
+                <ReceiptModal
+                    sale={selectedSale}
+                    onClose={() => setSelectedSale(null)}
+                    exchangeRate={exchangeRate}
+                    currencyMode={currencyMode}
+                    products={products}
+                    invalidateSale={invalidateSale}
+                    updateCompletedSale={updateCompletedSale}
+                    saveToDB={saveToDB}
+                    logActivity={logActivity}
+                    currentUserData={currentUserData}
+                    showNotification={showNotification}
+                    hasPermission={hasPermission}
+                />
             )}
             {showIngredientForm && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"><GlassCard className="w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto"><h3 className="font-bold mb-4 text-slate-800">{editingIngredient ? 'Editar' : 'Nuevo'} Material</h3><form onSubmit={handleSaveIngredient} className="space-y-4"><div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre del Material</label><input name="name" required placeholder="Ej. Taza de Cerámica Blanca 11oz" defaultValue={editingIngredient?.name} className="w-full p-3 border border-slate-200 rounded-xl focus:border-teal-500 outline-none" /></div><div className="grid grid-cols-3 gap-3">
                                 <div className="space-y-1">
